@@ -749,6 +749,572 @@
   }
 
   /* ════════════════════════════════════════════════
+     TOOLBAR — busca, filtros, ação primária
+     ════════════════════════════════════════════════ */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+    flex-wrap: wrap;
+  }
+
+  .toolbar-search {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+  }
+
+  .toolbar-search input {
+    width: 100%;
+    background: var(--bluish-bg);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 9px 14px 9px 36px;
+    font-family: var(--font);
+    font-size: .88rem;
+    color: var(--text);
+    transition: all .15s;
+  }
+
+  .toolbar-search input:focus {
+    outline: none;
+    background: var(--white);
+    border-color: var(--phthalo-light);
+  }
+
+  .toolbar-search::before {
+    content: '⌕';
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-soft);
+    font-size: 1rem;
+    pointer-events: none;
+  }
+
+  .toolbar select {
+    background: var(--bluish-bg);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-family: var(--font);
+    font-size: .85rem;
+    color: var(--text);
+    cursor: pointer;
+    min-width: 140px;
+  }
+
+  .toolbar select:focus {
+    outline: none;
+    background: var(--white);
+    border-color: var(--phthalo-light);
+  }
+
+  .toolbar-spacer { flex: 1; }
+
+  /* ════════════════════════════════════════════════
+     BOTÕES (reutilizáveis)
+     ════════════════════════════════════════════════ */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--phthalo);
+    color: var(--on-dark);
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-family: var(--font);
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: .02em;
+    white-space: nowrap;
+  }
+  .btn:hover  { background: var(--phthalo-mid); }
+  .btn:active { background: var(--phthalo-dark); }
+
+  .btn-secondary {
+    background: var(--bluish-bg);
+    color: var(--phthalo-dark);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--bluish-soft); border-color: var(--phthalo-light); }
+
+  .btn-danger  { background: var(--danger); }
+  .btn-danger:hover { background: #DC2626; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+  }
+  .btn-ghost:hover { background: var(--bluish-soft); color: var(--phthalo-dark); }
+
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: .78rem;
+    border-radius: 6px;
+  }
+
+  .btn-icon {
+    width: 32px; height: 32px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    font-size: 1rem;
+  }
+
+  /* ════════════════════════════════════════════════
+     STATS ROW (mini KPIs)
+     ════════════════════════════════════════════════ */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .stat {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-left: 3px solid var(--phthalo-light);
+  }
+  .stat.stat-warn    { border-left-color: var(--warning); }
+  .stat.stat-danger  { border-left-color: var(--danger); }
+  .stat.stat-success { border-left-color: var(--success); }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: .68rem;
+    color: var(--text-muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--phthalo-dark);
+  }
+
+  /* ════════════════════════════════════════════════
+     TABELA (reutilizável)
+     ════════════════════════════════════════════════ */
+  .table-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .86rem;
+  }
+
+  table.data thead th {
+    background: var(--bluish-bg);
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  table.data tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--text);
+    vertical-align: middle;
+  }
+
+  table.data tbody tr {
+    transition: background .12s;
+    cursor: pointer;
+  }
+  table.data tbody tr:hover { background: var(--bluish-soft); }
+  table.data tbody tr:last-child td { border-bottom: none; }
+
+  table.data td.actions {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .cell-person {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .cell-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--phthalo-light), var(--phthalo-bright));
+    color: var(--white);
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: .78rem;
+    flex-shrink: 0;
+  }
+
+  .cell-person-name { font-weight: 600; color: var(--phthalo-dark); }
+  .cell-person-sub {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--text-muted);
+  }
+
+  .cell-mono {
+    font-family: var(--mono);
+    font-size: .82rem;
+    color: var(--text-muted);
+  }
+
+  /* ════════════════════════════════════════════════
+     BADGES / STATUS PILLS
+     ════════════════════════════════════════════════ */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 12px;
+    background: var(--bluish-bg);
+    color: var(--text-muted);
+  }
+  .badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .7;
+  }
+  .badge.ok       { background: #D1FAE5; color: #065F46; }
+  .badge.warn     { background: #FEF3C7; color: #92400E; }
+  .badge.danger   { background: #FEE2E2; color: #991B1B; }
+  .badge.info     { background: #DBEAFE; color: #1E40AF; }
+  .badge.neutral  { background: #E5E7EB; color: #374151; }
+
+  /* ════════════════════════════════════════════════
+     DRAWER (painel lateral direito)
+     ════════════════════════════════════════════════ */
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(6,26,48,.35);
+    backdrop-filter: blur(2px);
+    z-index: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+  }
+  .drawer-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 520px;
+    max-width: 92vw;
+    background: var(--bluish-bg);
+    border-left: 1px solid var(--border);
+    box-shadow: -10px 0 40px rgba(6,26,48,.18);
+    transform: translateX(100%);
+    transition: transform .28s cubic-bezier(.2,.8,.2,1);
+    z-index: 600;
+    display: flex;
+    flex-direction: column;
+  }
+  .drawer.active { transform: translateX(0); }
+
+  .drawer-header {
+    background: var(--phthalo);
+    color: var(--on-dark);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .drawer-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--phthalo-bright);
+    color: var(--phthalo-deep);
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .drawer-title-block { flex: 1; min-width: 0; }
+
+  .drawer-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .drawer-role {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--on-dark-dim);
+    letter-spacing: .06em;
+    margin-top: 2px;
+  }
+
+  .drawer-close {
+    background: rgba(255,255,255,.1);
+    color: var(--on-dark);
+    border: none;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: grid;
+    place-items: center;
+    transition: background .15s;
+  }
+  .drawer-close:hover { background: rgba(255,255,255,.2); }
+
+  .drawer-tabs {
+    display: flex;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .drawer-tab {
+    padding: 12px 18px;
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .drawer-tab:hover { color: var(--phthalo-dark); }
+  .drawer-tab.active {
+    color: var(--phthalo);
+    border-bottom-color: var(--phthalo);
+  }
+
+  .drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px 24px;
+  }
+
+  .drawer-section {
+    display: none;
+  }
+  .drawer-section.active { display: block; }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 18px;
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .info-label {
+    font-family: var(--mono);
+    font-size: .66rem;
+    color: var(--text-muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .info-value {
+    font-size: .92rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .info-value.mono { font-family: var(--mono); font-size: .88rem; }
+
+  .info-sep {
+    grid-column: 1 / -1;
+    height: 1px;
+    background: var(--border-soft);
+    margin: 4px 0;
+  }
+
+  .drawer-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--white);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  /* ════════════════════════════════════════════════
+     MODAL (reutilizável)
+     ════════════════════════════════════════════════ */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(6,26,48,.45);
+    backdrop-filter: blur(2px);
+    z-index: 700;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal.active { display: flex; animation: modalFade .2s; }
+  @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal-box {
+    background: var(--white);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(6,26,48,.35);
+    overflow: hidden;
+  }
+
+  .modal-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--phthalo-dark);
+  }
+
+  .modal-body {
+    padding: 22px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .modal-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    background: var(--bluish-bg);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  /* ════════════════════════════════════════════════
+     FORMULÁRIOS
+     ════════════════════════════════════════════════ */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .form-group.full { grid-column: 1 / -1; }
+
+  .form-group label {
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--text-muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    background: var(--bluish-bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-family: var(--font);
+    font-size: .9rem;
+    color: var(--text);
+    transition: all .15s;
+  }
+
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    background: var(--white);
+    border-color: var(--phthalo-light);
+  }
+
+  /* ════════════════════════════════════════════════
+     EMPTY STATE
+     ════════════════════════════════════════════════ */
+  .empty {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-soft);
+    font-family: var(--mono);
+    font-size: .82rem;
+    letter-spacing: .06em;
+  }
+
+  /* ════════════════════════════════════════════════
      TOAST
      ════════════════════════════════════════════════ */
   #toast {
@@ -1083,7 +1649,70 @@
           <div class="page-subtitle">Cadastro · contatos de emergência · aniversariantes</div>
         </div>
       </div>
-      <div class="page-placeholder">CADASTRO DE COLABORADORES A CONSTRUIR</div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="col-search" placeholder="Buscar por nome, matrícula ou cargo…">
+        </div>
+        <select id="col-filter-setor">
+          <option value="">Todos os setores</option>
+          <option>Produção</option>
+          <option>Logística</option>
+          <option>Administrativo</option>
+          <option>Manutenção</option>
+          <option>Comercial</option>
+        </select>
+        <select id="col-filter-status">
+          <option value="">Todos os status</option>
+          <option value="ativo">Ativo</option>
+          <option value="ferias">Em férias</option>
+          <option value="afastado">Afastado</option>
+          <option value="inativo">Inativo</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="exportColaboradores()">↓ Exportar</button>
+        <button class="btn" type="button" onclick="abrirModalColaborador()">+ Novo colaborador</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat stat-success">
+          <div class="stat-label">Ativos</div>
+          <div class="stat-value" id="stat-ativos">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Em férias</div>
+          <div class="stat-value" id="stat-ferias">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Afastados</div>
+          <div class="stat-value" id="stat-afastados">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Admitidos/mês</div>
+          <div class="stat-value" id="stat-admitidos">—</div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width: 30%">Colaborador</th>
+                <th>Cargo</th>
+                <th>Setor</th>
+                <th>Admissão</th>
+                <th>Status</th>
+                <th style="width: 120px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-colaboradores"></tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- ───── QUADRO DE FUNCIONÁRIOS ───── -->
@@ -1211,6 +1840,129 @@
 
 </div><!-- /.app-shell -->
 </div><!-- /#app -->
+
+<!-- ════════════ DRAWER — DETALHE DO COLABORADOR ════════════ -->
+<div id="drawer-backdrop" class="drawer-backdrop" onclick="fecharDrawerColab()"></div>
+<aside id="drawer-colab" class="drawer">
+  <div class="drawer-header">
+    <div class="drawer-avatar" id="dcol-avatar">—</div>
+    <div class="drawer-title-block">
+      <div class="drawer-name" id="dcol-name">—</div>
+      <div class="drawer-role" id="dcol-role">—</div>
+    </div>
+    <button class="drawer-close" onclick="fecharDrawerColab()">×</button>
+  </div>
+
+  <div class="drawer-tabs">
+    <div class="drawer-tab active" data-dtab="dados">Dados</div>
+    <div class="drawer-tab" data-dtab="emergencia">Emergência</div>
+    <div class="drawer-tab" data-dtab="docs">Documentos</div>
+    <div class="drawer-tab" data-dtab="epi">EPI</div>
+    <div class="drawer-tab" data-dtab="historico">Histórico</div>
+  </div>
+
+  <div class="drawer-body">
+
+    <div class="drawer-section active" data-dsec="dados">
+      <div class="info-grid" id="dcol-dados"></div>
+    </div>
+
+    <div class="drawer-section" data-dsec="emergencia">
+      <div class="info-grid" id="dcol-emerg"></div>
+    </div>
+
+    <div class="drawer-section" data-dsec="docs">
+      <div id="dcol-docs"></div>
+    </div>
+
+    <div class="drawer-section" data-dsec="epi">
+      <div id="dcol-epi"></div>
+    </div>
+
+    <div class="drawer-section" data-dsec="historico">
+      <div id="dcol-historico"></div>
+    </div>
+
+  </div>
+
+  <div class="drawer-footer">
+    <button class="btn btn-secondary btn-sm" onclick="fecharDrawerColab()">Fechar</button>
+    <button class="btn btn-sm" onclick="editarColaboradorDoDrawer()">Editar</button>
+  </div>
+</aside>
+
+<!-- ════════════ MODAL — NOVO/EDITAR COLABORADOR ════════════ -->
+<div id="modal-colaborador" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-colab-title">Novo colaborador</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalColaborador()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-colaborador" class="form-grid" onsubmit="salvarColaborador(event)">
+        <div class="form-group">
+          <label>Nome completo</label>
+          <input type="text" name="nome" required>
+        </div>
+        <div class="form-group">
+          <label>Matrícula</label>
+          <input type="text" name="matricula">
+        </div>
+        <div class="form-group">
+          <label>CPF</label>
+          <input type="text" name="cpf" placeholder="000.000.000-00">
+        </div>
+        <div class="form-group">
+          <label>Data nascimento</label>
+          <input type="date" name="nascimento">
+        </div>
+        <div class="form-group">
+          <label>Cargo</label>
+          <input type="text" name="cargo">
+        </div>
+        <div class="form-group">
+          <label>Setor</label>
+          <select name="setor">
+            <option>Produção</option>
+            <option>Logística</option>
+            <option>Administrativo</option>
+            <option>Manutenção</option>
+            <option>Comercial</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Admissão</label>
+          <input type="date" name="admissao">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="ativo">Ativo</option>
+            <option value="ferias">Em férias</option>
+            <option value="afastado">Afastado</option>
+            <option value="inativo">Inativo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Telefone</label>
+          <input type="text" name="telefone">
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" name="email">
+        </div>
+        <div class="form-group full">
+          <label>Endereço</label>
+          <input type="text" name="endereco">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalColaborador()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-colaborador">Salvar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ════════════ TOAST ════════════ -->
 <div id="toast"></div>
@@ -1414,13 +2166,283 @@
   }
 
   // Renderiza charts quando o login conclui (Chart.js precisa do container visível)
-  const _origSubmit = $loginForm.onsubmit;
   $loginForm.addEventListener('submit', () => {
-    // Espera o app ser mostrado antes de criar os charts
     setTimeout(() => {
-      if (!$app.classList.contains('hidden')) renderDashboardCharts();
+      if (!$app.classList.contains('hidden')) {
+        renderDashboardCharts();
+        renderColaboradores();
+      }
     }, 50);
   });
+
+  /* ════════════════════════════════════════════════
+     COLABORADORES — mock + render + drawer + modal
+     ════════════════════════════════════════════════ */
+
+  // Mock. Substituir por fetch do Supabase na integração.
+  let COLABORADORES = [
+    { id:1, nome:'Ana Paula Costa',      matricula:'001234', cargo:'Analista RH',        setor:'Administrativo', admissao:'2021-03-15', status:'ferias',  nascimento:'1988-07-12', cpf:'123.456.789-00', telefone:'(11) 98765-4321', email:'ana.costa@empresa.com',     endereco:'Rua das Flores, 120 — São Paulo/SP' },
+    { id:2, nome:'Carlos Eduardo Mendes',matricula:'001235', cargo:'Op. Produção',       setor:'Produção',       admissao:'2026-04-20', status:'ativo',   nascimento:'1995-02-08', cpf:'234.567.890-11', telefone:'(11) 99123-4567', email:'carlos.mendes@empresa.com', endereco:'Av. Paulista, 2000 — São Paulo/SP' },
+    { id:3, nome:'José Silva Ramos',     matricula:'000412', cargo:'Mecânico Industrial',setor:'Manutenção',     admissao:'2018-08-02', status:'ativo',   nascimento:'1979-11-30', cpf:'345.678.901-22', telefone:'(11) 98888-1111', email:'jose.silva@empresa.com',    endereco:'Rua do Porto, 15 — São Paulo/SP' },
+    { id:4, nome:'Maria Santos Oliveira',matricula:'000765', cargo:'Coord. Administrativo',setor:'Administrativo',admissao:'2019-11-18', status:'ativo',   nascimento:'1985-04-22', cpf:'456.789.012-33', telefone:'(11) 97777-2222', email:'maria.santos@empresa.com',  endereco:'Rua XV de Novembro, 200 — São Paulo/SP' },
+    { id:5, nome:'Pedro Henrique Souza', matricula:'001001', cargo:'Motorista',          setor:'Logística',      admissao:'2020-06-05', status:'afastado',nascimento:'1990-09-15', cpf:'567.890.123-44', telefone:'(11) 96666-3333', email:'pedro.souza@empresa.com',   endereco:'Rua das Palmeiras, 88 — São Paulo/SP' },
+    { id:6, nome:'Rafael Fernandes Lima',matricula:'001102', cargo:'Motorista',          setor:'Logística',      admissao:'2022-01-12', status:'ativo',   nascimento:'1992-04-27', cpf:'678.901.234-55', telefone:'(11) 95555-4444', email:'rafael.lima@empresa.com',   endereco:'Av. Brasil, 450 — São Paulo/SP' },
+    { id:7, nome:'Marcela Pinto Oliveira',matricula:'001023',cargo:'Analista Financeiro',setor:'Administrativo', admissao:'2020-02-10', status:'ativo',   nascimento:'1993-04-25', cpf:'789.012.345-66', telefone:'(11) 94444-5555', email:'marcela.pinto@empresa.com', endereco:'Rua do Sol, 77 — São Paulo/SP' },
+    { id:8, nome:'João Silveira Matos',  matricula:'000567', cargo:'Op. Máquina',        setor:'Produção',       admissao:'2017-05-20', status:'ativo',   nascimento:'1982-04-23', cpf:'890.123.456-77', telefone:'(11) 93333-6666', email:'joao.silveira@empresa.com', endereco:'Rua Lagoa Azul, 33 — São Paulo/SP' },
+    { id:9, nome:'Paulo Rocha Almeida',  matricula:'001188', cargo:'Op. Produção',       setor:'Produção',       admissao:'2023-07-14', status:'ativo',   nascimento:'1994-06-11', cpf:'901.234.567-88', telefone:'(11) 92222-7777', email:'paulo.rocha@empresa.com',   endereco:'Rua Verde, 900 — São Paulo/SP' },
+    { id:10,nome:'Luiz Araújo Pereira',  matricula:'000890', cargo:'Vendedor',           setor:'Comercial',      admissao:'2019-09-03', status:'inativo', nascimento:'1987-12-01', cpf:'012.345.678-99', telefone:'(11) 91111-8888', email:'luiz.araujo@empresa.com',   endereco:'Rua Amarela, 450 — São Paulo/SP' },
+  ];
+
+  const STATUS_LABEL = {
+    ativo:    { t:'Ativo',     cls:'ok'     },
+    ferias:   { t:'Férias',    cls:'info'   },
+    afastado: { t:'Afastado',  cls:'warn'   },
+    inativo: { t:'Inativo',   cls:'neutral'},
+  };
+
+  function iniciais(nome) {
+    const parts = (nome || '').trim().split(/\s+/);
+    const a = parts[0]?.[0] || '';
+    const b = parts[parts.length - 1]?.[0] || '';
+    return (a + b).toUpperCase();
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const [y,m,d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function colaboradoresFiltrados() {
+    const q = ($('#col-search')?.value || '').trim().toLowerCase();
+    const setor  = $('#col-filter-setor')?.value || '';
+    const status = $('#col-filter-status')?.value || '';
+    return COLABORADORES.filter(c => {
+      if (setor && c.setor !== setor) return false;
+      if (status && c.status !== status) return false;
+      if (q) {
+        const hay = [c.nome, c.matricula, c.cargo].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  // Helper de seleção
+  function $(sel) { return document.querySelector(sel); }
+
+  function renderColaboradores() {
+    const tbody = $('#tb-colaboradores');
+    if (!tbody) return;
+
+    const lista = colaboradoresFiltrados();
+    tbody.innerHTML = lista.length ? lista.map(c => {
+      const st = STATUS_LABEL[c.status] || STATUS_LABEL.ativo;
+      return `
+        <tr onclick="abrirDrawerColab(${c.id})">
+          <td>
+            <div class="cell-person">
+              <div class="cell-avatar">${h(iniciais(c.nome))}</div>
+              <div>
+                <div class="cell-person-name">${h(c.nome)}</div>
+                <div class="cell-person-sub">Mat. ${h(c.matricula)}</div>
+              </div>
+            </div>
+          </td>
+          <td>${h(c.cargo)}</td>
+          <td>${h(c.setor)}</td>
+          <td class="cell-mono">${fmtDate(c.admissao)}</td>
+          <td><span class="badge ${st.cls}">${st.t}</span></td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalColaborador(${c.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirColaborador(${c.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="6" class="empty">Nenhum colaborador encontrado</td></tr>`;
+
+    // Stats
+    const total     = c => COLABORADORES.filter(x => x.status === c).length;
+    $('#stat-ativos').textContent     = total('ativo');
+    $('#stat-ferias').textContent     = total('ferias');
+    $('#stat-afastados').textContent  = total('afastado');
+    const now = new Date();
+    $('#stat-admitidos').textContent = COLABORADORES.filter(x => {
+      if (!x.admissao) return false;
+      const d = new Date(x.admissao + 'T00:00:00');
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
+  }
+
+  // Busca / filtros
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'col-search') renderColaboradores();
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'col-filter-setor' || e.target.id === 'col-filter-status') renderColaboradores();
+  });
+
+  /* ── DRAWER ── */
+  let _drawerColabId = null;
+
+  function abrirDrawerColab(id) {
+    const c = COLABORADORES.find(x => x.id === id);
+    if (!c) return;
+    _drawerColabId = id;
+
+    $('#dcol-avatar').textContent = iniciais(c.nome);
+    $('#dcol-name').textContent   = c.nome;
+    $('#dcol-role').textContent   = `${c.cargo} · ${c.setor}`;
+
+    const st = STATUS_LABEL[c.status] || STATUS_LABEL.ativo;
+
+    $('#dcol-dados').innerHTML = `
+      <div class="info-item"><div class="info-label">Matrícula</div><div class="info-value mono">${h(c.matricula)}</div></div>
+      <div class="info-item"><div class="info-label">Status</div><div class="info-value"><span class="badge ${st.cls}">${st.t}</span></div></div>
+      <div class="info-item"><div class="info-label">CPF</div><div class="info-value mono">${h(c.cpf || '—')}</div></div>
+      <div class="info-item"><div class="info-label">Nascimento</div><div class="info-value mono">${fmtDate(c.nascimento)}</div></div>
+      <div class="info-item"><div class="info-label">Admissão</div><div class="info-value mono">${fmtDate(c.admissao)}</div></div>
+      <div class="info-item"><div class="info-label">Tempo de casa</div><div class="info-value mono">${tempoCasa(c.admissao)}</div></div>
+      <div class="info-sep"></div>
+      <div class="info-item"><div class="info-label">Telefone</div><div class="info-value mono">${h(c.telefone || '—')}</div></div>
+      <div class="info-item"><div class="info-label">E-mail</div><div class="info-value">${h(c.email || '—')}</div></div>
+      <div class="info-item" style="grid-column:1/-1"><div class="info-label">Endereço</div><div class="info-value">${h(c.endereco || '—')}</div></div>
+    `;
+
+    $('#dcol-emerg').innerHTML = `
+      <div class="info-item"><div class="info-label">Contato</div><div class="info-value">Maria das Graças (mãe)</div></div>
+      <div class="info-item"><div class="info-label">Telefone</div><div class="info-value mono">(11) 98000-0000</div></div>
+      <div class="info-item"><div class="info-label">Parentesco</div><div class="info-value">Mãe</div></div>
+      <div class="info-item"><div class="info-label">Observações</div><div class="info-value">—</div></div>
+    `;
+
+    $('#dcol-docs').innerHTML = `
+      <table class="data" style="margin: -6px 0;">
+        <thead><tr><th>Documento</th><th>Emissão</th><th>Validade</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>ASO Periódico</td><td class="cell-mono">15/04/2025</td><td class="cell-mono">15/04/2026</td><td><span class="badge warn">Vence 4 dias</span></td></tr>
+          <tr><td>NR-35</td><td class="cell-mono">22/08/2024</td><td class="cell-mono">22/08/2026</td><td><span class="badge ok">Válido</span></td></tr>
+          <tr><td>CNH</td><td class="cell-mono">10/01/2020</td><td class="cell-mono">10/01/2025</td><td><span class="badge danger">Vencido</span></td></tr>
+        </tbody>
+      </table>
+    `;
+
+    $('#dcol-epi').innerHTML = `
+      <table class="data" style="margin: -6px 0;">
+        <thead><tr><th>EPI</th><th>CA</th><th>Entrega</th><th>Próxima troca</th></tr></thead>
+        <tbody>
+          <tr><td>Botina de segurança</td><td class="cell-mono">12345</td><td class="cell-mono">03/03/2026</td><td class="cell-mono">03/09/2026</td></tr>
+          <tr><td>Luva nitrílica</td><td class="cell-mono">87654</td><td class="cell-mono">18/04/2026</td><td class="cell-mono">18/05/2026</td></tr>
+          <tr><td>Óculos ampla visão</td><td class="cell-mono">33221</td><td class="cell-mono">12/01/2026</td><td class="cell-mono">12/01/2027</td></tr>
+        </tbody>
+      </table>
+    `;
+
+    $('#dcol-historico').innerHTML = `
+      <ul class="activity-feed" style="margin: -6px 0;">
+        <li class="activity-item"><span class="activity-chip admissao">Admissão</span><span class="activity-text">Admitido na empresa</span><span class="activity-time">${fmtDate(c.admissao)}</span></li>
+        <li class="activity-item"><span class="activity-chip treinamento">Treinamento</span><span class="activity-text">Integração de segurança</span><span class="activity-time">01/09/2021</span></li>
+        <li class="activity-item"><span class="activity-chip ferias">Férias</span><span class="activity-text">Período de 30 dias</span><span class="activity-time">12/2023</span></li>
+      </ul>
+    `;
+
+    // Ativa primeira tab
+    document.querySelectorAll('.drawer-tab').forEach(t => t.classList.toggle('active', t.dataset.dtab === 'dados'));
+    document.querySelectorAll('.drawer-section').forEach(s => s.classList.toggle('active', s.dataset.dsec === 'dados'));
+
+    $('#drawer-backdrop').classList.add('active');
+    $('#drawer-colab').classList.add('active');
+  }
+
+  function fecharDrawerColab() {
+    $('#drawer-backdrop').classList.remove('active');
+    $('#drawer-colab').classList.remove('active');
+    _drawerColabId = null;
+  }
+
+  // Troca de abas do drawer
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('.drawer-tab');
+    if (!tab) return;
+    const name = tab.dataset.dtab;
+    tab.parentElement.querySelectorAll('.drawer-tab').forEach(t => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('.drawer-section').forEach(s => s.classList.toggle('active', s.dataset.dsec === name));
+  });
+
+  function tempoCasa(iso) {
+    if (!iso) return '—';
+    const start = new Date(iso + 'T00:00:00');
+    const now   = new Date();
+    let anos = now.getFullYear() - start.getFullYear();
+    let meses= now.getMonth()    - start.getMonth();
+    if (meses < 0) { anos--; meses += 12; }
+    if (anos <= 0 && meses <= 0) return 'menos de 1 mês';
+    if (anos === 0) return `${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+    if (meses === 0) return `${anos} ${anos === 1 ? 'ano' : 'anos'}`;
+    return `${anos}a ${meses}m`;
+  }
+
+  /* ── MODAL NOVO/EDITAR ── */
+  let _editandoColabId = null;
+
+  function abrirModalColaborador(id = null) {
+    _editandoColabId = id;
+    const form = $('#form-colaborador');
+    form.reset();
+    if (id != null) {
+      const c = COLABORADORES.find(x => x.id === id);
+      if (c) {
+        $('#modal-colab-title').textContent = 'Editar colaborador';
+        for (const [k,v] of Object.entries(c)) {
+          const f = form.elements[k];
+          if (f) f.value = v ?? '';
+        }
+      }
+    } else {
+      $('#modal-colab-title').textContent = 'Novo colaborador';
+    }
+    $('#modal-colaborador').classList.add('active');
+  }
+
+  function fecharModalColaborador() {
+    $('#modal-colaborador').classList.remove('active');
+    _editandoColabId = null;
+  }
+
+  function salvarColaborador(e) {
+    e.preventDefault();
+    const form = $('#form-colaborador');
+    const data = Object.fromEntries(new FormData(form));
+    if (_editandoColabId != null) {
+      const i = COLABORADORES.findIndex(x => x.id === _editandoColabId);
+      if (i >= 0) COLABORADORES[i] = { ...COLABORADORES[i], ...data };
+      showToast('Colaborador atualizado', 'ok');
+    } else {
+      const newId = Math.max(0, ...COLABORADORES.map(x => x.id)) + 1;
+      COLABORADORES.unshift({ id: newId, ...data });
+      showToast('Colaborador cadastrado', 'ok');
+    }
+    fecharModalColaborador();
+    renderColaboradores();
+  }
+
+  function editarColaboradorDoDrawer() {
+    if (_drawerColabId != null) {
+      fecharDrawerColab();
+      abrirModalColaborador(_drawerColabId);
+    }
+  }
+
+  function excluirColaborador(id) {
+    if (!confirm('Excluir este colaborador?')) return;
+    COLABORADORES = COLABORADORES.filter(x => x.id !== id);
+    renderColaboradores();
+    showToast('Colaborador excluído');
+  }
+
+  function exportColaboradores() {
+    showToast('Exportação CSV será implementada na integração', 'ok');
+  }
 </script>
 
 </body>
