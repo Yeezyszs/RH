@@ -1452,6 +1452,73 @@
   .func-mini-status.inativo  { background: var(--text-soft); }
 
   /* ════════════════════════════════════════════════
+     RATING (entrevista de saída)
+     ════════════════════════════════════════════════ */
+  .rating {
+    display: inline-flex;
+    gap: 3px;
+  }
+  .rating .dot {
+    width: 16px; height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+  }
+  .rating .dot.on-1, .rating .dot.on-2 { background: var(--danger); }
+  .rating .dot.on-3 { background: var(--warning); }
+  .rating .dot.on-4, .rating .dot.on-5 { background: var(--success); }
+
+  .rating-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .rating-group .label {
+    font-family: var(--mono);
+    font-size: .68rem;
+    color: var(--text-muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .rating-input {
+    display: flex;
+    gap: 4px;
+  }
+  .rating-input button {
+    width: 32px; height: 28px;
+    border: 1px solid var(--border);
+    background: var(--bluish-bg);
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all .12s;
+  }
+  .rating-input button:hover { border-color: var(--phthalo-light); }
+  .rating-input button.active {
+    background: var(--phthalo);
+    color: var(--on-dark);
+    border-color: var(--phthalo);
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bluish-bg);
+    border-radius: 8px;
+  }
+  .toggle-row label {
+    text-transform: none;
+    letter-spacing: 0;
+    font-family: var(--font);
+    font-size: .88rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ════════════════════════════════════════════════
      EMPTY STATE
      ════════════════════════════════════════════════ */
   .empty {
@@ -2016,10 +2083,71 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Desligamentos</h1>
-          <div class="page-subtitle">Processo e entrevista de saída</div>
+          <div class="page-subtitle">Registro + entrevista de saída</div>
         </div>
       </div>
-      <div class="page-placeholder">REGISTRO DE DESLIGAMENTOS A CONSTRUIR</div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="desl-search" placeholder="Buscar por nome ou cargo…">
+        </div>
+        <select id="desl-filter-motivo">
+          <option value="">Todos os motivos</option>
+          <option>Pedido do colaborador</option>
+          <option>Sem justa causa</option>
+          <option>Justa causa</option>
+          <option>Término de contrato</option>
+          <option>Aposentadoria</option>
+          <option>Acordo mútuo</option>
+        </select>
+        <select id="desl-filter-entrevista">
+          <option value="">Entrevista (qualquer)</option>
+          <option value="realizada">Realizada</option>
+          <option value="pendente">Pendente</option>
+        </select>
+        <button class="btn" type="button" onclick="abrirModalDesligamento()">+ Registrar desligamento</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat stat-danger">
+          <div class="stat-label">Total no ano</div>
+          <div class="stat-value" id="desl-stat-total">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Voluntários</div>
+          <div class="stat-value" id="desl-stat-volunt">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Entrevistas pendentes</div>
+          <div class="stat-value" id="desl-stat-pend">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Tempo médio de casa</div>
+          <div class="stat-value" id="desl-stat-tempo" style="font-size:1.25rem; line-height:1.8;">—</div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width:26%">Colaborador</th>
+                <th>Cargo / Setor</th>
+                <th>Data</th>
+                <th>Motivo</th>
+                <th>Tempo de casa</th>
+                <th>Entrevista</th>
+                <th style="width:120px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-desligamentos"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ───── VENCIMENTOS ───── -->
@@ -2238,6 +2366,173 @@
   </div>
 </div>
 
+<!-- ════════════ DRAWER — DETALHE DESLIGAMENTO ════════════ -->
+<div id="drawer-backdrop-desl" class="drawer-backdrop" onclick="fecharDrawerDesl()"></div>
+<aside id="drawer-desl" class="drawer">
+  <div class="drawer-header" style="background: linear-gradient(135deg, #991B1B 0%, var(--phthalo) 100%);">
+    <div class="drawer-avatar" id="ddesl-avatar" style="background:#FEE2E2; color:#991B1B;">—</div>
+    <div class="drawer-title-block">
+      <div class="drawer-name" id="ddesl-name">—</div>
+      <div class="drawer-role" id="ddesl-role">—</div>
+    </div>
+    <button class="drawer-close" onclick="fecharDrawerDesl()">×</button>
+  </div>
+
+  <div class="drawer-tabs">
+    <div class="drawer-tab active" data-dtab-desl="detalhes">Detalhes</div>
+    <div class="drawer-tab" data-dtab-desl="entrevista">Entrevista de saída</div>
+  </div>
+
+  <div class="drawer-body">
+    <div class="drawer-section active" data-dsec-desl="detalhes">
+      <div class="info-grid" id="ddesl-detalhes"></div>
+    </div>
+    <div class="drawer-section" data-dsec-desl="entrevista">
+      <div id="ddesl-entrevista"></div>
+    </div>
+  </div>
+
+  <div class="drawer-footer">
+    <button class="btn btn-secondary btn-sm" onclick="fecharDrawerDesl()">Fechar</button>
+    <button class="btn btn-sm" id="btn-drawer-entrevista" onclick="abrirModalEntrevistaDoDrawer()">Registrar entrevista</button>
+  </div>
+</aside>
+
+<!-- ════════════ MODAL — REGISTRAR DESLIGAMENTO ════════════ -->
+<div id="modal-desligamento" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Registrar desligamento</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalDesligamento()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-desligamento" class="form-grid" onsubmit="salvarDesligamento(event)">
+        <div class="form-group full">
+          <label>Colaborador</label>
+          <select name="colaborador_id" required id="form-desl-colab"></select>
+        </div>
+        <div class="form-group">
+          <label>Data do desligamento</label>
+          <input type="date" name="data" required>
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="tipo" required>
+            <option value="voluntario">Voluntário</option>
+            <option value="involuntario">Involuntário</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Motivo</label>
+          <select name="motivo" required>
+            <option>Pedido do colaborador</option>
+            <option>Sem justa causa</option>
+            <option>Justa causa</option>
+            <option>Término de contrato</option>
+            <option>Aposentadoria</option>
+            <option>Acordo mútuo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Aviso prévio</label>
+          <select name="aviso">
+            <option value="trabalhado">Trabalhado</option>
+            <option value="indenizado">Indenizado</option>
+            <option value="dispensado">Dispensado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Último dia</label>
+          <input type="date" name="ultimo_dia">
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea name="observacoes"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalDesligamento()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-desligamento">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — ENTREVISTA DE SAÍDA ════════════ -->
+<div id="modal-entrevista" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Entrevista de saída</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalEntrevista()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-entrevista" onsubmit="salvarEntrevista(event)" style="display:flex; flex-direction:column; gap:16px;">
+        <input type="hidden" name="desligamento_id">
+
+        <div class="rating-group">
+          <div class="label">Satisfação geral (1 = baixa · 5 = alta)</div>
+          <div class="rating-input" data-rating-field="satisfacao">
+            <button type="button" data-rating-val="1">1</button>
+            <button type="button" data-rating-val="2">2</button>
+            <button type="button" data-rating-val="3">3</button>
+            <button type="button" data-rating-val="4">4</button>
+            <button type="button" data-rating-val="5">5</button>
+          </div>
+          <input type="hidden" name="satisfacao" required>
+        </div>
+
+        <div class="rating-group">
+          <div class="label">Clima organizacional</div>
+          <div class="rating-input" data-rating-field="clima">
+            <button type="button" data-rating-val="1">1</button>
+            <button type="button" data-rating-val="2">2</button>
+            <button type="button" data-rating-val="3">3</button>
+            <button type="button" data-rating-val="4">4</button>
+            <button type="button" data-rating-val="5">5</button>
+          </div>
+          <input type="hidden" name="clima">
+        </div>
+
+        <div class="rating-group">
+          <div class="label">Relação com liderança</div>
+          <div class="rating-input" data-rating-field="lideranca">
+            <button type="button" data-rating-val="1">1</button>
+            <button type="button" data-rating-val="2">2</button>
+            <button type="button" data-rating-val="3">3</button>
+            <button type="button" data-rating-val="4">4</button>
+            <button type="button" data-rating-val="5">5</button>
+          </div>
+          <input type="hidden" name="lideranca">
+        </div>
+
+        <div class="toggle-row">
+          <input type="checkbox" name="recomendaria" id="ent-rec">
+          <label for="ent-rec">Recomendaria a empresa a outros profissionais</label>
+        </div>
+
+        <div class="form-group">
+          <label>Motivo principal (livre)</label>
+          <textarea name="motivo_livre" placeholder="O que mais pesou na decisão?"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Feedback para a empresa</label>
+          <textarea name="feedback" placeholder="Sugestões, pontos positivos e negativos…"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Responsável pela entrevista</label>
+          <input type="text" name="responsavel" placeholder="Nome do entrevistador">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalEntrevista()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-entrevista">Salvar entrevista</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ TOAST ════════════ -->
 <div id="toast"></div>
 
@@ -2447,6 +2742,7 @@
         renderColaboradores();
         renderQuadro();
         renderRotatividade();
+        renderDesligamentos();
       }
     }, 50);
   });
@@ -3042,6 +3338,350 @@
   });
   document.querySelectorAll('.nav-item[data-page="rotatividade"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderRotatividade, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     DESLIGAMENTOS — mock + render + drawer + modais
+     ════════════════════════════════════════════════ */
+
+  let DESLIGAMENTOS = [
+    { id:1, colaborador_id:10, nome:'Luiz Araújo Pereira', cargo:'Vendedor',     setor:'Comercial',      admissao:'2019-09-03', data:'2026-04-17', ultimo_dia:'2026-04-17', motivo:'Pedido do colaborador', tipo:'voluntario',   aviso:'trabalhado', observacoes:'Nova oportunidade em outra empresa.',
+      entrevista: { realizada:true, data:'2026-04-18', responsavel:'Ana Paula Costa', satisfacao:4, clima:4, lideranca:5, recomendaria:true,  motivo_livre:'Proposta salarial melhor no concorrente.', feedback:'Ambiente positivo, lideranças acessíveis. Faltou plano de carreira claro.' } },
+    { id:2, colaborador_id:null, nome:'Roberto Cunha',      cargo:'Op. Produção', setor:'Produção',       admissao:'2023-02-14', data:'2026-04-08', ultimo_dia:'2026-04-08', motivo:'Sem justa causa',       tipo:'involuntario', aviso:'indenizado', observacoes:'Redução de quadro no setor.',
+      entrevista: { realizada:true, data:'2026-04-08', responsavel:'Maria Santos', satisfacao:3, clima:3, lideranca:4, recomendaria:true, motivo_livre:'Desligamento por parte da empresa.', feedback:'Equipe muito unida; escala pesada em épocas de pico.' } },
+    { id:3, colaborador_id:null, nome:'Sérgio Nunes',       cargo:'Motorista',    setor:'Logística',      admissao:'2022-03-28', data:'2026-03-28', ultimo_dia:'2026-03-28', motivo:'Término de contrato',   tipo:'involuntario', aviso:'dispensado', observacoes:'Contrato de experiência não renovado.',
+      entrevista: { realizada:false } },
+    { id:4, colaborador_id:null, nome:'Fernanda Monteiro',  cargo:'Aux. Administrativo', setor:'Administrativo', admissao:'2021-06-10', data:'2026-03-15', ultimo_dia:'2026-03-15', motivo:'Pedido do colaborador', tipo:'voluntario', aviso:'trabalhado', observacoes:'Mudança de cidade.',
+      entrevista: { realizada:true, data:'2026-03-16', responsavel:'Ana Paula Costa', satisfacao:5, clima:5, lideranca:5, recomendaria:true, motivo_livre:'Mudança de cidade por razões pessoais.', feedback:'Saí satisfeita, recomendo fortemente.' } },
+    { id:5, colaborador_id:null, nome:'Jean Carlos Faria',  cargo:'Op. Produção', setor:'Produção',       admissao:'2024-07-22', data:'2026-02-28', ultimo_dia:'2026-02-28', motivo:'Justa causa',           tipo:'involuntario', aviso:'dispensado', observacoes:'Faltas reiteradas sem justificativa.',
+      entrevista: { realizada:false } },
+    { id:6, colaborador_id:null, nome:'Helena Ribeiro',     cargo:'Analista Fiscal', setor:'Administrativo', admissao:'2017-11-04', data:'2026-02-10', ultimo_dia:'2026-02-10', motivo:'Aposentadoria',        tipo:'voluntario',   aviso:'dispensado', observacoes:'Aposentadoria por idade.',
+      entrevista: { realizada:true, data:'2026-02-10', responsavel:'Diretoria', satisfacao:5, clima:5, lideranca:5, recomendaria:true, motivo_livre:'Aposentadoria após longa trajetória.', feedback:'Empresa me acolheu por 8 anos. Gratidão.' } },
+    { id:7, colaborador_id:null, nome:'Diego Matos',        cargo:'Mecânico',     setor:'Manutenção',     admissao:'2023-11-05', data:'2026-01-22', ultimo_dia:'2026-01-22', motivo:'Acordo mútuo',          tipo:'voluntario',   aviso:'indenizado', observacoes:'Acordo por incompatibilidade com a função.',
+      entrevista: { realizada:true, data:'2026-01-22', responsavel:'Maria Santos', satisfacao:3, clima:4, lideranca:3, recomendaria:false, motivo_livre:'Função não era o que eu esperava.', feedback:'Faltou clareza nas atribuições no momento da contratação.' } },
+  ];
+
+  function renderDesligamentos() {
+    const tb = $('#tb-desligamentos');
+    if (!tb) return;
+
+    const q      = ($('#desl-search')?.value || '').trim().toLowerCase();
+    const fMot   = $('#desl-filter-motivo')?.value     || '';
+    const fEnt   = $('#desl-filter-entrevista')?.value || '';
+
+    const lista = DESLIGAMENTOS.filter(d => {
+      if (fMot && d.motivo !== fMot) return false;
+      if (fEnt === 'realizada' && !d.entrevista?.realizada) return false;
+      if (fEnt === 'pendente'  &&  d.entrevista?.realizada) return false;
+      if (q) {
+        const hay = [d.nome, d.cargo].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).sort((a,b) => b.data.localeCompare(a.data));
+
+    tb.innerHTML = lista.length ? lista.map(d => {
+      const ent = d.entrevista?.realizada
+        ? `<span class="badge ok">Realizada</span>`
+        : `<span class="badge warn">Pendente</span>`;
+      const tipoChip = d.tipo === 'voluntario'
+        ? `<span class="badge info">Voluntário</span>`
+        : `<span class="badge neutral">Involuntário</span>`;
+      return `
+        <tr onclick="abrirDrawerDesl(${d.id})">
+          <td>
+            <div class="cell-person">
+              <div class="cell-avatar" style="background:linear-gradient(135deg,#991B1B,#7F1D1D);">${h(iniciais(d.nome))}</div>
+              <div>
+                <div class="cell-person-name">${h(d.nome)}</div>
+                <div class="cell-person-sub">${tipoChip.replace('<span class="badge', '<span class="badge" style="font-size:.62rem;padding:2px 7px;"')}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div>${h(d.cargo)}</div>
+            <div class="cell-person-sub">${h(d.setor)}</div>
+          </td>
+          <td class="cell-mono">${fmtDate(d.data)}</td>
+          <td>${h(d.motivo)}</td>
+          <td class="cell-mono">${tempoEntre(d.admissao, d.data)}</td>
+          <td>${ent}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Entrevista" onclick="abrirModalEntrevista(${d.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirDesligamento(${d.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="7" class="empty">Nenhum desligamento encontrado</td></tr>`;
+
+    // Stats do ano corrente
+    const anoAtual = new Date().getFullYear();
+    const doAno = DESLIGAMENTOS.filter(d => new Date(d.data + 'T00:00:00').getFullYear() === anoAtual);
+    $('#desl-stat-total').textContent  = doAno.length;
+    const volunt = doAno.filter(d => d.tipo === 'voluntario').length;
+    $('#desl-stat-volunt').textContent = doAno.length ? `${volunt}/${doAno.length}` : '0';
+    $('#desl-stat-pend').textContent   = DESLIGAMENTOS.filter(d => !d.entrevista?.realizada).length;
+
+    if (doAno.length) {
+      const totalDias = doAno.reduce((acc, d) => {
+        const a = new Date(d.admissao + 'T00:00:00');
+        const b = new Date(d.data + 'T00:00:00');
+        return acc + (b - a) / (1000 * 60 * 60 * 24);
+      }, 0);
+      const mediaAnos = totalDias / doAno.length / 365.25;
+      const anos = Math.floor(mediaAnos);
+      const meses = Math.round((mediaAnos - anos) * 12);
+      $('#desl-stat-tempo').textContent = anos > 0 ? `${anos}a ${meses}m` : `${meses} meses`;
+    } else {
+      $('#desl-stat-tempo').textContent = '—';
+    }
+  }
+
+  function tempoEntre(inicio, fim) {
+    if (!inicio || !fim) return '—';
+    const a = new Date(inicio + 'T00:00:00');
+    const b = new Date(fim + 'T00:00:00');
+    const anos = (b - a) / (1000 * 60 * 60 * 24 * 365.25);
+    const y = Math.floor(anos);
+    const m = Math.round((anos - y) * 12);
+    if (y <= 0 && m <= 0) return '< 1 mês';
+    if (y === 0) return `${m}m`;
+    if (m === 0) return `${y}a`;
+    return `${y}a ${m}m`;
+  }
+
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'desl-search') renderDesligamentos();
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'desl-filter-motivo' || e.target.id === 'desl-filter-entrevista') renderDesligamentos();
+  });
+
+  /* ── DRAWER ── */
+  let _drawerDeslId = null;
+
+  function abrirDrawerDesl(id) {
+    const d = DESLIGAMENTOS.find(x => x.id === id);
+    if (!d) return;
+    _drawerDeslId = id;
+
+    $('#ddesl-avatar').textContent = iniciais(d.nome);
+    $('#ddesl-name').textContent   = d.nome;
+    $('#ddesl-role').textContent   = `${d.cargo} · ${d.setor}`;
+
+    const tipoChip = d.tipo === 'voluntario'
+      ? `<span class="badge info">Voluntário</span>`
+      : `<span class="badge neutral">Involuntário</span>`;
+    const avisoLabel = { trabalhado:'Trabalhado', indenizado:'Indenizado', dispensado:'Dispensado' }[d.aviso] || '—';
+
+    $('#ddesl-detalhes').innerHTML = `
+      <div class="info-item"><div class="info-label">Data do desligamento</div><div class="info-value mono">${fmtDate(d.data)}</div></div>
+      <div class="info-item"><div class="info-label">Último dia</div><div class="info-value mono">${fmtDate(d.ultimo_dia)}</div></div>
+      <div class="info-item"><div class="info-label">Motivo</div><div class="info-value">${h(d.motivo)}</div></div>
+      <div class="info-item"><div class="info-label">Tipo</div><div class="info-value">${tipoChip}</div></div>
+      <div class="info-item"><div class="info-label">Aviso prévio</div><div class="info-value">${avisoLabel}</div></div>
+      <div class="info-item"><div class="info-label">Tempo de casa</div><div class="info-value mono">${tempoEntre(d.admissao, d.data)}</div></div>
+      <div class="info-sep"></div>
+      <div class="info-item"><div class="info-label">Admissão</div><div class="info-value mono">${fmtDate(d.admissao)}</div></div>
+      <div class="info-item"><div class="info-label">Status entrevista</div><div class="info-value">${d.entrevista?.realizada ? '<span class="badge ok">Realizada</span>' : '<span class="badge warn">Pendente</span>'}</div></div>
+      <div class="info-item" style="grid-column:1/-1"><div class="info-label">Observações</div><div class="info-value">${h(d.observacoes || '—')}</div></div>
+    `;
+
+    // Entrevista
+    const e = d.entrevista;
+    if (e?.realizada) {
+      $('#ddesl-entrevista').innerHTML = `
+        <div class="info-grid">
+          <div class="info-item"><div class="info-label">Data</div><div class="info-value mono">${fmtDate(e.data)}</div></div>
+          <div class="info-item"><div class="info-label">Responsável</div><div class="info-value">${h(e.responsavel || '—')}</div></div>
+          <div class="info-sep"></div>
+          <div class="info-item"><div class="info-label">Satisfação geral</div><div class="info-value">${renderRatingView(e.satisfacao)}</div></div>
+          <div class="info-item"><div class="info-label">Clima</div><div class="info-value">${renderRatingView(e.clima)}</div></div>
+          <div class="info-item"><div class="info-label">Liderança</div><div class="info-value">${renderRatingView(e.lideranca)}</div></div>
+          <div class="info-item"><div class="info-label">Recomendaria?</div><div class="info-value">${e.recomendaria ? '<span class="badge ok">Sim</span>' : '<span class="badge danger">Não</span>'}</div></div>
+          <div class="info-sep"></div>
+          <div class="info-item" style="grid-column:1/-1"><div class="info-label">Motivo principal (livre)</div><div class="info-value">${h(e.motivo_livre || '—')}</div></div>
+          <div class="info-item" style="grid-column:1/-1"><div class="info-label">Feedback para a empresa</div><div class="info-value" style="white-space:pre-wrap">${h(e.feedback || '—')}</div></div>
+        </div>
+      `;
+      $('#btn-drawer-entrevista').textContent = 'Editar entrevista';
+    } else {
+      $('#ddesl-entrevista').innerHTML = `<div class="empty">Entrevista de saída ainda não realizada.<br>Clique em "Registrar entrevista" abaixo.</div>`;
+      $('#btn-drawer-entrevista').textContent = 'Registrar entrevista';
+    }
+
+    // reset tabs
+    document.querySelectorAll('[data-dtab-desl]').forEach(t => t.classList.toggle('active', t.dataset.dtabDesl === 'detalhes'));
+    document.querySelectorAll('[data-dsec-desl]').forEach(s => s.classList.toggle('active', s.dataset.dsecDesl === 'detalhes'));
+
+    $('#drawer-backdrop-desl').classList.add('active');
+    $('#drawer-desl').classList.add('active');
+  }
+
+  function fecharDrawerDesl() {
+    $('#drawer-backdrop-desl').classList.remove('active');
+    $('#drawer-desl').classList.remove('active');
+    _drawerDeslId = null;
+  }
+
+  // Tabs do drawer de desligamento
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-dtab-desl]');
+    if (!tab) return;
+    const name = tab.dataset.dtabDesl;
+    tab.parentElement.querySelectorAll('[data-dtab-desl]').forEach(t => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('[data-dsec-desl]').forEach(s => s.classList.toggle('active', s.dataset.dsecDesl === name));
+  });
+
+  function renderRatingView(v) {
+    if (!v) return '<span class="badge neutral">—</span>';
+    const dots = [1,2,3,4,5].map(i =>
+      `<span class="dot ${i <= v ? 'on-' + v : ''}"></span>`
+    ).join('');
+    return `<div class="rating">${dots}</div>`;
+  }
+
+  /* ── MODAL DESLIGAMENTO ── */
+  function abrirModalDesligamento() {
+    const form = $('#form-desligamento');
+    form.reset();
+    // popula select de colaboradores ativos
+    const sel = $('#form-desl-colab');
+    sel.innerHTML = COLABORADORES
+      .filter(c => c.status !== 'inativo')
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(c => `<option value="${c.id}">${h(c.nome)} — ${h(c.cargo)}</option>`)
+      .join('');
+    $('#modal-desligamento').classList.add('active');
+  }
+
+  function fecharModalDesligamento() {
+    $('#modal-desligamento').classList.remove('active');
+  }
+
+  function salvarDesligamento(e) {
+    e.preventDefault();
+    const form = $('#form-desligamento');
+    const data = Object.fromEntries(new FormData(form));
+    const c = COLABORADORES.find(x => x.id === parseInt(data.colaborador_id, 10));
+    if (!c) { showToast('Colaborador inválido', 'err'); return; }
+
+    const newId = Math.max(0, ...DESLIGAMENTOS.map(x => x.id)) + 1;
+    DESLIGAMENTOS.unshift({
+      id: newId,
+      colaborador_id: c.id,
+      nome:  c.nome,
+      cargo: c.cargo,
+      setor: c.setor,
+      admissao: c.admissao,
+      data:       data.data,
+      ultimo_dia: data.ultimo_dia || data.data,
+      motivo:     data.motivo,
+      tipo:       data.tipo,
+      aviso:      data.aviso,
+      observacoes:data.observacoes || '',
+      entrevista: { realizada: false },
+    });
+
+    // Marca colaborador como inativo
+    c.status = 'inativo';
+
+    fecharModalDesligamento();
+    renderDesligamentos();
+    renderColaboradores();
+    renderQuadro();
+    showToast('Desligamento registrado', 'ok');
+  }
+
+  function excluirDesligamento(id) {
+    if (!confirm('Excluir este registro de desligamento?')) return;
+    DESLIGAMENTOS = DESLIGAMENTOS.filter(x => x.id !== id);
+    renderDesligamentos();
+    showToast('Registro excluído');
+  }
+
+  /* ── MODAL ENTREVISTA DE SAÍDA ── */
+  function abrirModalEntrevista(deslId) {
+    const d = DESLIGAMENTOS.find(x => x.id === deslId);
+    if (!d) return;
+    const form = $('#form-entrevista');
+    form.reset();
+    form.elements['desligamento_id'].value = deslId;
+
+    // Reset ratings
+    document.querySelectorAll('.rating-input').forEach(g => {
+      g.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    });
+
+    // Preenche se já existe
+    const e = d.entrevista || {};
+    if (e.realizada) {
+      setRating('satisfacao', e.satisfacao);
+      setRating('clima',      e.clima);
+      setRating('lideranca',  e.lideranca);
+      form.elements['recomendaria'].checked = !!e.recomendaria;
+      form.elements['motivo_livre'].value   = e.motivo_livre || '';
+      form.elements['feedback'].value       = e.feedback || '';
+      form.elements['responsavel'].value    = e.responsavel || '';
+    }
+
+    $('#modal-entrevista').classList.add('active');
+  }
+
+  function setRating(field, value) {
+    if (!value) return;
+    const group = document.querySelector(`.rating-input[data-rating-field="${field}"]`);
+    if (!group) return;
+    group.querySelectorAll('button').forEach(b => b.classList.toggle('active', parseInt(b.dataset.ratingVal,10) === value));
+    document.querySelector(`#form-entrevista [name="${field}"]`).value = value;
+  }
+
+  // Cliques nos botões de rating
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.rating-input button');
+    if (!btn) return;
+    const field = btn.parentElement.dataset.ratingField;
+    const val   = parseInt(btn.dataset.ratingVal, 10);
+    setRating(field, val);
+  });
+
+  function fecharModalEntrevista() {
+    $('#modal-entrevista').classList.remove('active');
+  }
+
+  function salvarEntrevista(e) {
+    e.preventDefault();
+    const form = $('#form-entrevista');
+    const data = Object.fromEntries(new FormData(form));
+    const id = parseInt(data.desligamento_id, 10);
+    const d = DESLIGAMENTOS.find(x => x.id === id);
+    if (!d) return;
+
+    d.entrevista = {
+      realizada:   true,
+      data:        new Date().toISOString().slice(0,10),
+      satisfacao:  parseInt(data.satisfacao, 10) || null,
+      clima:       parseInt(data.clima, 10)      || null,
+      lideranca:   parseInt(data.lideranca, 10)  || null,
+      recomendaria: data.recomendaria === 'on',
+      motivo_livre:data.motivo_livre || '',
+      feedback:    data.feedback || '',
+      responsavel: data.responsavel || '',
+    };
+
+    fecharModalEntrevista();
+    renderDesligamentos();
+    if (_drawerDeslId === id) abrirDrawerDesl(id);
+    showToast('Entrevista registrada', 'ok');
+  }
+
+  function abrirModalEntrevistaDoDrawer() {
+    if (_drawerDeslId != null) abrirModalEntrevista(_drawerDeslId);
+  }
+
+  // Re-render ao voltar para a aba Desligamentos
+  document.querySelectorAll('.nav-item[data-page="desligamentos"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderDesligamentos, 60));
   });
 </script>
 
