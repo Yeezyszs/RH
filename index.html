@@ -1920,10 +1920,95 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Rotatividade</h1>
-          <div class="page-subtitle">Admissões · demissões · turnover</div>
+          <div class="page-subtitle">Admissões · demissões · turnover · motivos de saída</div>
+        </div>
+        <select id="rot-periodo" class="toolbar" style="padding:8px 12px; min-width:170px; background:var(--white); border:1px solid var(--border); border-radius:8px; font-size:.85rem;">
+          <option value="12">Últimos 12 meses</option>
+          <option value="6">Últimos 6 meses</option>
+          <option value="3">Últimos 3 meses</option>
+        </select>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-warn">
+          <div class="kpi-label">Taxa atual</div>
+          <div class="kpi-value" id="rot-kpi-taxa">—<span class="unit">%</span></div>
+          <div class="kpi-trend" id="rot-kpi-taxa-trend">—</div>
+        </div>
+        <div class="kpi-card kpi-success">
+          <div class="kpi-label">Admitidos no período</div>
+          <div class="kpi-value" id="rot-kpi-admitidos">—</div>
+          <div class="kpi-trend" id="rot-kpi-admitidos-trend">—</div>
+        </div>
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-label">Desligados no período</div>
+          <div class="kpi-value" id="rot-kpi-desligados">—</div>
+          <div class="kpi-trend" id="rot-kpi-desligados-trend">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Permanência média</div>
+          <div class="kpi-value" id="rot-kpi-perm">—<span class="unit">anos</span></div>
+          <div class="kpi-trend">tempo de casa médio</div>
         </div>
       </div>
-      <div class="page-placeholder">INDICADORES DE ROTATIVIDADE A CONSTRUIR</div>
+
+      <!-- Gráficos: barras (mov mensal) + linha (taxa) -->
+      <div class="dash-row-charts" style="grid-template-columns: 1.4fr 1fr;">
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Movimentação mensal</div>
+            <span class="widget-badge">admissões vs. desligamentos</span>
+          </div>
+          <div class="chart-container" style="height:280px;">
+            <canvas id="chart-rot-movimento"></canvas>
+          </div>
+        </div>
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Taxa de rotatividade</div>
+            <span class="widget-badge">%</span>
+          </div>
+          <div class="chart-container" style="height:280px;">
+            <canvas id="chart-rot-taxa"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Motivos + Movimentações recentes -->
+      <div class="dash-row-charts" style="grid-template-columns: 1fr 1.5fr;">
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Motivos de desligamento</div>
+            <span class="widget-badge" id="rot-motivos-badge">—</span>
+          </div>
+          <div class="chart-container" style="height:260px;">
+            <canvas id="chart-rot-motivos"></canvas>
+          </div>
+        </div>
+
+        <div class="widget" style="padding:0;">
+          <div class="widget-header" style="padding:18px 20px 12px; margin:0; border-bottom:1px solid var(--border-soft);">
+            <div class="widget-title">Movimentações recentes</div>
+            <span class="widget-badge">últimos 30 dias</span>
+          </div>
+          <div class="table-wrapper">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Colaborador</th>
+                  <th>Cargo / Setor</th>
+                  <th>Data</th>
+                  <th>Motivo</th>
+                </tr>
+              </thead>
+              <tbody id="tb-rot-movimentacoes"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- ───── DESLIGAMENTOS ───── -->
@@ -2361,6 +2446,7 @@
         renderDashboardCharts();
         renderColaboradores();
         renderQuadro();
+        renderRotatividade();
       }
     }, 50);
   });
@@ -2760,6 +2846,202 @@
   // Re-render ao voltar para a aba Quadro (dados podem ter mudado em Colaboradores)
   document.querySelectorAll('.nav-item[data-page="quadro"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderQuadro, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     ROTATIVIDADE — mock + charts + tabela
+     ════════════════════════════════════════════════ */
+
+  // Mock de 12 meses (mais antigo → mais recente). Substituir por agregação do Supabase.
+  const ROT_MOCK = {
+    labels:    ['Mai','Jun','Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr'],
+    admissoes: [  3,    2,    5,    4,    3,    6,    2,    4,    5,    3,    4,    6 ],
+    desligad:  [  2,    3,    4,    3,    5,    4,    3,    5,    3,    4,    6,    3 ],
+    // Taxa = média simples ((admissões+desligamentos)/2) / headcount * 100
+    taxa:      [ 1.8,  2.1,  3.2,  2.5,  2.8,  3.5,  1.8,  3.2,  2.8,  2.5,  3.6,  3.2 ],
+    motivos: [
+      { label: 'Pedido do colaborador', valor: 14 },
+      { label: 'Sem justa causa',       valor: 9  },
+      { label: 'Término de contrato',   valor: 5  },
+      { label: 'Justa causa',           valor: 2  },
+      { label: 'Aposentadoria',         valor: 1  },
+    ],
+    movimentacoesRecentes: [
+      { tipo:'admissao',    nome:'Carlos Eduardo Mendes', cargo:'Op. Produção',    setor:'Produção',       data:'2026-04-20', motivo:'—' },
+      { tipo:'desligamento',nome:'Luiz Araújo Pereira',   cargo:'Vendedor',        setor:'Comercial',      data:'2026-04-17', motivo:'Pedido do colaborador' },
+      { tipo:'admissao',    nome:'Fernanda Batista',      cargo:'Aux. Logística',  setor:'Logística',      data:'2026-04-12', motivo:'—' },
+      { tipo:'desligamento',nome:'Roberto Cunha',         cargo:'Op. Produção',    setor:'Produção',       data:'2026-04-08', motivo:'Sem justa causa' },
+      { tipo:'admissao',    nome:'Amanda Teixeira',       cargo:'Analista Admin.', setor:'Administrativo', data:'2026-04-03', motivo:'—' },
+      { tipo:'desligamento',nome:'Sérgio Nunes',          cargo:'Motorista',       setor:'Logística',      data:'2026-03-28', motivo:'Término de contrato' },
+    ],
+  };
+
+  let _chartRotMov, _chartRotTaxa, _chartRotMotivos;
+
+  function renderRotatividade() {
+    const periodoEl = $('#rot-periodo');
+    const n = parseInt(periodoEl?.value || '12', 10);
+
+    const labels    = ROT_MOCK.labels.slice(-n);
+    const admissoes = ROT_MOCK.admissoes.slice(-n);
+    const desligad  = ROT_MOCK.desligad.slice(-n);
+    const taxa      = ROT_MOCK.taxa.slice(-n);
+
+    // KPIs
+    const totalAdm = admissoes.reduce((a,b) => a+b, 0);
+    const totalDes = desligad.reduce((a,b) => a+b, 0);
+    const taxaAtual = taxa[taxa.length - 1];
+    const taxaAnt   = taxa[taxa.length - 2] ?? taxaAtual;
+    const deltaTaxa = +(taxaAtual - taxaAnt).toFixed(1);
+
+    $('#rot-kpi-taxa').innerHTML = `${taxaAtual.toFixed(1).replace('.',',')}<span class="unit">%</span>`;
+    const trendTaxa = $('#rot-kpi-taxa-trend');
+    trendTaxa.className = 'kpi-trend ' + (deltaTaxa < 0 ? 'up' : deltaTaxa > 0 ? 'down' : '');
+    trendTaxa.textContent = deltaTaxa === 0
+      ? 'estável vs. mês anterior'
+      : `${deltaTaxa > 0 ? '↑' : '↓'} ${Math.abs(deltaTaxa).toFixed(1).replace('.',',')} pp vs. mês anterior`;
+
+    $('#rot-kpi-admitidos').textContent = totalAdm;
+    $('#rot-kpi-admitidos-trend').textContent = `média ${(totalAdm/n).toFixed(1).replace('.',',')}/mês`;
+
+    $('#rot-kpi-desligados').textContent = totalDes;
+    $('#rot-kpi-desligados-trend').textContent = `média ${(totalDes/n).toFixed(1).replace('.',',')}/mês`;
+
+    // Permanência média baseada em COLABORADORES ativos
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo' && c.admissao);
+    if (ativos.length) {
+      const now = new Date();
+      const totalAnos = ativos.reduce((acc, c) => {
+        const start = new Date(c.admissao + 'T00:00:00');
+        return acc + (now - start) / (1000 * 60 * 60 * 24 * 365.25);
+      }, 0);
+      $('#rot-kpi-perm').innerHTML = `${(totalAnos/ativos.length).toFixed(1).replace('.',',')}<span class="unit">anos</span>`;
+    }
+
+    // Chart: movimentação mensal (barras)
+    _chartRotMov?.destroy();
+    _chartRotMov = new Chart($('#chart-rot-movimento'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Admissões',    data: admissoes, backgroundColor: CHART_COLORS.phthaloBright, borderRadius: 4 },
+          { label: 'Desligamentos',data: desligad,  backgroundColor: '#EF4444',                   borderRadius: 4 },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: CHART_COLORS.grid }, ticks: { stepSize: 1 } },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+
+    // Chart: taxa (linha)
+    _chartRotTaxa?.destroy();
+    _chartRotTaxa = new Chart($('#chart-rot-taxa'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Rotatividade %',
+          data: taxa,
+          borderColor: CHART_COLORS.phthalo,
+          backgroundColor: 'rgba(46,122,184,.12)',
+          borderWidth: 2.5,
+          tension: .35,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: CHART_COLORS.phthaloBright,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: CHART_COLORS.grid }, ticks: { callback: v => v + '%' } },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+
+    // Chart: motivos (donut)
+    const motLabels = ROT_MOCK.motivos.map(m => m.label);
+    const motData   = ROT_MOCK.motivos.map(m => m.valor);
+    const totalMot  = motData.reduce((a,b) => a+b, 0);
+    $('#rot-motivos-badge').textContent = `${totalMot} saídas`;
+
+    _chartRotMotivos?.destroy();
+    _chartRotMotivos = new Chart($('#chart-rot-motivos'), {
+      type: 'doughnut',
+      data: {
+        labels: motLabels,
+        datasets: [{
+          data: motData,
+          backgroundColor: [
+            CHART_COLORS.phthalo,
+            CHART_COLORS.phthaloLight,
+            CHART_COLORS.phthaloBright,
+            '#7EB9E0',
+            '#B1D4EA',
+          ],
+          borderColor: '#fff',
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { padding: 10, boxWidth: 10, font: { size: 10.5 } },
+          },
+        },
+      },
+    });
+
+    // Tabela movimentações recentes
+    const tb = $('#tb-rot-movimentacoes');
+    if (tb) {
+      tb.innerHTML = ROT_MOCK.movimentacoesRecentes.map(m => {
+        const chip = m.tipo === 'admissao'
+          ? `<span class="activity-chip admissao">Admissão</span>`
+          : `<span class="activity-chip desligamento">Desligamento</span>`;
+        return `
+          <tr>
+            <td>${chip}</td>
+            <td>
+              <div class="cell-person">
+                <div class="cell-avatar">${h(iniciais(m.nome))}</div>
+                <div class="cell-person-name">${h(m.nome)}</div>
+              </div>
+            </td>
+            <td>
+              <div>${h(m.cargo)}</div>
+              <div class="cell-person-sub">${h(m.setor)}</div>
+            </td>
+            <td class="cell-mono">${fmtDate(m.data)}</td>
+            <td style="color:var(--text-muted)">${h(m.motivo)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  // Re-render ao mudar período ou voltar na aba
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'rot-periodo') renderRotatividade();
+  });
+  document.querySelectorAll('.nav-item[data-page="rotatividade"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderRotatividade, 60));
   });
 </script>
 
