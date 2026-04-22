@@ -1303,6 +1303,155 @@
   }
 
   /* ════════════════════════════════════════════════
+     QUADRO DE FUNCIONÁRIOS — setor cards
+     ════════════════════════════════════════════════ */
+  .setor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  @media (max-width: 1200px) {
+    .setor-grid { grid-template-columns: 1fr; }
+  }
+
+  .setor-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .setor-header {
+    background: linear-gradient(135deg, var(--phthalo) 0%, var(--phthalo-mid) 100%);
+    color: var(--on-dark);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .setor-icon {
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    background: rgba(255,255,255,.14);
+    display: grid;
+    place-items: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .setor-title-block { flex: 1; min-width: 0; }
+
+  .setor-name {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+  }
+
+  .setor-meta {
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--on-dark-dim);
+    letter-spacing: .06em;
+    margin-top: 2px;
+  }
+
+  .setor-count {
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    font-weight: 500;
+    padding: 4px 10px;
+    background: rgba(255,255,255,.14);
+    border-radius: 8px;
+  }
+
+  .setor-body {
+    padding: 14px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .cargo-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .cargo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: .7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 4px 0 6px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .cargo-count {
+    background: var(--bluish-bg);
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: .68rem;
+  }
+
+  .func-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 10px;
+    padding-top: 4px;
+  }
+
+  @media (max-width: 1500px) {
+    .func-list { grid-template-columns: 1fr; }
+  }
+
+  .func-mini {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .func-mini:hover { background: var(--bluish-soft); }
+
+  .func-mini .cell-avatar {
+    width: 28px; height: 28px;
+    font-size: .7rem;
+  }
+
+  .func-mini-name {
+    font-size: .85rem;
+    color: var(--text);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  .func-mini-status {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--success);
+  }
+  .func-mini-status.ferias   { background: var(--info); }
+  .func-mini-status.afastado { background: var(--warning); }
+  .func-mini-status.inativo  { background: var(--text-soft); }
+
+  /* ════════════════════════════════════════════════
      EMPTY STATE
      ════════════════════════════════════════════════ */
   .empty {
@@ -1720,10 +1869,50 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Quadro de Funcionários</h1>
-          <div class="page-subtitle">Headcount por setor e cargo</div>
+          <div class="page-subtitle">Organização por setor e cargo · clique em qualquer nome para ver detalhes</div>
         </div>
       </div>
-      <div class="page-placeholder">QUADRO ORGANIZACIONAL A CONSTRUIR</div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="quad-search" placeholder="Buscar colaborador…">
+        </div>
+        <select id="quad-filter-cargo">
+          <option value="">Todos os cargos</option>
+        </select>
+        <select id="quad-filter-status">
+          <option value="">Todos os status</option>
+          <option value="ativo">Ativo</option>
+          <option value="ferias">Em férias</option>
+          <option value="afastado">Afastado</option>
+          <option value="inativo">Inativo</option>
+        </select>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat stat-success">
+          <div class="stat-label">Total</div>
+          <div class="stat-value" id="quad-stat-total">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Setores</div>
+          <div class="stat-value" id="quad-stat-setores">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Cargos únicos</div>
+          <div class="stat-value" id="quad-stat-cargos">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Maior setor</div>
+          <div class="stat-value" id="quad-stat-maior" style="font-size:1rem; line-height:1.8;">—</div>
+        </div>
+      </div>
+
+      <!-- Grid de setores -->
+      <div class="setor-grid" id="setor-grid"></div>
+
     </section>
 
     <!-- ───── ROTATIVIDADE ───── -->
@@ -2171,6 +2360,7 @@
       if (!$app.classList.contains('hidden')) {
         renderDashboardCharts();
         renderColaboradores();
+        renderQuadro();
       }
     }, 50);
   });
@@ -2443,6 +2633,134 @@
   function exportColaboradores() {
     showToast('Exportação CSV será implementada na integração', 'ok');
   }
+
+  /* ════════════════════════════════════════════════
+     QUADRO DE FUNCIONÁRIOS — agrupa por setor→cargo
+     ════════════════════════════════════════════════ */
+
+  const SETOR_ICON = {
+    'Produção':       '⚙',
+    'Logística':      '🚚',
+    'Administrativo': '📋',
+    'Manutenção':     '🔧',
+    'Comercial':      '💼',
+  };
+
+  function renderQuadro() {
+    const grid = $('#setor-grid');
+    if (!grid) return;
+
+    // Popula dropdown de cargos
+    const cargosAll = [...new Set(COLABORADORES.map(c => c.cargo))].sort();
+    const filtroCargo  = $('#quad-filter-cargo');
+    if (filtroCargo && filtroCargo.options.length <= 1) {
+      cargosAll.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        filtroCargo.appendChild(opt);
+      });
+    }
+
+    const q       = ($('#quad-search')?.value || '').trim().toLowerCase();
+    const fCargo  = $('#quad-filter-cargo')?.value  || '';
+    const fStatus = $('#quad-filter-status')?.value || '';
+
+    const filtrados = COLABORADORES.filter(c => {
+      if (fCargo  && c.cargo  !== fCargo)  return false;
+      if (fStatus && c.status !== fStatus) return false;
+      if (q && !c.nome.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    // Agrupa por setor → cargo
+    const porSetor = {};
+    filtrados.forEach(c => {
+      if (!porSetor[c.setor]) porSetor[c.setor] = {};
+      if (!porSetor[c.setor][c.cargo]) porSetor[c.setor][c.cargo] = [];
+      porSetor[c.setor][c.cargo].push(c);
+    });
+
+    // Stats
+    const setoresAtivos = Object.keys(porSetor);
+    $('#quad-stat-total').textContent   = filtrados.length;
+    $('#quad-stat-setores').textContent = setoresAtivos.length;
+    $('#quad-stat-cargos').textContent  = [...new Set(filtrados.map(c => c.cargo))].length;
+
+    let maior = '—';
+    let maiorN = 0;
+    setoresAtivos.forEach(s => {
+      const n = Object.values(porSetor[s]).reduce((a,b) => a + b.length, 0);
+      if (n > maiorN) { maiorN = n; maior = `${s} (${n})`; }
+    });
+    $('#quad-stat-maior').textContent = maior;
+
+    if (!setoresAtivos.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1; background:var(--white); border:1px solid var(--border); border-radius:12px;">Nenhum colaborador encontrado</div>`;
+      return;
+    }
+
+    // Ordena setores por tamanho (desc)
+    setoresAtivos.sort((a,b) => {
+      const na = Object.values(porSetor[a]).reduce((s,x) => s + x.length, 0);
+      const nb = Object.values(porSetor[b]).reduce((s,x) => s + x.length, 0);
+      return nb - na;
+    });
+
+    grid.innerHTML = setoresAtivos.map(setor => {
+      const cargos = porSetor[setor];
+      const total = Object.values(cargos).reduce((a,b) => a + b.length, 0);
+      const cargosOrdenados = Object.keys(cargos).sort();
+
+      const gruposHtml = cargosOrdenados.map(cargo => {
+        const pessoas = cargos[cargo];
+        const pessoasHtml = pessoas
+          .sort((a,b) => a.nome.localeCompare(b.nome))
+          .map(p => `
+            <div class="func-mini" onclick="abrirDrawerColab(${p.id})">
+              <div class="cell-avatar">${h(iniciais(p.nome))}</div>
+              <div class="func-mini-name">${h(p.nome)}</div>
+              <div class="func-mini-status ${h(p.status)}" title="${h(STATUS_LABEL[p.status]?.t || p.status)}"></div>
+            </div>
+          `).join('');
+        return `
+          <div class="cargo-group">
+            <div class="cargo-header">
+              <span>${h(cargo)}</span>
+              <span class="cargo-count">${pessoas.length}</span>
+            </div>
+            <div class="func-list">${pessoasHtml}</div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="setor-card">
+          <div class="setor-header">
+            <div class="setor-icon">${SETOR_ICON[setor] || '◆'}</div>
+            <div class="setor-title-block">
+              <div class="setor-name">${h(setor)}</div>
+              <div class="setor-meta">${cargosOrdenados.length} ${cargosOrdenados.length === 1 ? 'cargo' : 'cargos'}</div>
+            </div>
+            <div class="setor-count">${total}</div>
+          </div>
+          <div class="setor-body">${gruposHtml}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Re-render ao filtrar
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'quad-search') renderQuadro();
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'quad-filter-cargo' || e.target.id === 'quad-filter-status') renderQuadro();
+  });
+
+  // Re-render ao voltar para a aba Quadro (dados podem ter mudado em Colaboradores)
+  document.querySelectorAll('.nav-item[data-page="quadro"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderQuadro, 60));
+  });
 </script>
 
 </body>
