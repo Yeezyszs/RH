@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RH — Gestão de Recursos Humanos</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -472,6 +473,282 @@
   }
 
   /* ════════════════════════════════════════════════
+     DASHBOARD — KPIs, widgets, grids
+     ════════════════════════════════════════════════ */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .kpi-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: transform .15s, box-shadow .15s;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--phthalo-light);
+  }
+  .kpi-card.kpi-warn::before    { background: var(--warning); }
+  .kpi-card.kpi-danger::before  { background: var(--danger); }
+  .kpi-card.kpi-success::before { background: var(--success); }
+
+  .kpi-label {
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--text-muted);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .kpi-value {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--phthalo-dark);
+    line-height: 1.1;
+    margin: 6px 0 4px;
+  }
+
+  .kpi-value .unit {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-left: 4px;
+    font-weight: 400;
+  }
+
+  .kpi-trend {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--text-soft);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .kpi-trend.up   { color: var(--success); }
+  .kpi-trend.down { color: var(--danger); }
+
+  /* ── Grids principais ── */
+  .dash-row-2col {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .dash-row-charts {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  /* ── Widget card genérico ── */
+  .widget {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px 20px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .widget-title {
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--phthalo-dark);
+    letter-spacing: .02em;
+  }
+
+  .widget-badge {
+    font-family: var(--mono);
+    font-size: .7rem;
+    background: var(--bluish-bg);
+    color: var(--text-muted);
+    padding: 3px 9px;
+    border-radius: 12px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .widget-badge.danger  { background: #FEE2E2; color: var(--danger); }
+  .widget-badge.warn    { background: #FEF3C7; color: #92400E; }
+  .widget-badge.success { background: #D1FAE5; color: #065F46; }
+
+  /* ── Alert list ── */
+  .alert-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .alert-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 4px;
+    border-radius: 6px;
+    transition: background .12s;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-item:hover { background: var(--bluish-soft); }
+
+  .alert-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--phthalo-light);
+  }
+  .alert-dot.danger  { background: var(--danger); }
+  .alert-dot.warn    { background: var(--warning); }
+  .alert-dot.info    { background: var(--info); }
+  .alert-dot.success { background: var(--success); }
+
+  .alert-text { flex: 1; font-size: .86rem; color: var(--text); }
+  .alert-text strong { font-weight: 700; color: var(--phthalo-dark); }
+
+  .alert-meta {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  /* ── Birthday list ── */
+  .bday-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .bday-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .bday-item:last-child { border-bottom: none; }
+
+  .bday-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--phthalo-light), var(--phthalo-bright));
+    color: var(--white);
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: .78rem;
+  }
+
+  .bday-name {
+    flex: 1;
+    font-size: .86rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .bday-role {
+    font-size: .72rem;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .bday-date {
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--phthalo-light);
+    font-weight: 600;
+  }
+
+  /* ── Chart container ── */
+  .chart-container {
+    position: relative;
+    height: 260px;
+    margin-top: 8px;
+  }
+
+  /* ── Activity feed ── */
+  .activity-feed {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .activity-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .activity-item:last-child { border-bottom: none; }
+
+  .activity-chip {
+    font-family: var(--mono);
+    font-size: .66rem;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    min-width: 90px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .activity-chip.admissao    { background: #D1FAE5; color: #065F46; }
+  .activity-chip.desligamento{ background: #FEE2E2; color: #991B1B; }
+  .activity-chip.advertencia { background: #FEF3C7; color: #92400E; }
+  .activity-chip.ferias      { background: #DBEAFE; color: #1E40AF; }
+  .activity-chip.treinamento { background: #E0E7FF; color: #3730A3; }
+
+  .activity-text { flex: 1; font-size: .88rem; color: var(--text); }
+  .activity-text strong { font-weight: 700; color: var(--phthalo-dark); }
+
+  .activity-time {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  /* ── Responsividade básica ── */
+  @media (max-width: 1100px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .dash-row-2col,
+    .dash-row-charts { grid-template-columns: 1fr; }
+  }
+
+  /* ════════════════════════════════════════════════
      TOAST
      ════════════════════════════════════════════════ */
   #toast {
@@ -636,10 +913,166 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Dashboard</h1>
-          <div class="page-subtitle">Visão geral do RH</div>
+          <div class="page-subtitle">Visão geral do RH · atualizado agora</div>
         </div>
       </div>
-      <div class="page-placeholder">DASHBOARD — KPIs E ALERTAS A CONSTRUIR</div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Headcount ativo</div>
+          <div class="kpi-value">142</div>
+          <div class="kpi-trend up">↑ 3 vs. mês anterior</div>
+        </div>
+        <div class="kpi-card kpi-warn">
+          <div class="kpi-label">Rotatividade 30d</div>
+          <div class="kpi-value">4,8<span class="unit">%</span></div>
+          <div class="kpi-trend down">↓ 1,2 pp vs. mês anterior</div>
+        </div>
+        <div class="kpi-card kpi-success">
+          <div class="kpi-label">Aniversariantes do mês</div>
+          <div class="kpi-value">9</div>
+          <div class="kpi-trend">3 nesta semana</div>
+        </div>
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-label">Vencimentos críticos</div>
+          <div class="kpi-value">7</div>
+          <div class="kpi-trend down">2 já vencidos</div>
+        </div>
+      </div>
+
+      <!-- Alertas + Aniversariantes -->
+      <div class="dash-row-2col">
+
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Atenção hoje</div>
+            <span class="widget-badge danger">7 itens</span>
+          </div>
+          <ul class="alert-list">
+            <li class="alert-item">
+              <span class="alert-dot danger"></span>
+              <span class="alert-text"><strong>ASO de José Silva</strong> venceu há 3 dias</span>
+              <span class="alert-meta">19/04</span>
+            </li>
+            <li class="alert-item">
+              <span class="alert-dot danger"></span>
+              <span class="alert-text"><strong>CNH de Pedro Souza</strong> vencida</span>
+              <span class="alert-meta">14/04</span>
+            </li>
+            <li class="alert-item">
+              <span class="alert-dot warn"></span>
+              <span class="alert-text"><strong>ASO de Maria Santos</strong> vence em 4 dias</span>
+              <span class="alert-meta">26/04</span>
+            </li>
+            <li class="alert-item">
+              <span class="alert-dot warn"></span>
+              <span class="alert-text"><strong>Treinamento NR-10</strong> de 3 colaboradores vence em 7 dias</span>
+              <span class="alert-meta">29/04</span>
+            </li>
+            <li class="alert-item">
+              <span class="alert-dot info"></span>
+              <span class="alert-text"><strong>Retorno de férias</strong> de Ana Costa</span>
+              <span class="alert-meta">25/04</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Aniversariantes da semana</div>
+            <span class="widget-badge success">3</span>
+          </div>
+          <ul class="bday-list">
+            <li class="bday-item">
+              <div class="bday-avatar">JS</div>
+              <div class="bday-name">
+                João Silveira
+                <div class="bday-role">Produção · Op. Máquina</div>
+              </div>
+              <div class="bday-date">23/04</div>
+            </li>
+            <li class="bday-item">
+              <div class="bday-avatar">MP</div>
+              <div class="bday-name">
+                Marcela Pinto
+                <div class="bday-role">Administrativo · Analista</div>
+              </div>
+              <div class="bday-date">25/04</div>
+            </li>
+            <li class="bday-item">
+              <div class="bday-avatar">RF</div>
+              <div class="bday-name">
+                Rafael Fernandes
+                <div class="bday-role">Logística · Motorista</div>
+              </div>
+              <div class="bday-date">27/04</div>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Gráficos -->
+      <div class="dash-row-charts">
+
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Rotatividade — últimos 6 meses</div>
+            <span class="widget-badge">%</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-rotatividade"></canvas>
+          </div>
+        </div>
+
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Headcount por setor</div>
+            <span class="widget-badge">142 total</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-headcount"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Atividade recente -->
+      <div class="widget">
+        <div class="widget-header">
+          <div class="widget-title">Atividade recente</div>
+          <span class="widget-badge">últimos 7 dias</span>
+        </div>
+        <ul class="activity-feed">
+          <li class="activity-item">
+            <span class="activity-chip admissao">Admissão</span>
+            <span class="activity-text"><strong>Carlos Mendes</strong> admitido como Op. Produção</span>
+            <span class="activity-time">há 2h</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-chip advertencia">Advertência</span>
+            <span class="activity-text"><strong>Paulo Rocha</strong> recebeu advertência por atraso recorrente</span>
+            <span class="activity-time">ontem</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-chip ferias">Férias</span>
+            <span class="activity-text"><strong>Ana Costa</strong> iniciou período de férias (15 dias)</span>
+            <span class="activity-time">2 dias</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-chip treinamento">Treinamento</span>
+            <span class="activity-text"><strong>Equipe Manutenção</strong> concluiu NR-12 (6 colaboradores)</span>
+            <span class="activity-time">3 dias</span>
+          </li>
+          <li class="activity-item">
+            <span class="activity-chip desligamento">Desligamento</span>
+            <span class="activity-text"><strong>Luiz Araújo</strong> desligado — pedido de demissão</span>
+            <span class="activity-time">5 dias</span>
+          </li>
+        </ul>
+      </div>
+
     </section>
 
     <!-- ───── COLABORADORES ───── -->
@@ -887,6 +1320,107 @@
 
   // Foco inicial no campo de usuário.
   $loginUser.focus();
+
+  /* ════════════════════════════════════════════════
+     DASHBOARD — charts (mock)
+     ════════════════════════════════════════════════ */
+  const CHART_COLORS = {
+    phthalo:       '#123E6B',
+    phthaloLight:  '#2E7AB8',
+    phthaloBright: '#4A9FD6',
+    muted:         '#8A98A8',
+    grid:          '#E3EBF3',
+    text:          '#5A6B7C',
+  };
+
+  Chart.defaults.font.family = "'Syne', sans-serif";
+  Chart.defaults.color = CHART_COLORS.text;
+
+  let _chartRot, _chartHead;
+
+  function renderDashboardCharts() {
+    // Rotatividade 6 meses (linha)
+    const ctxRot = document.getElementById('chart-rotatividade');
+    if (ctxRot) {
+      _chartRot?.destroy();
+      _chartRot = new Chart(ctxRot, {
+        type: 'line',
+        data: {
+          labels: ['Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr'],
+          datasets: [{
+            label: 'Rotatividade %',
+            data: [5.2, 6.1, 4.9, 5.8, 6.0, 4.8],
+            borderColor: CHART_COLORS.phthalo,
+            backgroundColor: 'rgba(46,122,184,.12)',
+            borderWidth: 2.5,
+            tension: .35,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: CHART_COLORS.phthaloBright,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: CHART_COLORS.grid },
+              ticks: { callback: v => v + '%' },
+            },
+            x: { grid: { display: false } },
+          },
+        },
+      });
+    }
+
+    // Headcount por setor (donut)
+    const ctxHead = document.getElementById('chart-headcount');
+    if (ctxHead) {
+      _chartHead?.destroy();
+      _chartHead = new Chart(ctxHead, {
+        type: 'doughnut',
+        data: {
+          labels: ['Produção', 'Logística', 'Administrativo', 'Manutenção', 'Comercial'],
+          datasets: [{
+            data: [62, 28, 24, 18, 10],
+            backgroundColor: [
+              CHART_COLORS.phthalo,
+              CHART_COLORS.phthaloLight,
+              CHART_COLORS.phthaloBright,
+              '#7EB9E0',
+              '#B1D4EA',
+            ],
+            borderColor: '#fff',
+            borderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '62%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { padding: 12, boxWidth: 12, font: { size: 11 } },
+            },
+          },
+        },
+      });
+    }
+  }
+
+  // Renderiza charts quando o login conclui (Chart.js precisa do container visível)
+  const _origSubmit = $loginForm.onsubmit;
+  $loginForm.addEventListener('submit', () => {
+    // Espera o app ser mostrado antes de criar os charts
+    setTimeout(() => {
+      if (!$app.classList.contains('hidden')) renderDashboardCharts();
+    }, 50);
+  });
 </script>
 
 </body>
