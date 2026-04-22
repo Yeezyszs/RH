@@ -334,9 +334,194 @@
     font-size: .82rem;
     letter-spacing: .06em;
   }
+
+  /* ════════════════════════════════════════════════
+     PÁGINAS (sistema de troca)
+     ════════════════════════════════════════════════ */
+  .page { display: none; }
+  .page.active { display: block; animation: pageFade .25s ease; }
+  @keyframes pageFade {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .hidden { display: none !important; }
+
+  /* ════════════════════════════════════════════════
+     LOGIN SCREEN
+     ════════════════════════════════════════════════ */
+  .login-screen {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, var(--phthalo-deep) 0%, var(--phthalo-dark) 55%, var(--phthalo) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 24px;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--white);
+    border-radius: 14px;
+    padding: 36px 34px 28px;
+    box-shadow: 0 20px 60px rgba(6,26,48,.45);
+  }
+
+  .login-brand {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .login-mark {
+    width: 56px; height: 56px;
+    margin: 0 auto 14px;
+    display: grid;
+    place-items: center;
+    background: var(--phthalo);
+    color: var(--on-dark);
+    border-radius: 14px;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: .06em;
+  }
+
+  .login-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--phthalo-dark);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  .login-subtitle {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--text-muted);
+    letter-spacing: .12em;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  .login-form { display: flex; flex-direction: column; gap: 4px; }
+
+  .login-form label {
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin: 10px 0 6px;
+  }
+
+  .login-form input {
+    background: var(--bluish-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-family: var(--font);
+    font-size: .92rem;
+    color: var(--text);
+    transition: border-color .15s, background .15s;
+  }
+
+  .login-form input:focus {
+    outline: none;
+    border-color: var(--phthalo-light);
+    background: var(--white);
+  }
+
+  .login-form button {
+    margin-top: 20px;
+    background: var(--phthalo);
+    color: var(--on-dark);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: var(--font);
+    font-weight: 700;
+    font-size: .88rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  .login-form button:hover { background: var(--phthalo-mid); }
+  .login-form button:active { background: var(--phthalo-dark); }
+
+  .login-error {
+    color: var(--danger);
+    font-size: .78rem;
+    margin-top: 12px;
+    min-height: 1em;
+    text-align: center;
+  }
+
+  .login-footer {
+    font-family: var(--mono);
+    font-size: .68rem;
+    color: var(--text-soft);
+    text-align: center;
+    letter-spacing: .08em;
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  /* ════════════════════════════════════════════════
+     TOAST
+     ════════════════════════════════════════════════ */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--white);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--phthalo-light);
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-size: .84rem;
+    box-shadow: var(--shadow-lg);
+    max-width: 340px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all .25s;
+    z-index: 8000;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.toast-err { border-left-color: var(--danger); color: var(--danger); }
+  #toast.toast-ok  { border-left-color: var(--success); }
 </style>
 </head>
 <body>
+
+<!-- ════════════ LOGIN ════════════ -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-mark">RH</div>
+      <div class="login-title">Recursos Humanos</div>
+      <div class="login-subtitle">Sistema de Gestão</div>
+    </div>
+    <form id="login-form" class="login-form" autocomplete="off">
+      <label for="login-user">Usuário</label>
+      <input type="text" id="login-user" required autocomplete="username">
+      <label for="login-pass">Senha</label>
+      <input type="password" id="login-pass" required autocomplete="current-password">
+      <button type="submit">Entrar</button>
+      <div id="login-error" class="login-error"></div>
+    </form>
+    <div class="login-footer">Acesso restrito · RH e Diretoria</div>
+  </div>
+</div>
+
+<!-- ════════════ APP ════════════ -->
+<div id="app" class="hidden">
 
 <!-- ════════════ TOPBAR ════════════ -->
 <header class="topbar">
@@ -352,13 +537,13 @@
 
   <div class="topbar-right">
     <div class="user-chip">
-      <div class="avatar">A</div>
+      <div class="avatar">—</div>
       <div>
-        <div class="user-name">Admin</div>
-        <div class="user-role">RH</div>
+        <div class="user-name">—</div>
+        <div class="user-role">—</div>
       </div>
     </div>
-    <button class="btn-logout" type="button">Sair</button>
+    <button id="btn-logout" class="btn-logout" type="button">Sair</button>
   </div>
 </header>
 
@@ -369,7 +554,7 @@
   <aside class="sidebar">
 
     <div class="nav-group">
-      <div class="nav-item active">
+      <div class="nav-item active" data-page="dashboard">
         <span class="nav-icon">◉</span>
         <span>Dashboard</span>
       </div>
@@ -377,19 +562,19 @@
 
     <div class="nav-group">
       <div class="nav-group-title">Pessoas</div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="colaboradores">
         <span class="nav-icon">◆</span>
         <span>Colaboradores</span>
       </div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="quadro">
         <span class="nav-icon">◫</span>
         <span>Quadro de Funcionários</span>
       </div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="rotatividade">
         <span class="nav-icon">↻</span>
         <span>Rotatividade</span>
       </div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="desligamentos">
         <span class="nav-icon">⇲</span>
         <span>Desligamentos</span>
       </div>
@@ -397,11 +582,11 @@
 
     <div class="nav-group">
       <div class="nav-group-title">Compliance</div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="vencimentos">
         <span class="nav-icon">⏱</span>
         <span>Vencimentos</span>
       </div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="epi">
         <span class="nav-icon">⛨</span>
         <span>EPI</span>
       </div>
@@ -409,15 +594,15 @@
 
     <div class="nav-group">
       <div class="nav-group-title">Benefícios</div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="vale-combustivel">
         <span class="nav-icon">⛽</span>
         <span>Vale Combustível</span>
       </div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="ferias">
         <span class="nav-icon">☀</span>
         <span>Férias</span>
       </div>
-      <div class="nav-item">
+      <div class="nav-item nav-restricted" data-page="salarios">
         <span class="nav-icon">$</span>
         <span>Salários</span>
         <span class="nav-lock">🔒</span>
@@ -426,15 +611,15 @@
 
     <div class="nav-group">
       <div class="nav-group-title">Gestão</div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="advertencias">
         <span class="nav-icon">!</span>
         <span>Advertências</span>
       </div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="feedback-clima">
         <span class="nav-icon">✎</span>
         <span>Feedback & Clima</span>
       </div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="cronograma">
         <span class="nav-icon">▦</span>
         <span>Cronograma</span>
       </div>
@@ -445,19 +630,264 @@
 
   <!-- ════════ MAIN ════════ -->
   <main class="main">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">Dashboard</h1>
-        <div class="page-subtitle">Visão geral do RH</div>
-      </div>
-    </div>
 
-    <div class="page-placeholder">
-      ÁREA DE CONTEÚDO — A SER CONSTRUÍDA
-    </div>
+    <!-- ───── DASHBOARD ───── -->
+    <section id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <div class="page-subtitle">Visão geral do RH</div>
+        </div>
+      </div>
+      <div class="page-placeholder">DASHBOARD — KPIs E ALERTAS A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── COLABORADORES ───── -->
+    <section id="page-colaboradores" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Colaboradores</h1>
+          <div class="page-subtitle">Cadastro · contatos de emergência · aniversariantes</div>
+        </div>
+      </div>
+      <div class="page-placeholder">CADASTRO DE COLABORADORES A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── QUADRO DE FUNCIONÁRIOS ───── -->
+    <section id="page-quadro" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Quadro de Funcionários</h1>
+          <div class="page-subtitle">Headcount por setor e cargo</div>
+        </div>
+      </div>
+      <div class="page-placeholder">QUADRO ORGANIZACIONAL A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── ROTATIVIDADE ───── -->
+    <section id="page-rotatividade" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Rotatividade</h1>
+          <div class="page-subtitle">Admissões · demissões · turnover</div>
+        </div>
+      </div>
+      <div class="page-placeholder">INDICADORES DE ROTATIVIDADE A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── DESLIGAMENTOS ───── -->
+    <section id="page-desligamentos" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Desligamentos</h1>
+          <div class="page-subtitle">Processo e entrevista de saída</div>
+        </div>
+      </div>
+      <div class="page-placeholder">REGISTRO DE DESLIGAMENTOS A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── VENCIMENTOS ───── -->
+    <section id="page-vencimentos" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Vencimentos</h1>
+          <div class="page-subtitle">ASO · documentos · treinamentos (semáforo)</div>
+        </div>
+      </div>
+      <div class="page-placeholder">CENTRAL DE VENCIMENTOS A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── EPI ───── -->
+    <section id="page-epi" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">EPI</h1>
+          <div class="page-subtitle">Ficha de entrega por colaborador</div>
+        </div>
+      </div>
+      <div class="page-placeholder">CONTROLE DE EPI A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── VALE COMBUSTÍVEL ───── -->
+    <section id="page-vale-combustivel" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Vale Combustível</h1>
+          <div class="page-subtitle">Controle de descontos por colaborador</div>
+        </div>
+      </div>
+      <div class="page-placeholder">VALE COMBUSTÍVEL A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── FÉRIAS ───── -->
+    <section id="page-ferias" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Férias</h1>
+          <div class="page-subtitle">Planejamento e saldo</div>
+        </div>
+      </div>
+      <div class="page-placeholder">CONTROLE DE FÉRIAS A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── SALÁRIOS (restrito) ───── -->
+    <section id="page-salarios" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Salários 🔒</h1>
+          <div class="page-subtitle">Acesso restrito · RH e Diretoria</div>
+        </div>
+      </div>
+      <div class="page-placeholder">PLANILHA DE SALÁRIOS A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── ADVERTÊNCIAS ───── -->
+    <section id="page-advertencias" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Advertências</h1>
+          <div class="page-subtitle">Registro formal de ocorrências</div>
+        </div>
+      </div>
+      <div class="page-placeholder">REGISTRO DE ADVERTÊNCIAS A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── FEEDBACK & CLIMA ───── -->
+    <section id="page-feedback-clima" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Feedback & Clima</h1>
+          <div class="page-subtitle">Avaliações e pesquisa de clima organizacional</div>
+        </div>
+      </div>
+      <div class="page-placeholder">FEEDBACK E CLIMA A CONSTRUIR</div>
+    </section>
+
+    <!-- ───── CRONOGRAMA ───── -->
+    <section id="page-cronograma" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Cronograma</h1>
+          <div class="page-subtitle">Agenda de eventos de RH</div>
+        </div>
+      </div>
+      <div class="page-placeholder">CALENDÁRIO DE EVENTOS A CONSTRUIR</div>
+    </section>
+
   </main>
 
-</div>
+</div><!-- /.app-shell -->
+</div><!-- /#app -->
+
+<!-- ════════════ TOAST ════════════ -->
+<div id="toast"></div>
+
+<script>
+  /* ════════════════════════════════════════════════
+     RH — lógica de navegação e auth (mock)
+     ════════════════════════════════════════════════ */
+
+  // --- Estado ---
+  const AUTH = { user: null, role: null };
+
+  // Usuários mockados. Substituir por Supabase Auth na integração.
+  const MOCK_USERS = {
+    'rh':      { pass: 'rh123',      role: 'rh',      name: 'RH'      },
+    'diretor': { pass: 'diretor123', role: 'diretor', name: 'Diretor' },
+  };
+
+  // --- Elementos ---
+  const $loginScreen = document.getElementById('login-screen');
+  const $app         = document.getElementById('app');
+  const $loginForm   = document.getElementById('login-form');
+  const $loginUser   = document.getElementById('login-user');
+  const $loginPass   = document.getElementById('login-pass');
+  const $loginError  = document.getElementById('login-error');
+  const $btnLogout   = document.getElementById('btn-logout');
+
+  // --- Auth ---
+  $loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const u = $loginUser.value.trim().toLowerCase();
+    const p = $loginPass.value;
+    const match = MOCK_USERS[u];
+    if (!match || match.pass !== p) {
+      $loginError.textContent = 'Usuário ou senha inválidos.';
+      return;
+    }
+    AUTH.user = match.name;
+    AUTH.role = match.role;
+    $loginError.textContent = '';
+    $loginPass.value = '';
+    renderUserChip();
+    applyRoleVisibility();
+    $loginScreen.classList.add('hidden');
+    $app.classList.remove('hidden');
+    showToast(`Bem-vindo, ${AUTH.user}`, 'ok');
+  });
+
+  $btnLogout.addEventListener('click', () => {
+    AUTH.user = null; AUTH.role = null;
+    $loginForm.reset();
+    $app.classList.add('hidden');
+    $loginScreen.classList.remove('hidden');
+    goPage('dashboard');
+  });
+
+  function renderUserChip() {
+    document.querySelector('.user-chip .avatar').textContent = AUTH.user[0].toUpperCase();
+    document.querySelector('.user-chip .user-name').textContent = AUTH.user;
+    document.querySelector('.user-chip .user-role').textContent = AUTH.role;
+  }
+
+  // Aplica visibilidade de itens restritos (Salários) conforme role.
+  function applyRoleVisibility() {
+    const allowed = (AUTH.role === 'rh' || AUTH.role === 'diretor');
+    document.querySelectorAll('.nav-restricted').forEach(el => {
+      el.style.display = allowed ? '' : 'none';
+    });
+  }
+
+  // --- Navegação ---
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    el.addEventListener('click', () => goPage(el.dataset.page));
+  });
+
+  function goPage(name) {
+    document.querySelectorAll('.nav-item').forEach(n => {
+      n.classList.toggle('active', n.dataset.page === name);
+    });
+    document.querySelectorAll('.page').forEach(p => {
+      p.classList.toggle('active', p.id === 'page-' + name);
+    });
+    // Scroll para o topo ao trocar de página
+    document.querySelector('.main').scrollTo?.({ top: 0 });
+    window.scrollTo({ top: 0 });
+  }
+
+  // --- Toast ---
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = '';
+    if (type === 'err') t.classList.add('toast-err');
+    if (type === 'ok')  t.classList.add('toast-ok');
+    requestAnimationFrame(() => t.classList.add('show'));
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // --- Helpers para uso futuro ---
+  // Escape XSS para interpolações em innerHTML.
+  function h(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  // Foco inicial no campo de usuário.
+  $loginUser.focus();
+</script>
 
 </body>
 </html>
