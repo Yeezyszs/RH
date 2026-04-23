@@ -1395,6 +1395,126 @@
   }
 
   /* ════════════════════════════════════════════════
+     CRONOGRAMA — calendário mensal
+     ════════════════════════════════════════════════ */
+  .cal-wrapper {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .cal-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--bluish-bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cal-header-day {
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: .7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(110px, auto);
+  }
+
+  .cal-cell {
+    border-right: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border-soft);
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    transition: background .12s;
+    position: relative;
+    min-height: 110px;
+  }
+  .cal-cell:nth-child(7n) { border-right: none; }
+  .cal-cell:hover { background: var(--bluish-soft); }
+  .cal-cell.out-of-month {
+    background: #FAFBFC;
+    color: var(--text-soft);
+  }
+  .cal-cell.out-of-month .cal-day { color: var(--text-soft); }
+  .cal-cell.today {
+    background: linear-gradient(135deg, rgba(74,159,214,.08), transparent);
+  }
+  .cal-cell.today .cal-day {
+    background: var(--phthalo);
+    color: var(--on-dark);
+    border-radius: 50%;
+    width: 24px; height: 24px;
+    display: grid; place-items: center;
+    font-weight: 700;
+  }
+
+  .cal-day {
+    font-family: var(--mono);
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--text);
+    align-self: flex-start;
+  }
+
+  .cal-event {
+    font-size: .72rem;
+    font-weight: 500;
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: var(--phthalo-light);
+    color: #fff;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: filter .12s;
+  }
+  .cal-event:hover { filter: brightness(1.1); }
+
+  .cal-event.treinamento { background: #3730A3; }
+  .cal-event.reuniao     { background: var(--phthalo); }
+  .cal-event.admissao    { background: var(--success); }
+  .cal-event.avaliacao   { background: #7C3AED; }
+  .cal-event.feriado     { background: var(--danger); }
+  .cal-event.outro       { background: var(--text-muted); }
+
+  .cal-event-more {
+    font-size: .7rem;
+    color: var(--phthalo-light);
+    font-weight: 600;
+    padding: 2px 6px;
+  }
+
+  /* Cabeçalho de controle do calendário */
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .cal-nav-title {
+    font-family: var(--font);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--phthalo-dark);
+    letter-spacing: .02em;
+    margin-right: 4px;
+    min-width: 160px;
+  }
+
+  /* ════════════════════════════════════════════════
      SUB-ABAS DE PÁGINA (view-tabs)
      ════════════════════════════════════════════════ */
   .view-tabs {
@@ -2826,10 +2946,68 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Cronograma</h1>
-          <div class="page-subtitle">Agenda de eventos de RH</div>
+          <div class="page-subtitle">Calendário de eventos do RH · treinamentos · reuniões · avaliações</div>
         </div>
       </div>
-      <div class="page-placeholder">CALENDÁRIO DE EVENTOS A CONSTRUIR</div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="cal-nav">
+          <button class="btn btn-secondary btn-sm btn-icon" type="button" onclick="navCalendar(-1)">‹</button>
+          <div class="cal-nav-title" id="cal-title">—</div>
+          <button class="btn btn-secondary btn-sm btn-icon" type="button" onclick="navCalendar(1)">›</button>
+          <button class="btn btn-secondary btn-sm" type="button" onclick="navCalendar(0)">Hoje</button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-search">
+          <input type="text" id="cron-search" placeholder="Buscar evento…">
+        </div>
+        <select id="cron-filter-tipo">
+          <option value="">Todos os tipos</option>
+          <option value="treinamento">Treinamento</option>
+          <option value="reuniao">Reunião</option>
+          <option value="admissao">Admissão</option>
+          <option value="avaliacao">Avaliação</option>
+          <option value="feriado">Feriado</option>
+          <option value="outro">Outro</option>
+        </select>
+        <button class="btn" type="button" onclick="abrirModalEvento()">+ Novo evento</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">No mês</div>
+          <div class="stat-value" id="cron-stat-mes">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Hoje</div>
+          <div class="stat-value" id="cron-stat-hoje">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Próximos 7 dias</div>
+          <div class="stat-value" id="cron-stat-7d">—</div>
+        </div>
+        <div class="stat stat-success">
+          <div class="stat-label">Concluídos no mês</div>
+          <div class="stat-value" id="cron-stat-conc">—</div>
+        </div>
+      </div>
+
+      <!-- Calendário -->
+      <div class="cal-wrapper">
+        <div class="cal-header">
+          <div class="cal-header-day">Dom</div>
+          <div class="cal-header-day">Seg</div>
+          <div class="cal-header-day">Ter</div>
+          <div class="cal-header-day">Qua</div>
+          <div class="cal-header-day">Qui</div>
+          <div class="cal-header-day">Sex</div>
+          <div class="cal-header-day">Sáb</div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+
     </section>
 
   </main>
@@ -3729,6 +3907,73 @@
   </div>
 </div>
 
+<!-- ════════════ MODAL — EVENTO DO CRONOGRAMA ════════════ -->
+<div id="modal-evento" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="ev-modal-title">Novo evento</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalEvento()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-evento" class="form-grid" onsubmit="salvarEvento(event)">
+        <input type="hidden" name="id">
+        <div class="form-group full">
+          <label>Título</label>
+          <input type="text" name="titulo" required placeholder="Ex.: Treinamento NR-35 (turma A)">
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="tipo" required>
+            <option value="treinamento">Treinamento</option>
+            <option value="reuniao">Reunião</option>
+            <option value="admissao">Admissão</option>
+            <option value="avaliacao">Avaliação</option>
+            <option value="feriado">Feriado</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="agendado">Agendado</option>
+            <option value="concluido">Concluído</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" name="data" required>
+        </div>
+        <div class="form-group">
+          <label>Hora início</label>
+          <input type="time" name="hora_inicio">
+        </div>
+        <div class="form-group">
+          <label>Hora fim</label>
+          <input type="time" name="hora_fim">
+        </div>
+        <div class="form-group full">
+          <label>Local</label>
+          <input type="text" name="local" placeholder="Ex.: Sala de treinamento · Online · Refeitório">
+        </div>
+        <div class="form-group full">
+          <label>Participantes (nomes separados por vírgula)</label>
+          <input type="text" name="participantes">
+        </div>
+        <div class="form-group full">
+          <label>Descrição</label>
+          <textarea name="descricao"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" type="button" id="btn-ev-excluir" onclick="excluirEventoAtual()" style="margin-right:auto; display:none;">Excluir</button>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalEvento()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-evento">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ TOAST ════════════ -->
 <div id="toast"></div>
 
@@ -3881,6 +4126,7 @@
     if (typeof renderAdvertencias === 'function') renderAdvertencias();
     if (typeof renderFeedback === 'function') renderFeedback();
     if (typeof renderClima === 'function') renderClima();
+    if (typeof renderCronograma === 'function') renderCronograma();
   }
 
   if (document.readyState === 'loading') {
@@ -7075,6 +7321,218 @@
 
   document.querySelectorAll('.nav-item[data-page="feedback-clima"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(() => { renderFeedback(); renderClima(); }, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     CRONOGRAMA — calendário mensal
+     ════════════════════════════════════════════════ */
+
+  const EVENTO_TIPO_LABEL = {
+    treinamento: 'Treinamento',
+    reuniao:     'Reunião',
+    admissao:    'Admissão',
+    avaliacao:   'Avaliação',
+    feriado:     'Feriado',
+    outro:       'Outro',
+  };
+
+  let EVENTOS = [
+    { id:1, titulo:'Treinamento NR-35 (turma A)', tipo:'treinamento', data:'2026-04-24', hora_inicio:'08:00', hora_fim:'12:00', local:'Sala de treinamento',   participantes:'José Silva, João Silveira, Paulo Rocha', descricao:'Reciclagem obrigatória.', status:'agendado' },
+    { id:2, titulo:'Reunião mensal de lideranças', tipo:'reuniao',   data:'2026-04-28', hora_inicio:'14:00', hora_fim:'15:30', local:'Sala de reuniões',      participantes:'Maria Santos, Ana Paula Costa, Diretoria', descricao:'Fechamento de abril e metas para maio.', status:'agendado' },
+    { id:3, titulo:'Admissão — Fernanda Batista',  tipo:'admissao',  data:'2026-04-12', hora_inicio:'09:00', hora_fim:'11:00', local:'RH',                    participantes:'Fernanda Batista, Ana Paula Costa', descricao:'Integração e documentação.', status:'concluido' },
+    { id:4, titulo:'1:1 Trimestral — João Silveira',tipo:'avaliacao', data:'2026-04-22', hora_inicio:'10:00', hora_fim:'10:30', local:'Sala 2',                participantes:'João Silveira, Maria Santos', descricao:'Revisão trimestral.', status:'concluido' },
+    { id:5, titulo:'Feriado — Tiradentes',         tipo:'feriado',   data:'2026-04-21', hora_inicio:'',      hora_fim:'',      local:'',                      participantes:'', descricao:'Expediente suspenso.', status:'concluido' },
+    { id:6, titulo:'Integração — Carlos Mendes',   tipo:'admissao',  data:'2026-04-20', hora_inicio:'09:00', hora_fim:'11:00', local:'RH',                    participantes:'Carlos Mendes, Ana Paula Costa', descricao:'Integração admissional.', status:'concluido' },
+    { id:7, titulo:'Treinamento NR-12 (refrescamento)', tipo:'treinamento', data:'2026-05-08', hora_inicio:'08:00', hora_fim:'17:00', local:'Sala de treinamento', participantes:'Equipe Manutenção', descricao:'Turma de 6 colaboradores.', status:'agendado' },
+    { id:8, titulo:'Pesquisa de clima Q2/2026',    tipo:'avaliacao', data:'2026-06-01', hora_inicio:'',      hora_fim:'',      local:'Online',                participantes:'Todos os ativos', descricao:'Abertura da pesquisa semestral.', status:'agendado' },
+    { id:9, titulo:'Reunião DP — fechamento folha',tipo:'reuniao',   data:'2026-04-30', hora_inicio:'16:00', hora_fim:'17:00', local:'DP',                    participantes:'Marcela Pinto, Ana Paula Costa', descricao:'Fechamento folha de abril.', status:'agendado' },
+  ];
+
+  // Mês visível (primeiro dia)
+  let _calMes = (() => {
+    const h = new Date();
+    return new Date(h.getFullYear(), h.getMonth(), 1);
+  })();
+
+  const MESES_LONG = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  function navCalendar(delta) {
+    if (delta === 0) {
+      const h = new Date();
+      _calMes = new Date(h.getFullYear(), h.getMonth(), 1);
+    } else {
+      _calMes = new Date(_calMes.getFullYear(), _calMes.getMonth() + delta, 1);
+    }
+    renderCronograma();
+  }
+
+  function renderCronograma() {
+    const grid = $('#cal-grid');
+    const title = $('#cal-title');
+    if (!grid || !title) return;
+
+    title.textContent = `${MESES_LONG[_calMes.getMonth()]} ${_calMes.getFullYear()}`;
+
+    // Filtros
+    const q    = ($('#cron-search')?.value || '').trim().toLowerCase();
+    const fT   = $('#cron-filter-tipo')?.value || '';
+
+    const eventosVisiveis = EVENTOS.filter(e => {
+      if (fT && e.tipo !== fT) return false;
+      if (q) {
+        const hay = [e.titulo, e.local, e.participantes, e.descricao].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    // Monta células
+    const ano = _calMes.getFullYear();
+    const mes = _calMes.getMonth();
+    const primeiroDia = new Date(ano, mes, 1);
+    const ultimoDia   = new Date(ano, mes + 1, 0);
+    const diaSemanaIni = primeiroDia.getDay();                  // 0 = domingo
+    const totalDias    = ultimoDia.getDate();
+
+    // Inclui dias do mês anterior
+    const cells = [];
+    for (let i = diaSemanaIni - 1; i >= 0; i--) {
+      const d = new Date(ano, mes, -i);
+      cells.push({ date: d, out: true });
+    }
+    // Dias do mês corrente
+    for (let i = 1; i <= totalDias; i++) {
+      cells.push({ date: new Date(ano, mes, i), out: false });
+    }
+    // Completa 6 semanas (42 células) ou 5 se couber
+    const total = cells.length <= 35 ? 35 : 42;
+    let extra = 1;
+    while (cells.length < total) {
+      cells.push({ date: new Date(ano, mes + 1, extra++), out: true });
+    }
+
+    const hojeIso = new Date().toISOString().slice(0,10);
+
+    grid.innerHTML = cells.map(cell => {
+      const iso = cell.date.toISOString().slice(0,10);
+      const dia = cell.date.getDate();
+      const eventosDia = eventosVisiveis
+        .filter(e => e.data === iso)
+        .sort((a,b) => (a.hora_inicio || '').localeCompare(b.hora_inicio || ''));
+
+      const maxShow = 3;
+      const visibles = eventosDia.slice(0, maxShow);
+      const extraN   = eventosDia.length - visibles.length;
+
+      const eventosHtml = visibles.map(e => {
+        const hora = e.hora_inicio ? e.hora_inicio + ' ' : '';
+        return `<div class="cal-event ${h(e.tipo)}" onclick="event.stopPropagation(); abrirModalEvento(${e.id})" title="${h(e.titulo)}">${h(hora + e.titulo)}</div>`;
+      }).join('');
+
+      const maisHtml = extraN > 0 ? `<div class="cal-event-more">+${extraN} mais</div>` : '';
+
+      const classes = ['cal-cell'];
+      if (cell.out) classes.push('out-of-month');
+      if (iso === hojeIso) classes.push('today');
+
+      return `
+        <div class="${classes.join(' ')}" onclick="abrirModalEvento(null, '${iso}')">
+          <div class="cal-day">${dia}</div>
+          ${eventosHtml}
+          ${maisHtml}
+        </div>
+      `;
+    }).join('');
+
+    // Stats
+    const mesChaveAtual = `${ano}-${String(mes + 1).padStart(2, '0')}`;
+    $('#cron-stat-mes').textContent = EVENTOS.filter(e => e.data.startsWith(mesChaveAtual)).length;
+    $('#cron-stat-hoje').textContent = EVENTOS.filter(e => e.data === hojeIso).length;
+
+    const fim7 = addDays(hojeIso, 7);
+    $('#cron-stat-7d').textContent = EVENTOS.filter(e => e.data >= hojeIso && e.data <= fim7).length;
+    $('#cron-stat-conc').textContent = EVENTOS.filter(e => e.data.startsWith(mesChaveAtual) && e.status === 'concluido').length;
+  }
+
+  // Modal de evento
+  let _editandoEventoId = null;
+
+  function abrirModalEvento(id = null, dataPre = null) {
+    const form = $('#form-evento');
+    form.reset();
+    _editandoEventoId = id;
+
+    if (id != null) {
+      const e = EVENTOS.find(x => x.id === id);
+      if (e) {
+        $('#ev-modal-title').textContent = 'Editar evento';
+        for (const [k,v] of Object.entries(e)) {
+          const f = form.elements[k];
+          if (f) f.value = v ?? '';
+        }
+        $('#btn-ev-excluir').style.display = '';
+      }
+    } else {
+      $('#ev-modal-title').textContent = 'Novo evento';
+      $('#btn-ev-excluir').style.display = 'none';
+      form.elements['data'].value = dataPre || new Date().toISOString().slice(0,10);
+      form.elements['status'].value = 'agendado';
+    }
+
+    $('#modal-evento').classList.add('active');
+  }
+
+  function fecharModalEvento() {
+    $('#modal-evento').classList.remove('active');
+    _editandoEventoId = null;
+  }
+
+  function salvarEvento(ev) {
+    ev.preventDefault();
+    const form = $('#form-evento');
+    const data = Object.fromEntries(new FormData(form));
+    const id = data.id ? parseInt(data.id, 10) : null;
+
+    const payload = {
+      titulo:        data.titulo,
+      tipo:          data.tipo,
+      status:        data.status,
+      data:          data.data,
+      hora_inicio:   data.hora_inicio || '',
+      hora_fim:      data.hora_fim    || '',
+      local:         data.local       || '',
+      participantes: data.participantes || '',
+      descricao:     data.descricao   || '',
+    };
+
+    if (id != null) {
+      const i = EVENTOS.findIndex(x => x.id === id);
+      if (i >= 0) EVENTOS[i] = { ...EVENTOS[i], ...payload };
+      showToast('Evento atualizado', 'ok');
+    } else {
+      const newId = Math.max(0, ...EVENTOS.map(x => x.id)) + 1;
+      EVENTOS.unshift({ id:newId, ...payload });
+      showToast('Evento criado', 'ok');
+    }
+
+    fecharModalEvento();
+    renderCronograma();
+  }
+
+  function excluirEventoAtual() {
+    if (_editandoEventoId == null) return;
+    if (!confirm('Excluir este evento?')) return;
+    EVENTOS = EVENTOS.filter(x => x.id !== _editandoEventoId);
+    fecharModalEvento();
+    renderCronograma();
+    showToast('Evento excluído');
+  }
+
+  document.addEventListener('input',  (e) => { if (e.target.id === 'cron-search') renderCronograma(); });
+  document.addEventListener('change', (e) => { if (e.target.id === 'cron-filter-tipo') renderCronograma(); });
+
+  document.querySelectorAll('.nav-item[data-page="cronograma"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderCronograma, 60));
   });
 </script>
 
