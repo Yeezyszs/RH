@@ -1395,6 +1395,41 @@
   }
 
   /* ════════════════════════════════════════════════
+     SUB-ABAS DE PÁGINA (view-tabs)
+     ════════════════════════════════════════════════ */
+  .view-tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 14px;
+    width: fit-content;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .view-tab {
+    padding: 9px 22px;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 7px;
+    transition: all .15s;
+    letter-spacing: .02em;
+    user-select: none;
+  }
+  .view-tab:hover { color: var(--phthalo-dark); }
+  .view-tab.active {
+    background: var(--phthalo);
+    color: var(--on-dark);
+  }
+
+  .view-content { display: none; }
+  .view-content.active { display: block; animation: pageFade .2s; }
+
+  /* ════════════════════════════════════════════════
      BANNER DE DADOS SENSÍVEIS
      ════════════════════════════════════════════════ */
   .sensitive-banner {
@@ -2648,10 +2683,142 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Feedback & Clima</h1>
-          <div class="page-subtitle">Avaliações e pesquisa de clima organizacional</div>
+          <div class="page-subtitle">Avaliações 1:1 e pesquisas de clima organizacional</div>
         </div>
       </div>
-      <div class="page-placeholder">FEEDBACK E CLIMA A CONSTRUIR</div>
+
+      <!-- Sub-abas -->
+      <div class="view-tabs">
+        <div class="view-tab active" data-view="feedback">Feedback individual</div>
+        <div class="view-tab" data-view="clima">Clima organizacional</div>
+      </div>
+
+      <!-- ══════ FEEDBACK ══════ -->
+      <div id="view-feedback" class="view-content active">
+
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <input type="text" id="fb-search" placeholder="Buscar colaborador ou avaliador…">
+          </div>
+          <select id="fb-filter-setor">
+            <option value="">Todos os setores</option>
+            <option>Produção</option>
+            <option>Logística</option>
+            <option>Administrativo</option>
+            <option>Manutenção</option>
+            <option>Comercial</option>
+          </select>
+          <button class="btn" type="button" onclick="abrirModalFeedback()">+ Registrar feedback</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat stat-success">
+            <div class="stat-label">Realizados no mês</div>
+            <div class="stat-value" id="fb-stat-mes">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Nota média geral</div>
+            <div class="stat-value" id="fb-stat-nota" style="font-size:1.4rem;">—</div>
+          </div>
+          <div class="stat stat-warn">
+            <div class="stat-label">Sem feedback &gt;6 meses</div>
+            <div class="stat-value" id="fb-stat-sem">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Total registrado</div>
+            <div class="stat-value" id="fb-stat-total">—</div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th style="width:24%">Colaborador</th>
+                  <th>Avaliador</th>
+                  <th>Data</th>
+                  <th>Entrega</th>
+                  <th>Comportamento</th>
+                  <th>Colaboração</th>
+                  <th style="text-align:right">Geral</th>
+                  <th style="width:100px; text-align:right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tb-feedback"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ CLIMA ══════ -->
+      <div id="view-clima" class="view-content">
+
+        <div class="toolbar">
+          <div class="toolbar-spacer"></div>
+          <button class="btn" type="button" onclick="abrirModalClima()">+ Nova pesquisa</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-label">Última pesquisa</div>
+            <div class="stat-value" id="cl-stat-ultima" style="font-size:1rem; line-height:1.9;">—</div>
+          </div>
+          <div class="stat stat-success">
+            <div class="stat-label">Participação</div>
+            <div class="stat-value" id="cl-stat-part" style="font-size:1.3rem;">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Score geral</div>
+            <div class="stat-value" id="cl-stat-score" style="font-size:1.3rem;">—</div>
+          </div>
+          <div class="stat stat-warn">
+            <div class="stat-label">Dimensão mais fraca</div>
+            <div class="stat-value" id="cl-stat-fraca" style="font-size:1rem; line-height:1.9;">—</div>
+          </div>
+        </div>
+
+        <div class="dash-row-charts" style="grid-template-columns:1.2fr 1fr;">
+          <div class="widget">
+            <div class="widget-header">
+              <div class="widget-title">Evolução do score geral</div>
+              <span class="widget-badge">escala 0–10</span>
+            </div>
+            <div class="chart-container" style="height:240px;">
+              <canvas id="chart-cl-evolucao"></canvas>
+            </div>
+          </div>
+          <div class="widget">
+            <div class="widget-header">
+              <div class="widget-title">Dimensões — última pesquisa</div>
+              <span class="widget-badge">score médio</span>
+            </div>
+            <div class="chart-container" style="height:240px;">
+              <canvas id="chart-cl-dimensoes"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Pesquisa</th>
+                  <th>Período</th>
+                  <th style="text-align:right">Convidados</th>
+                  <th style="text-align:right">Responderam</th>
+                  <th>Participação</th>
+                  <th style="text-align:right">Score</th>
+                  <th style="width:100px; text-align:right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tb-clima"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- ───── CRONOGRAMA ───── -->
@@ -3416,6 +3583,152 @@
   </div>
 </div>
 
+<!-- ════════════ MODAL — FEEDBACK 1:1 ════════════ -->
+<div id="modal-feedback" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="fb-modal-title">Registrar feedback</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalFeedback()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-feedback" onsubmit="salvarFeedback(event)" style="display:flex; flex-direction:column; gap:14px;">
+        <input type="hidden" name="id">
+
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Colaborador</label>
+            <select name="colaborador_id" id="form-fb-colab" required></select>
+          </div>
+          <div class="form-group">
+            <label>Avaliador</label>
+            <input type="text" name="avaliador" required placeholder="Nome do avaliador">
+          </div>
+          <div class="form-group">
+            <label>Data</label>
+            <input type="date" name="data" required>
+          </div>
+        </div>
+
+        <div class="rating-group">
+          <div class="label">Entrega / Desempenho (1 – 5)</div>
+          <div class="rating-input" data-rating-field="nota_entrega">
+            <button type="button" data-rating-val="1">1</button>
+            <button type="button" data-rating-val="2">2</button>
+            <button type="button" data-rating-val="3">3</button>
+            <button type="button" data-rating-val="4">4</button>
+            <button type="button" data-rating-val="5">5</button>
+          </div>
+          <input type="hidden" name="nota_entrega" required>
+        </div>
+
+        <div class="rating-group">
+          <div class="label">Comportamento / Atitude (1 – 5)</div>
+          <div class="rating-input" data-rating-field="nota_comportamento">
+            <button type="button" data-rating-val="1">1</button>
+            <button type="button" data-rating-val="2">2</button>
+            <button type="button" data-rating-val="3">3</button>
+            <button type="button" data-rating-val="4">4</button>
+            <button type="button" data-rating-val="5">5</button>
+          </div>
+          <input type="hidden" name="nota_comportamento" required>
+        </div>
+
+        <div class="rating-group">
+          <div class="label">Colaboração / Trabalho em equipe (1 – 5)</div>
+          <div class="rating-input" data-rating-field="nota_colaboracao">
+            <button type="button" data-rating-val="1">1</button>
+            <button type="button" data-rating-val="2">2</button>
+            <button type="button" data-rating-val="3">3</button>
+            <button type="button" data-rating-val="4">4</button>
+            <button type="button" data-rating-val="5">5</button>
+          </div>
+          <input type="hidden" name="nota_colaboracao" required>
+        </div>
+
+        <div class="form-group">
+          <label>Pontos fortes</label>
+          <textarea name="pontos_fortes" placeholder="O que está indo bem…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Pontos a desenvolver</label>
+          <textarea name="pontos_desenvolver" placeholder="O que precisa evoluir…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Plano de ação</label>
+          <textarea name="plano_acao" placeholder="Próximos passos combinados…"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalFeedback()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-feedback">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — PESQUISA DE CLIMA ════════════ -->
+<div id="modal-clima" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="cl-modal-title">Nova pesquisa de clima</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalClima()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-clima" class="form-grid" onsubmit="salvarClima(event)">
+        <input type="hidden" name="id">
+        <div class="form-group full">
+          <label>Título da pesquisa</label>
+          <input type="text" name="titulo" required placeholder="Ex.: Pesquisa de clima Q2/2026">
+        </div>
+        <div class="form-group">
+          <label>Início</label>
+          <input type="date" name="inicio" required>
+        </div>
+        <div class="form-group">
+          <label>Fim</label>
+          <input type="date" name="fim" required>
+        </div>
+        <div class="form-group">
+          <label>Convidados</label>
+          <input type="number" name="convidados" min="1" required>
+        </div>
+        <div class="form-group">
+          <label>Responderam</label>
+          <input type="number" name="responderam" min="0" required>
+        </div>
+        <div class="form-group">
+          <label>Score — Liderança (0-10)</label>
+          <input type="number" name="score_lideranca" min="0" max="10" step="0.1" required>
+        </div>
+        <div class="form-group">
+          <label>Score — Ambiente (0-10)</label>
+          <input type="number" name="score_ambiente" min="0" max="10" step="0.1" required>
+        </div>
+        <div class="form-group">
+          <label>Score — Reconhecimento (0-10)</label>
+          <input type="number" name="score_reconhecimento" min="0" max="10" step="0.1" required>
+        </div>
+        <div class="form-group">
+          <label>Score — Carreira (0-10)</label>
+          <input type="number" name="score_carreira" min="0" max="10" step="0.1" required>
+        </div>
+        <div class="form-group">
+          <label>Score — Comunicação (0-10)</label>
+          <input type="number" name="score_comunicacao" min="0" max="10" step="0.1" required>
+        </div>
+        <div class="form-group">
+          <label>Score — Remuneração (0-10)</label>
+          <input type="number" name="score_remuneracao" min="0" max="10" step="0.1" required>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalClima()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-clima">Salvar pesquisa</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ TOAST ════════════ -->
 <div id="toast"></div>
 
@@ -3566,6 +3879,8 @@
     if (typeof renderFerias === 'function') renderFerias();
     if (typeof renderSalarios === 'function') renderSalarios();
     if (typeof renderAdvertencias === 'function') renderAdvertencias();
+    if (typeof renderFeedback === 'function') renderFeedback();
+    if (typeof renderClima === 'function') renderClima();
   }
 
   if (document.readyState === 'loading') {
@@ -6370,6 +6685,396 @@
 
   document.querySelectorAll('.nav-item[data-page="advertencias"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderAdvertencias, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     Sub-abas de página (view-tabs)
+     ════════════════════════════════════════════════ */
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('.view-tab');
+    if (!tab) return;
+    const name = tab.dataset.view;
+    const scope = tab.closest('section.page') || document;
+    scope.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t === tab));
+    scope.querySelectorAll('.view-content').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  });
+
+  /* ════════════════════════════════════════════════
+     FEEDBACK — avaliações 1:1
+     ════════════════════════════════════════════════ */
+
+  let FEEDBACK = [
+    { id:1, colaborador_id:1, avaliador:'Maria Santos Oliveira', data:'2026-04-10', nota_entrega:5, nota_comportamento:5, nota_colaboracao:5, pontos_fortes:'Organização e proatividade excepcionais.',        pontos_desenvolver:'Delegar mais atividades operacionais.', plano_acao:'Iniciar mentoria para 2 analistas juniores em maio.' },
+    { id:2, colaborador_id:3, avaliador:'Supervisor Industrial', data:'2026-03-20', nota_entrega:4, nota_comportamento:5, nota_colaboracao:5, pontos_fortes:'Conhecimento técnico sólido e postura ética.',    pontos_desenvolver:'Documentar melhor intervenções realizadas.', plano_acao:'Aderir ao check-list após cada manutenção.' },
+    { id:3, colaborador_id:4, avaliador:'Diretoria',              data:'2026-02-15', nota_entrega:5, nota_comportamento:5, nota_colaboracao:4, pontos_fortes:'Liderança e capacidade de decisão.',              pontos_desenvolver:'Dar feedback individual com mais frequência.', plano_acao:'Agendar 1:1 mensal com cada subordinado direto.' },
+    { id:4, colaborador_id:6, avaliador:'Líder de Logística',     data:'2026-01-30', nota_entrega:4, nota_comportamento:4, nota_colaboracao:4, pontos_fortes:'Pontual e cuidadoso com a frota.',                pontos_desenvolver:'Usar app de roteirização em todas as rotas.',  plano_acao:'Treinamento no app na 1ª semana de fevereiro.' },
+    { id:5, colaborador_id:8, avaliador:'Supervisor de Produção', data:'2025-12-12', nota_entrega:4, nota_comportamento:3, nota_colaboracao:3, pontos_fortes:'Produtividade consistente.',                      pontos_desenvolver:'Melhorar relação com os colegas de turno.',     plano_acao:'Mediação com colegas em dezembro.' },
+    { id:6, colaborador_id:7, avaliador:'Diretoria',              data:'2026-04-05', nota_entrega:5, nota_comportamento:5, nota_colaboracao:5, pontos_fortes:'Atenção aos detalhes e domínio técnico.',         pontos_desenvolver:'Desenvolver visão estratégica do setor.',       plano_acao:'Participar de 2 reuniões de direção/mês.' },
+  ];
+
+  function notaGeralFeedback(f) {
+    return ((f.nota_entrega + f.nota_comportamento + f.nota_colaboracao) / 3);
+  }
+
+  function renderFeedback() {
+    const tb = $('#tb-feedback');
+    if (!tb) return;
+
+    const q    = ($('#fb-search')?.value || '').trim().toLowerCase();
+    const fSet = $('#fb-filter-setor')?.value || '';
+
+    const enriched = FEEDBACK.map(f => {
+      const c = COLABORADORES.find(x => x.id === f.colaborador_id);
+      return { ...f, _colab: c, _geral: notaGeralFeedback(f) };
+    });
+
+    const lista = enriched.filter(f => {
+      if (fSet && f._colab?.setor !== fSet) return false;
+      if (q) {
+        const hay = [f._colab?.nome, f.avaliador].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).sort((a,b) => b.data.localeCompare(a.data));
+
+    tb.innerHTML = lista.length ? lista.map(f => {
+      const c = f._colab;
+      const dot = (n) => `<span class="rating" title="${n}/5">${[1,2,3,4,5].map(i => `<span class="dot ${i <= n ? 'on-' + n : ''}"></span>`).join('')}</span>`;
+      return `
+        <tr onclick="if(${c?.id || 0}) abrirDrawerColab(${c?.id || 0})">
+          <td>
+            ${c ? `
+              <div class="cell-person">
+                <div class="cell-avatar">${h(iniciais(c.nome))}</div>
+                <div>
+                  <div class="cell-person-name">${h(c.nome)}</div>
+                  <div class="cell-person-sub">${h(c.setor)}</div>
+                </div>
+              </div>` : `<span style="color:var(--text-soft)">—</span>`}
+          </td>
+          <td>${h(f.avaliador)}</td>
+          <td class="cell-mono">${fmtDate(f.data)}</td>
+          <td>${dot(f.nota_entrega)}</td>
+          <td>${dot(f.nota_comportamento)}</td>
+          <td>${dot(f.nota_colaboracao)}</td>
+          <td class="cell-mono" style="text-align:right; font-weight:700; color:var(--phthalo-dark)">${f._geral.toFixed(1).replace('.',',')}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalFeedback(${f.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirFeedback(${f.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="8" class="empty">Nenhum feedback encontrado</td></tr>`;
+
+    // Stats
+    const now = new Date();
+    const mesChaveAtual = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    $('#fb-stat-mes').textContent = FEEDBACK.filter(f => f.data.startsWith(mesChaveAtual)).length;
+    const media = FEEDBACK.length ? FEEDBACK.reduce((s,f) => s + notaGeralFeedback(f), 0) / FEEDBACK.length : 0;
+    $('#fb-stat-nota').textContent = media ? media.toFixed(1).replace('.',',') + '/5' : '—';
+
+    // Colaboradores sem feedback >6 meses
+    const limite = new Date();
+    limite.setMonth(limite.getMonth() - 6);
+    const limiteIso = limite.toISOString().slice(0,10);
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo');
+    let semFb = 0;
+    ativos.forEach(c => {
+      const ult = FEEDBACK.filter(f => f.colaborador_id === c.id).sort((a,b) => b.data.localeCompare(a.data))[0];
+      if (!ult || ult.data < limiteIso) semFb++;
+    });
+    $('#fb-stat-sem').textContent = semFb;
+    $('#fb-stat-total').textContent = FEEDBACK.length;
+  }
+
+  function abrirModalFeedback(id = null) {
+    const form = $('#form-feedback');
+    form.reset();
+    document.querySelectorAll('#form-feedback .rating-input').forEach(g => {
+      g.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    });
+    $('#form-fb-colab').innerHTML = COLABORADORES
+      .filter(c => c.status !== 'inativo')
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(c => `<option value="${c.id}">${h(c.nome)} — ${h(c.setor)}</option>`).join('');
+
+    if (id != null) {
+      const f = FEEDBACK.find(x => x.id === id);
+      if (f) {
+        $('#fb-modal-title').textContent = 'Editar feedback';
+        for (const [k,v] of Object.entries(f)) {
+          const fld = form.elements[k];
+          if (fld) fld.value = v ?? '';
+        }
+        setRating('nota_entrega',       f.nota_entrega);
+        setRating('nota_comportamento', f.nota_comportamento);
+        setRating('nota_colaboracao',   f.nota_colaboracao);
+      }
+    } else {
+      $('#fb-modal-title').textContent = 'Registrar feedback';
+      form.elements['data'].value = new Date().toISOString().slice(0,10);
+    }
+    $('#modal-feedback').classList.add('active');
+  }
+
+  function fecharModalFeedback() {
+    $('#modal-feedback').classList.remove('active');
+  }
+
+  function salvarFeedback(ev) {
+    ev.preventDefault();
+    const form = $('#form-feedback');
+    const data = Object.fromEntries(new FormData(form));
+    const id = data.id ? parseInt(data.id,10) : null;
+
+    const payload = {
+      colaborador_id:     parseInt(data.colaborador_id,10),
+      avaliador:          data.avaliador,
+      data:               data.data,
+      nota_entrega:       parseInt(data.nota_entrega, 10)       || 0,
+      nota_comportamento: parseInt(data.nota_comportamento, 10) || 0,
+      nota_colaboracao:   parseInt(data.nota_colaboracao, 10)   || 0,
+      pontos_fortes:      data.pontos_fortes || '',
+      pontos_desenvolver: data.pontos_desenvolver || '',
+      plano_acao:         data.plano_acao || '',
+    };
+
+    if (!payload.nota_entrega || !payload.nota_comportamento || !payload.nota_colaboracao) {
+      showToast('Preencha as 3 notas', 'err');
+      return;
+    }
+
+    if (id != null) {
+      const i = FEEDBACK.findIndex(x => x.id === id);
+      if (i >= 0) FEEDBACK[i] = { ...FEEDBACK[i], ...payload };
+      showToast('Feedback atualizado', 'ok');
+    } else {
+      const newId = Math.max(0, ...FEEDBACK.map(x => x.id)) + 1;
+      FEEDBACK.unshift({ id:newId, ...payload });
+      showToast('Feedback registrado', 'ok');
+    }
+    fecharModalFeedback();
+    renderFeedback();
+  }
+
+  function excluirFeedback(id) {
+    if (!confirm('Excluir este feedback?')) return;
+    FEEDBACK = FEEDBACK.filter(x => x.id !== id);
+    renderFeedback();
+    showToast('Feedback excluído');
+  }
+
+  document.addEventListener('input',  (e) => { if (e.target.id === 'fb-search') renderFeedback(); });
+  document.addEventListener('change', (e) => { if (e.target.id === 'fb-filter-setor') renderFeedback(); });
+
+  /* ════════════════════════════════════════════════
+     CLIMA — pesquisas agregadas
+     ════════════════════════════════════════════════ */
+
+  const CLIMA_DIMS = ['lideranca','ambiente','reconhecimento','carreira','comunicacao','remuneracao'];
+  const CLIMA_DIM_LABEL = {
+    lideranca:      'Liderança',
+    ambiente:       'Ambiente',
+    reconhecimento: 'Reconhecimento',
+    carreira:       'Carreira',
+    comunicacao:    'Comunicação',
+    remuneracao:    'Remuneração',
+  };
+
+  let CLIMA = [
+    { id:1, titulo:'Clima Q4 2024', inicio:'2024-11-01', fim:'2024-11-30', convidados:128, responderam:94,  score_lideranca:7.2, score_ambiente:7.5, score_reconhecimento:6.1, score_carreira:5.8, score_comunicacao:7.0, score_remuneracao:6.4 },
+    { id:2, titulo:'Pulso Q1 2025', inicio:'2025-03-01', fim:'2025-03-14', convidados:132, responderam:101, score_lideranca:7.6, score_ambiente:7.8, score_reconhecimento:6.5, score_carreira:6.2, score_comunicacao:7.4, score_remuneracao:6.6 },
+    { id:3, titulo:'Clima Anual 2025',inicio:'2025-10-01', fim:'2025-10-20', convidados:140, responderam:118, score_lideranca:7.9, score_ambiente:8.1, score_reconhecimento:7.0, score_carreira:6.8, score_comunicacao:7.7, score_remuneracao:7.0 },
+    { id:4, titulo:'Pulso Q1 2026', inicio:'2026-03-01', fim:'2026-03-14', convidados:142, responderam:113, score_lideranca:8.0, score_ambiente:8.2, score_reconhecimento:7.2, score_carreira:7.0, score_comunicacao:7.8, score_remuneracao:7.1 },
+  ];
+
+  function scoreGeral(p) {
+    const vals = CLIMA_DIMS.map(d => p['score_' + d]);
+    return vals.reduce((a,b) => a + b, 0) / vals.length;
+  }
+
+  function pctParticipacao(p) {
+    return p.convidados ? (p.responderam / p.convidados) * 100 : 0;
+  }
+
+  let _chartClEvo, _chartClDims;
+
+  function renderClima() {
+    const tb = $('#tb-clima');
+    if (!tb) return;
+
+    const ordenadas = [...CLIMA].sort((a,b) => a.inicio.localeCompare(b.inicio));
+    const ultima = ordenadas[ordenadas.length - 1];
+
+    tb.innerHTML = [...CLIMA].sort((a,b) => b.inicio.localeCompare(a.inicio)).map(p => {
+      const part = pctParticipacao(p);
+      const sc = scoreGeral(p);
+      const partBadge = part >= 80 ? `<span class="badge ok">${part.toFixed(0)}%</span>`
+                      : part >= 60 ? `<span class="badge warn">${part.toFixed(0)}%</span>`
+                                   : `<span class="badge danger">${part.toFixed(0)}%</span>`;
+      return `
+        <tr>
+          <td style="font-weight:600">${h(p.titulo)}</td>
+          <td class="cell-mono">${fmtDate(p.inicio)} → ${fmtDate(p.fim)}</td>
+          <td class="cell-mono" style="text-align:right">${p.convidados}</td>
+          <td class="cell-mono" style="text-align:right">${p.responderam}</td>
+          <td>${partBadge}</td>
+          <td class="cell-mono" style="text-align:right; font-weight:700; color:var(--phthalo-dark)">${sc.toFixed(2).replace('.',',')}</td>
+          <td class="actions">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalClima(${p.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirClima(${p.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') || `<tr><td colspan="7" class="empty">Nenhuma pesquisa cadastrada</td></tr>`;
+
+    // Stats
+    if (ultima) {
+      $('#cl-stat-ultima').textContent = `${ultima.titulo} · ${fmtDate(ultima.fim)}`;
+      $('#cl-stat-part').textContent   = pctParticipacao(ultima).toFixed(0) + '%';
+      $('#cl-stat-score').textContent  = scoreGeral(ultima).toFixed(2).replace('.',',');
+      // Dimensão mais fraca
+      let worst = null;
+      CLIMA_DIMS.forEach(d => {
+        const v = ultima['score_' + d];
+        if (!worst || v < worst.v) worst = { d, v };
+      });
+      $('#cl-stat-fraca').textContent = worst
+        ? `${CLIMA_DIM_LABEL[worst.d]} · ${worst.v.toFixed(1).replace('.',',')}`
+        : '—';
+    } else {
+      $('#cl-stat-ultima').textContent = '—';
+      $('#cl-stat-part').textContent   = '—';
+      $('#cl-stat-score').textContent  = '—';
+      $('#cl-stat-fraca').textContent  = '—';
+    }
+
+    // Gráfico evolução
+    _chartClEvo?.destroy();
+    _chartClEvo = new Chart($('#chart-cl-evolucao'), {
+      type: 'line',
+      data: {
+        labels: ordenadas.map(p => p.titulo),
+        datasets: [{
+          label: 'Score geral',
+          data: ordenadas.map(p => scoreGeral(p)),
+          borderColor: CHART_COLORS.phthalo,
+          backgroundColor: 'rgba(46,122,184,.12)',
+          borderWidth: 2.5,
+          tension: .35,
+          fill: true,
+          pointRadius: 5,
+          pointBackgroundColor: CHART_COLORS.phthaloBright,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min: 0, max: 10, grid: { color: CHART_COLORS.grid } },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+
+    // Gráfico dimensões última pesquisa
+    _chartClDims?.destroy();
+    if (ultima) {
+      _chartClDims = new Chart($('#chart-cl-dimensoes'), {
+        type: 'bar',
+        data: {
+          labels: CLIMA_DIMS.map(d => CLIMA_DIM_LABEL[d]),
+          datasets: [{
+            label: 'Score',
+            data: CLIMA_DIMS.map(d => ultima['score_' + d]),
+            backgroundColor: CLIMA_DIMS.map(d => {
+              const v = ultima['score_' + d];
+              return v >= 7.5 ? '#10B981' : v >= 6.0 ? '#F59E0B' : '#EF4444';
+            }),
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { min: 0, max: 10, grid: { color: CHART_COLORS.grid } },
+            y: { grid: { display: false } },
+          },
+        },
+      });
+    }
+  }
+
+  function abrirModalClima(id = null) {
+    const form = $('#form-clima');
+    form.reset();
+    if (id != null) {
+      const p = CLIMA.find(x => x.id === id);
+      if (p) {
+        $('#cl-modal-title').textContent = 'Editar pesquisa';
+        for (const [k,v] of Object.entries(p)) {
+          const f = form.elements[k];
+          if (f) f.value = v ?? '';
+        }
+      }
+    } else {
+      $('#cl-modal-title').textContent = 'Nova pesquisa de clima';
+    }
+    $('#modal-clima').classList.add('active');
+  }
+
+  function fecharModalClima() {
+    $('#modal-clima').classList.remove('active');
+  }
+
+  function salvarClima(ev) {
+    ev.preventDefault();
+    const form = $('#form-clima');
+    const data = Object.fromEntries(new FormData(form));
+    const id = data.id ? parseInt(data.id,10) : null;
+
+    const payload = {
+      titulo:              data.titulo,
+      inicio:              data.inicio,
+      fim:                 data.fim,
+      convidados:          parseInt(data.convidados, 10) || 0,
+      responderam:         parseInt(data.responderam, 10) || 0,
+      score_lideranca:      parseFloat(data.score_lideranca)     || 0,
+      score_ambiente:       parseFloat(data.score_ambiente)      || 0,
+      score_reconhecimento: parseFloat(data.score_reconhecimento)|| 0,
+      score_carreira:       parseFloat(data.score_carreira)      || 0,
+      score_comunicacao:    parseFloat(data.score_comunicacao)   || 0,
+      score_remuneracao:    parseFloat(data.score_remuneracao)   || 0,
+    };
+
+    if (id != null) {
+      const i = CLIMA.findIndex(x => x.id === id);
+      if (i >= 0) CLIMA[i] = { ...CLIMA[i], ...payload };
+      showToast('Pesquisa atualizada', 'ok');
+    } else {
+      const newId = Math.max(0, ...CLIMA.map(x => x.id)) + 1;
+      CLIMA.unshift({ id:newId, ...payload });
+      showToast('Pesquisa cadastrada', 'ok');
+    }
+    fecharModalClima();
+    renderClima();
+  }
+
+  function excluirClima(id) {
+    if (!confirm('Excluir esta pesquisa?')) return;
+    CLIMA = CLIMA.filter(x => x.id !== id);
+    renderClima();
+    showToast('Pesquisa excluída');
+  }
+
+  document.querySelectorAll('.nav-item[data-page="feedback-clima"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(() => { renderFeedback(); renderClima(); }, 60));
   });
 </script>
 
