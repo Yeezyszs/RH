@@ -2165,10 +2165,80 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Vale Combustível</h1>
-          <div class="page-subtitle">Controle de descontos por colaborador</div>
+          <div class="page-subtitle">Cotas mensais · lançamentos · desconto em folha</div>
         </div>
       </div>
-      <div class="page-placeholder">VALE COMBUSTÍVEL A CONSTRUIR</div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <select id="vale-mes" style="min-width:180px;"></select>
+        <div class="toolbar-search">
+          <input type="text" id="vale-search" placeholder="Buscar colaborador…">
+        </div>
+        <select id="vale-filter-setor">
+          <option value="">Todos os setores</option>
+          <option>Produção</option>
+          <option>Logística</option>
+          <option>Administrativo</option>
+          <option>Manutenção</option>
+          <option>Comercial</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalCotas()">⚙ Cotas</button>
+        <button class="btn" type="button" onclick="abrirModalValeLancamento()">+ Novo lançamento</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Total no mês</div>
+          <div class="stat-value" id="vale-stat-total" style="font-size:1.3rem;">—</div>
+        </div>
+        <div class="stat stat-danger">
+          <div class="stat-label">Desconto em folha</div>
+          <div class="stat-value" id="vale-stat-desconto" style="font-size:1.3rem;">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Acima da cota</div>
+          <div class="stat-value" id="vale-stat-acima">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Média / colaborador</div>
+          <div class="stat-value" id="vale-stat-media" style="font-size:1.3rem;">—</div>
+        </div>
+      </div>
+
+      <!-- Gráfico evolução -->
+      <div class="widget" style="margin-bottom:14px;">
+        <div class="widget-header">
+          <div class="widget-title">Evolução mensal</div>
+          <span class="widget-badge">total gasto vs. desconto</span>
+        </div>
+        <div class="chart-container" style="height:200px;">
+          <canvas id="chart-vale-evolucao"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabela resumo -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width:28%">Colaborador</th>
+                <th>Setor</th>
+                <th style="text-align:right">Cota</th>
+                <th style="text-align:right">Utilizado</th>
+                <th style="text-align:right">Saldo</th>
+                <th>Lançamentos</th>
+                <th>Status</th>
+                <th style="width:120px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-vale-resumo"></tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- ───── FÉRIAS ───── -->
@@ -2674,6 +2744,104 @@
   </div>
 </div>
 
+<!-- ════════════ MODAL — NOVO LANÇAMENTO VALE ════════════ -->
+<div id="modal-vale-lancamento" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-vale-lancto-title">Novo lançamento</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalValeLancamento()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-vale-lancamento" class="form-grid" onsubmit="salvarValeLancamento(event)">
+        <input type="hidden" name="id">
+        <div class="form-group full">
+          <label>Colaborador</label>
+          <select name="colaborador_id" id="form-vale-colab" required></select>
+        </div>
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" name="data" required>
+        </div>
+        <div class="form-group">
+          <label>Valor (R$)</label>
+          <input type="number" name="valor" step="0.01" min="0" required>
+        </div>
+        <div class="form-group">
+          <label>Litros</label>
+          <input type="number" name="litros" step="0.01" min="0">
+        </div>
+        <div class="form-group">
+          <label>Km atual</label>
+          <input type="number" name="km_atual" min="0">
+        </div>
+        <div class="form-group full">
+          <label>Posto</label>
+          <input type="text" name="posto" placeholder="Nome do posto">
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea name="observacoes"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalValeLancamento()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-vale-lancamento">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — CONFIG. COTAS ════════════ -->
+<div id="modal-vale-cotas" class="modal">
+  <div class="modal-box" style="max-width:580px;">
+    <div class="modal-header">
+      <div class="modal-title">Cotas mensais de vale combustível</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalCotas()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-family:var(--mono); font-size:.75rem; color:var(--text-muted); margin-bottom:14px; letter-spacing:.04em;">
+        Defina o valor (R$) da cota mensal de cada colaborador ativo. O que exceder vira desconto em folha.
+      </div>
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead><tr><th>Colaborador</th><th>Setor</th><th style="width:160px; text-align:right">Cota mensal</th></tr></thead>
+            <tbody id="tb-vale-cotas"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" type="button" onclick="fecharModalCotas()">Concluído</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — DETALHE COLAB NO MÊS ════════════ -->
+<div id="modal-vale-detalhe" class="modal">
+  <div class="modal-box" style="max-width:760px;">
+    <div class="modal-header">
+      <div class="modal-title" id="vale-det-title">Lançamentos do mês</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalValeDetalhe()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-grid" id="vale-det-summary" style="margin-bottom:16px;"></div>
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead><tr><th>Data</th><th style="text-align:right">Valor</th><th style="text-align:right">Litros</th><th style="text-align:right">Km</th><th>Posto</th><th style="width:80px; text-align:right">Ações</th></tr></thead>
+            <tbody id="tb-vale-detalhe"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalValeDetalhe()">Fechar</button>
+      <button class="btn btn-sm" type="button" id="btn-vale-det-novo">+ Novo lançamento</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ TOAST ════════════ -->
 <div id="toast"></div>
 
@@ -2820,6 +2988,7 @@
     renderDesligamentos();
     if (typeof renderVencimentos === 'function') renderVencimentos();
     if (typeof renderEpi === 'function') renderEpi();
+    if (typeof renderVale === 'function') renderVale();
   }
 
   if (document.readyState === 'loading') {
@@ -4363,6 +4532,350 @@
 
   document.querySelectorAll('.nav-item[data-page="epi"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderEpi, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     VALE COMBUSTÍVEL — cotas, lançamentos, evolução
+     ════════════════════════════════════════════════ */
+
+  // Cota mensal de R$ por colaborador_id
+  let VALE_COTAS = {
+    1: 250, 2: 200, 3: 350, 4: 250, 5: 600, 6: 600, 7: 250, 8: 300, 9: 300, 10: 0,
+  };
+
+  let VALE_LANCAMENTOS = [
+    // Abril 2026
+    { id:1,  colaborador_id:5, data:'2026-04-02', valor:180.00, litros:30.00, km_atual:142500, posto:'Ipiranga Centro', observacoes:'' },
+    { id:2,  colaborador_id:5, data:'2026-04-10', valor:210.00, litros:35.00, km_atual:143100, posto:'Shell Av. Paulista', observacoes:'' },
+    { id:3,  colaborador_id:5, data:'2026-04-18', valor:240.00, litros:40.00, km_atual:143800, posto:'Ipiranga Centro', observacoes:'' },
+    { id:4,  colaborador_id:6, data:'2026-04-05', valor:190.00, litros:31.70, km_atual:98200,  posto:'BR Rodoviária',    observacoes:'' },
+    { id:5,  colaborador_id:6, data:'2026-04-14', valor:215.00, litros:35.80, km_atual:98900,  posto:'Shell Av. Brasil', observacoes:'' },
+    { id:6,  colaborador_id:6, data:'2026-04-21', valor:180.00, litros:30.00, km_atual:99500,  posto:'BR Rodoviária',    observacoes:'' },
+    { id:7,  colaborador_id:3, data:'2026-04-08', valor:120.00, litros:20.00, km_atual:45200,  posto:'Ipiranga Vila',    observacoes:'Visita cliente' },
+    { id:8,  colaborador_id:3, data:'2026-04-19', valor:150.00, litros:25.00, km_atual:45800,  posto:'BR Rodoviária',    observacoes:'' },
+    { id:9,  colaborador_id:1, data:'2026-04-12', valor:100.00, litros:16.70, km_atual:22100,  posto:'Shell Av. Paulista', observacoes:'' },
+    { id:10, colaborador_id:7, data:'2026-04-07', valor:90.00,  litros:15.00, km_atual:31500,  posto:'Ipiranga Centro', observacoes:'' },
+    { id:11, colaborador_id:7, data:'2026-04-22', valor:170.00, litros:28.30, km_atual:32100,  posto:'Shell Av. Paulista', observacoes:'' },
+    // Março 2026
+    { id:12, colaborador_id:5, data:'2026-03-05', valor:200.00, litros:33.30, km_atual:141200, posto:'Ipiranga Centro', observacoes:'' },
+    { id:13, colaborador_id:5, data:'2026-03-19', valor:220.00, litros:36.70, km_atual:141900, posto:'Shell Av. Paulista', observacoes:'' },
+    { id:14, colaborador_id:6, data:'2026-03-08', valor:185.00, litros:30.80, km_atual:97100,  posto:'BR Rodoviária',    observacoes:'' },
+    { id:15, colaborador_id:6, data:'2026-03-22', valor:205.00, litros:34.20, km_atual:97800,  posto:'Shell Av. Brasil', observacoes:'' },
+    { id:16, colaborador_id:3, data:'2026-03-15', valor:130.00, litros:21.70, km_atual:44600,  posto:'Ipiranga Vila',    observacoes:'' },
+    { id:17, colaborador_id:1, data:'2026-03-18', valor:110.00, litros:18.30, km_atual:21800,  posto:'Shell Av. Paulista', observacoes:'' },
+    // Fevereiro 2026
+    { id:18, colaborador_id:5, data:'2026-02-10', valor:230.00, litros:38.30, km_atual:140000, posto:'Ipiranga Centro', observacoes:'' },
+    { id:19, colaborador_id:6, data:'2026-02-14', valor:195.00, litros:32.50, km_atual:96500,  posto:'BR Rodoviária',    observacoes:'' },
+    { id:20, colaborador_id:3, data:'2026-02-20', valor:140.00, litros:23.30, km_atual:44100,  posto:'Ipiranga Vila',    observacoes:'' },
+  ];
+
+  // ── Helpers ──
+  function fmtBRL(n) {
+    return (n || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  }
+
+  function mesChave(iso) { return iso ? iso.slice(0, 7) : ''; }
+
+  function mesLabel(chave) {
+    if (!chave) return '';
+    const [y,m] = chave.split('-');
+    const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    return `${nomes[parseInt(m,10)-1]}/${y}`;
+  }
+
+  function mesesDisponiveis() {
+    const meses = new Set();
+    VALE_LANCAMENTOS.forEach(l => meses.add(mesChave(l.data)));
+    // adiciona mes corrente se vazio
+    const now = new Date();
+    meses.add(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
+    return [...meses].sort().reverse();
+  }
+
+  let _chartValeEvo;
+
+  function renderVale() {
+    // Popula seletor de mês
+    const selMes = $('#vale-mes');
+    if (selMes) {
+      const meses = mesesDisponiveis();
+      const cur = selMes.value;
+      selMes.innerHTML = meses.map(m => `<option value="${m}">${mesLabel(m)}</option>`).join('');
+      if (cur && meses.includes(cur)) selMes.value = cur;
+    }
+
+    const mesAtual = selMes?.value || mesesDisponiveis()[0];
+    const q     = ($('#vale-search')?.value || '').trim().toLowerCase();
+    const fSet  = $('#vale-filter-setor')?.value || '';
+
+    // Agrega por colaborador no mês selecionado
+    const lancMes = VALE_LANCAMENTOS.filter(l => mesChave(l.data) === mesAtual);
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo');
+
+    const resumo = ativos.map(c => {
+      const lancs = lancMes.filter(l => l.colaborador_id === c.id);
+      const usado = lancs.reduce((s,l) => s + (parseFloat(l.valor) || 0), 0);
+      const cota  = parseFloat(VALE_COTAS[c.id] || 0);
+      const saldo = cota - usado;
+      return { colab:c, lancs, usado, cota, saldo };
+    });
+
+    const filtrados = resumo.filter(r => {
+      if (fSet && r.colab.setor !== fSet) return false;
+      if (q && !r.colab.nome.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    // Stats (TODOS ativos, ignora busca/filtro)
+    const totalMes = resumo.reduce((s,r) => s + r.usado, 0);
+    const descontoMes = resumo.reduce((s,r) => s + Math.max(0, r.usado - r.cota), 0);
+    const acimaCota = resumo.filter(r => r.usado > r.cota && r.cota > 0).length;
+    const comLanc = resumo.filter(r => r.lancs.length > 0).length;
+    $('#vale-stat-total').textContent    = fmtBRL(totalMes);
+    $('#vale-stat-desconto').textContent = fmtBRL(descontoMes);
+    $('#vale-stat-acima').textContent    = acimaCota;
+    $('#vale-stat-media').textContent    = fmtBRL(comLanc ? totalMes / comLanc : 0);
+
+    // Tabela
+    const tb = $('#tb-vale-resumo');
+    if (tb) {
+      const lista = filtrados
+        .filter(r => r.lancs.length > 0 || r.cota > 0)
+        .sort((a,b) => (b.usado - b.cota) - (a.usado - a.cota));
+      tb.innerHTML = lista.length ? lista.map(r => {
+        const c = r.colab;
+        const excesso = r.usado - r.cota;
+        const statusBadge = r.cota === 0
+          ? `<span class="badge neutral">Sem cota</span>`
+          : r.usado === 0
+            ? `<span class="badge info">Sem uso</span>`
+            : excesso > 0
+              ? `<span class="badge danger">Acima</span>`
+              : excesso <= r.cota * 0.1
+                ? `<span class="badge warn">No limite</span>`
+                : `<span class="badge ok">Dentro</span>`;
+        const saldoStyle = r.saldo < 0 ? 'color:var(--danger); font-weight:700;' : r.saldo === 0 ? 'color:var(--text-muted)' : 'color:var(--success)';
+        return `
+          <tr onclick="abrirModalValeDetalhe(${c.id}, '${mesAtual}')">
+            <td>
+              <div class="cell-person">
+                <div class="cell-avatar">${h(iniciais(c.nome))}</div>
+                <div>
+                  <div class="cell-person-name">${h(c.nome)}</div>
+                  <div class="cell-person-sub">${h(c.cargo)}</div>
+                </div>
+              </div>
+            </td>
+            <td>${h(c.setor)}</td>
+            <td class="cell-mono" style="text-align:right">${fmtBRL(r.cota)}</td>
+            <td class="cell-mono" style="text-align:right">${fmtBRL(r.usado)}</td>
+            <td class="cell-mono" style="text-align:right; ${saldoStyle}">${fmtBRL(r.saldo)}</td>
+            <td class="cell-mono">${r.lancs.length}</td>
+            <td>${statusBadge}</td>
+            <td class="actions" onclick="event.stopPropagation()">
+              <button class="btn btn-ghost btn-sm btn-icon" title="Novo lançamento" onclick="abrirModalValeLancamento(null, ${c.id})">+</button>
+            </td>
+          </tr>
+        `;
+      }).join('') : `<tr><td colspan="8" class="empty">Sem dados para ${mesLabel(mesAtual)}</td></tr>`;
+    }
+
+    renderValeEvolucao();
+  }
+
+  function renderValeEvolucao() {
+    // Últimos 6 meses disponíveis
+    const meses = mesesDisponiveis().slice(0, 6).reverse();
+    const cotaGlobal = Object.values(VALE_COTAS).reduce((a,b) => a + parseFloat(b||0), 0);
+    const totais = meses.map(m => {
+      const lancs = VALE_LANCAMENTOS.filter(l => mesChave(l.data) === m);
+      const total = lancs.reduce((s,l) => s + parseFloat(l.valor||0), 0);
+      // Desconto: soma do excesso por colaborador
+      let desconto = 0;
+      COLABORADORES.forEach(c => {
+        const usado = lancs.filter(l => l.colaborador_id === c.id)
+                           .reduce((s,l) => s + parseFloat(l.valor||0), 0);
+        const cota = parseFloat(VALE_COTAS[c.id] || 0);
+        desconto += Math.max(0, usado - cota);
+      });
+      return { total, desconto, cota:cotaGlobal };
+    });
+
+    _chartValeEvo?.destroy();
+    _chartValeEvo = new Chart($('#chart-vale-evolucao'), {
+      type: 'bar',
+      data: {
+        labels: meses.map(mesLabel),
+        datasets: [
+          { label:'Dentro da cota', data: totais.map(t => t.total - t.desconto), backgroundColor: CHART_COLORS.phthaloLight, stack:'g', borderRadius:3 },
+          { label:'Desconto em folha', data: totais.map(t => t.desconto), backgroundColor: '#EF4444', stack:'g', borderRadius:3 },
+        ],
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins: {
+          legend: { position:'bottom', labels:{ boxWidth:12, padding:10, font:{ size:11 } } },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } },
+        },
+        scales: {
+          x: { stacked:true, grid:{ display:false } },
+          y: { stacked:true, beginAtZero:true, grid:{ color: CHART_COLORS.grid }, ticks:{ callback: v => 'R$ ' + v } },
+        },
+      },
+    });
+  }
+
+  document.addEventListener('input',  (e) => { if (e.target.id === 'vale-search') renderVale(); });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'vale-mes' || e.target.id === 'vale-filter-setor') renderVale();
+  });
+
+  // ── Modal lançamento ──
+  function abrirModalValeLancamento(id = null, preColabId = null) {
+    const form = $('#form-vale-lancamento');
+    form.reset();
+    $('#form-vale-colab').innerHTML = COLABORADORES
+      .filter(c => c.status !== 'inativo')
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(c => `<option value="${c.id}">${h(c.nome)} — ${h(c.setor)}</option>`).join('');
+
+    if (id != null) {
+      const l = VALE_LANCAMENTOS.find(x => x.id === id);
+      if (l) {
+        $('#modal-vale-lancto-title').textContent = 'Editar lançamento';
+        for (const [k,v] of Object.entries(l)) {
+          const f = form.elements[k];
+          if (f) f.value = v ?? '';
+        }
+      }
+    } else {
+      $('#modal-vale-lancto-title').textContent = 'Novo lançamento';
+      form.elements['data'].value = new Date().toISOString().slice(0,10);
+      if (preColabId != null) form.elements['colaborador_id'].value = preColabId;
+    }
+    $('#modal-vale-lancamento').classList.add('active');
+  }
+
+  function fecharModalValeLancamento() {
+    $('#modal-vale-lancamento').classList.remove('active');
+  }
+
+  function salvarValeLancamento(ev) {
+    ev.preventDefault();
+    const form = $('#form-vale-lancamento');
+    const data = Object.fromEntries(new FormData(form));
+    const id = data.id ? parseInt(data.id,10) : null;
+
+    const payload = {
+      colaborador_id: parseInt(data.colaborador_id,10),
+      data:           data.data,
+      valor:          parseFloat(data.valor) || 0,
+      litros:         data.litros ? parseFloat(data.litros) : null,
+      km_atual:       data.km_atual ? parseInt(data.km_atual,10) : null,
+      posto:          data.posto || '',
+      observacoes:    data.observacoes || '',
+    };
+
+    if (id != null) {
+      const i = VALE_LANCAMENTOS.findIndex(x => x.id === id);
+      if (i >= 0) VALE_LANCAMENTOS[i] = { ...VALE_LANCAMENTOS[i], ...payload };
+      showToast('Lançamento atualizado', 'ok');
+    } else {
+      const newId = Math.max(0, ...VALE_LANCAMENTOS.map(x => x.id)) + 1;
+      VALE_LANCAMENTOS.unshift({ id:newId, ...payload });
+      showToast('Lançamento registrado', 'ok');
+    }
+    fecharModalValeLancamento();
+    renderVale();
+    // Re-render detalhe se aberto
+    if (_detalheColabId) renderValeDetalhe(_detalheColabId, _detalheMes);
+  }
+
+  function excluirValeLancamento(id) {
+    if (!confirm('Excluir este lançamento?')) return;
+    VALE_LANCAMENTOS = VALE_LANCAMENTOS.filter(x => x.id !== id);
+    renderVale();
+    if (_detalheColabId) renderValeDetalhe(_detalheColabId, _detalheMes);
+    showToast('Lançamento excluído');
+  }
+
+  // ── Modal detalhe ──
+  let _detalheColabId = null;
+  let _detalheMes = null;
+
+  function abrirModalValeDetalhe(colabId, mes) {
+    _detalheColabId = colabId;
+    _detalheMes = mes;
+    renderValeDetalhe(colabId, mes);
+    $('#btn-vale-det-novo').onclick = () => abrirModalValeLancamento(null, colabId);
+    $('#modal-vale-detalhe').classList.add('active');
+  }
+
+  function renderValeDetalhe(colabId, mes) {
+    const c = COLABORADORES.find(x => x.id === colabId);
+    if (!c) return;
+    const lancs = VALE_LANCAMENTOS.filter(l => l.colaborador_id === colabId && mesChave(l.data) === mes)
+                                  .sort((a,b) => a.data.localeCompare(b.data));
+    const usado = lancs.reduce((s,l) => s + parseFloat(l.valor||0), 0);
+    const cota  = parseFloat(VALE_COTAS[colabId] || 0);
+    const saldo = cota - usado;
+
+    $('#vale-det-title').textContent = `${c.nome} — ${mesLabel(mes)}`;
+    $('#vale-det-summary').innerHTML = `
+      <div class="info-item"><div class="info-label">Cota mensal</div><div class="info-value mono">${fmtBRL(cota)}</div></div>
+      <div class="info-item"><div class="info-label">Utilizado</div><div class="info-value mono">${fmtBRL(usado)}</div></div>
+      <div class="info-item"><div class="info-label">Saldo</div><div class="info-value mono" style="${saldo < 0 ? 'color:var(--danger);font-weight:700' : ''}">${fmtBRL(saldo)}</div></div>
+      <div class="info-item"><div class="info-label">Desconto em folha</div><div class="info-value mono">${fmtBRL(Math.max(0, usado - cota))}</div></div>
+    `;
+
+    const tb = $('#tb-vale-detalhe');
+    tb.innerHTML = lancs.length ? lancs.map(l => `
+      <tr>
+        <td class="cell-mono">${fmtDate(l.data)}</td>
+        <td class="cell-mono" style="text-align:right">${fmtBRL(l.valor)}</td>
+        <td class="cell-mono" style="text-align:right">${l.litros ? l.litros.toFixed(2).replace('.',',') : '—'}</td>
+        <td class="cell-mono" style="text-align:right">${l.km_atual || '—'}</td>
+        <td>${h(l.posto || '—')}</td>
+        <td class="actions">
+          <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalValeLancamento(${l.id})">✎</button>
+          <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirValeLancamento(${l.id})">🗑</button>
+        </td>
+      </tr>
+    `).join('') : `<tr><td colspan="6" class="empty">Nenhum lançamento neste mês</td></tr>`;
+  }
+
+  function fecharModalValeDetalhe() {
+    $('#modal-vale-detalhe').classList.remove('active');
+    _detalheColabId = null;
+    _detalheMes = null;
+  }
+
+  // ── Modal cotas ──
+  function abrirModalCotas() {
+    const tb = $('#tb-vale-cotas');
+    tb.innerHTML = COLABORADORES
+      .filter(c => c.status !== 'inativo')
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(c => `
+        <tr>
+          <td>${h(c.nome)}</td>
+          <td>${h(c.setor)}</td>
+          <td style="text-align:right">
+            <input type="number" step="0.01" min="0" value="${VALE_COTAS[c.id] || 0}"
+                   onchange="VALE_COTAS[${c.id}] = parseFloat(this.value) || 0; renderVale();"
+                   style="width:130px; text-align:right; background:var(--bluish-bg); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--mono); font-size:.85rem;">
+          </td>
+        </tr>
+      `).join('');
+    $('#modal-vale-cotas').classList.add('active');
+  }
+
+  function fecharModalCotas() {
+    $('#modal-vale-cotas').classList.remove('active');
+  }
+
+  document.querySelectorAll('.nav-item[data-page="vale-combustivel"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderVale, 60));
   });
 </script>
 
