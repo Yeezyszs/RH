@@ -1395,6 +1395,43 @@
   }
 
   /* ════════════════════════════════════════════════
+     BANNER DE DADOS SENSÍVEIS
+     ════════════════════════════════════════════════ */
+  .sensitive-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: linear-gradient(135deg, #FEF3C7 0%, #FEFCE8 100%);
+    border: 1px solid #FDE68A;
+    border-left: 4px solid #F59E0B;
+    border-radius: 10px;
+    padding: 12px 18px;
+    margin-bottom: 14px;
+  }
+  .sensitive-banner .sb-icon {
+    width: 36px; height: 36px;
+    background: #F59E0B;
+    color: #fff;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .sensitive-banner .sb-title {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #92400E;
+    letter-spacing: .01em;
+  }
+  .sensitive-banner .sb-sub {
+    font-size: .78rem;
+    color: #78350F;
+    margin-top: 1px;
+  }
+
+  /* ════════════════════════════════════════════════
      FÉRIAS — timeline anual
      ════════════════════════════════════════════════ */
   .fer-timeline { min-width: 760px; }
@@ -2426,10 +2463,104 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Salários 🔒</h1>
-          <div class="page-subtitle">Acesso restrito · RH e Diretoria</div>
+          <div class="page-subtitle">Valor atual · sujeito a alteração</div>
         </div>
       </div>
-      <div class="page-placeholder">PLANILHA DE SALÁRIOS A CONSTRUIR</div>
+
+      <!-- Banner de sensibilidade -->
+      <div class="sensitive-banner">
+        <div class="sb-icon">⚠</div>
+        <div>
+          <div class="sb-title">Dados sensíveis</div>
+          <div class="sb-sub">Esta seção contém remuneração individual. Acesso restrito a RH e Diretoria. Restrição por login será aplicada na integração.</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="sal-search" placeholder="Buscar colaborador ou cargo…">
+        </div>
+        <select id="sal-filter-setor">
+          <option value="">Todos os setores</option>
+          <option>Produção</option>
+          <option>Logística</option>
+          <option>Administrativo</option>
+          <option>Manutenção</option>
+          <option>Comercial</option>
+        </select>
+        <select id="sal-filter-faixa">
+          <option value="">Todas as faixas</option>
+          <option value="0">Até R$ 2.000</option>
+          <option value="1">R$ 2.000 – 3.500</option>
+          <option value="2">R$ 3.500 – 5.000</option>
+          <option value="3">R$ 5.000 – 7.500</option>
+          <option value="4">Acima R$ 7.500</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="exportSalarios()">↓ Exportar</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Folha mensal</div>
+          <div class="stat-value" id="sal-stat-total" style="font-size:1.25rem;">—</div>
+        </div>
+        <div class="stat stat-success">
+          <div class="stat-label">Salário médio</div>
+          <div class="stat-value" id="sal-stat-medio" style="font-size:1.25rem;">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Mediana</div>
+          <div class="stat-value" id="sal-stat-mediana" style="font-size:1.25rem;">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Sem cadastro</div>
+          <div class="stat-value" id="sal-stat-sem">—</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="dash-row-charts" style="grid-template-columns: 1fr 1.2fr;">
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Folha por setor</div>
+            <span class="widget-badge" id="sal-setor-badge">—</span>
+          </div>
+          <div class="chart-container" style="height:240px;">
+            <canvas id="chart-sal-setor"></canvas>
+          </div>
+        </div>
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Distribuição por faixa</div>
+            <span class="widget-badge">R$</span>
+          </div>
+          <div class="chart-container" style="height:240px;">
+            <canvas id="chart-sal-faixa"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width:28%">Colaborador</th>
+                <th>Cargo</th>
+                <th>Setor</th>
+                <th style="text-align:right">Salário base</th>
+                <th>Faixa</th>
+                <th>Última alteração</th>
+                <th style="width:100px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-salarios"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ───── ADVERTÊNCIAS ───── -->
@@ -3077,6 +3208,41 @@
   </div>
 </div>
 
+<!-- ════════════ MODAL — EDITAR SALÁRIO ════════════ -->
+<div id="modal-salario" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="sal-modal-title">Editar salário</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalSalario()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-salario" class="form-grid" onsubmit="salvarSalario(event)">
+        <input type="hidden" name="colaborador_id">
+        <div class="form-group full">
+          <label>Colaborador</label>
+          <input type="text" id="sal-colab-nome" readonly style="background:var(--bluish-soft);">
+        </div>
+        <div class="form-group">
+          <label>Salário base (R$)</label>
+          <input type="number" name="valor" step="0.01" min="0" required>
+        </div>
+        <div class="form-group">
+          <label>Data da alteração</label>
+          <input type="date" name="data_alteracao" required>
+        </div>
+        <div class="form-group full">
+          <label>Observações (motivo do reajuste, acordo, etc.)</label>
+          <textarea name="observacoes"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalSalario()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-salario">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ TOAST ════════════ -->
 <div id="toast"></div>
 
@@ -3225,6 +3391,7 @@
     if (typeof renderEpi === 'function') renderEpi();
     if (typeof renderVale === 'function') renderVale();
     if (typeof renderFerias === 'function') renderFerias();
+    if (typeof renderSalarios === 'function') renderSalarios();
   }
 
   if (document.readyState === 'loading') {
@@ -5457,6 +5624,245 @@
   });
   document.querySelectorAll('.nav-item[data-page="ferias"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderFerias, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     SALÁRIOS — valor atual por colaborador
+     ════════════════════════════════════════════════ */
+
+  // Mock. Só o valor atual. Sem histórico.
+  let SALARIOS = {
+    1:  { valor: 4800.00,  data_alteracao: '2025-11-01', observacoes: 'Reajuste anual' },
+    2:  { valor: 2400.00,  data_alteracao: '2026-04-20', observacoes: 'Admissão' },
+    3:  { valor: 3850.00,  data_alteracao: '2025-08-01', observacoes: '' },
+    4:  { valor: 7200.00,  data_alteracao: '2026-01-15', observacoes: 'Promoção' },
+    5:  { valor: 2900.00,  data_alteracao: '2025-06-01', observacoes: '' },
+    6:  { valor: 2900.00,  data_alteracao: '2026-01-01', observacoes: 'Acordo coletivo' },
+    7:  { valor: 4300.00,  data_alteracao: '2025-10-01', observacoes: '' },
+    8:  { valor: 3100.00,  data_alteracao: '2025-09-01', observacoes: '' },
+    9:  { valor: 2500.00,  data_alteracao: '2026-02-01', observacoes: '' },
+    // 10 (Luiz) inativo — sem cadastro salarial ativo
+  };
+
+  const FAIXAS = [
+    { min:      0, max:  2000, label:'Até R$ 2k',       short:'≤2k'     },
+    { min:   2000, max:  3500, label:'R$ 2k – 3,5k',    short:'2-3,5k'  },
+    { min:   3500, max:  5000, label:'R$ 3,5k – 5k',    short:'3,5-5k'  },
+    { min:   5000, max:  7500, label:'R$ 5k – 7,5k',    short:'5-7,5k'  },
+    { min:   7500, max: 99999, label:'Acima R$ 7,5k',   short:'>7,5k'   },
+  ];
+
+  function faixaIdx(valor) {
+    for (let i = 0; i < FAIXAS.length; i++) {
+      if (valor >= FAIXAS[i].min && valor < FAIXAS[i].max) return i;
+    }
+    return FAIXAS.length - 1;
+  }
+
+  let _chartSalSetor, _chartSalFaixa;
+
+  function renderSalarios() {
+    const tb = $('#tb-salarios');
+    if (!tb) return;
+
+    const q     = ($('#sal-search')?.value || '').trim().toLowerCase();
+    const fSet  = $('#sal-filter-setor')?.value || '';
+    const fFx   = $('#sal-filter-faixa')?.value;
+
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo');
+
+    const linhas = ativos.map(c => {
+      const s = SALARIOS[c.id];
+      return {
+        colab: c,
+        valor: s?.valor || 0,
+        data_alteracao: s?.data_alteracao || null,
+        observacoes: s?.observacoes || '',
+        temSalario: !!s,
+      };
+    });
+
+    const filtradas = linhas.filter(r => {
+      if (fSet && r.colab.setor !== fSet) return false;
+      if (fFx !== '' && fFx != null) {
+        if (!r.temSalario) return false;
+        if (faixaIdx(r.valor) !== parseInt(fFx, 10)) return false;
+      }
+      if (q) {
+        const hay = [r.colab.nome, r.colab.cargo].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).sort((a,b) => b.valor - a.valor);
+
+    // Stats (sobre ativos, ignora filtros)
+    const comSal = linhas.filter(r => r.temSalario);
+    const soma   = comSal.reduce((s,r) => s + r.valor, 0);
+    const medio  = comSal.length ? soma / comSal.length : 0;
+    const ordenados = [...comSal].map(r => r.valor).sort((a,b) => a - b);
+    const mediana = ordenados.length
+      ? (ordenados.length % 2
+          ? ordenados[(ordenados.length - 1) / 2]
+          : (ordenados[ordenados.length / 2 - 1] + ordenados[ordenados.length / 2]) / 2)
+      : 0;
+    $('#sal-stat-total').textContent   = fmtBRL(soma);
+    $('#sal-stat-medio').textContent   = fmtBRL(medio);
+    $('#sal-stat-mediana').textContent = fmtBRL(mediana);
+    $('#sal-stat-sem').textContent     = linhas.filter(r => !r.temSalario).length;
+
+    // Tabela
+    tb.innerHTML = filtradas.length ? filtradas.map(r => {
+      const c = r.colab;
+      const faixa = r.temSalario ? FAIXAS[faixaIdx(r.valor)].short : '—';
+      const salDisp = r.temSalario
+        ? `<span class="cell-mono" style="font-weight:600; color:var(--phthalo-dark)">${fmtBRL(r.valor)}</span>`
+        : `<span style="color:var(--text-soft); font-style:italic">sem cadastro</span>`;
+      const faixaDisp = r.temSalario
+        ? `<span class="badge info">${faixa}</span>`
+        : `<span class="badge neutral">—</span>`;
+      return `
+        <tr onclick="abrirModalSalario(${c.id})">
+          <td>
+            <div class="cell-person">
+              <div class="cell-avatar">${h(iniciais(c.nome))}</div>
+              <div>
+                <div class="cell-person-name">${h(c.nome)}</div>
+                <div class="cell-person-sub">Mat. ${h(c.matricula || '—')}</div>
+              </div>
+            </div>
+          </td>
+          <td>${h(c.cargo)}</td>
+          <td>${h(c.setor)}</td>
+          <td style="text-align:right">${salDisp}</td>
+          <td>${faixaDisp}</td>
+          <td class="cell-mono">${r.data_alteracao ? fmtDate(r.data_alteracao) : '—'}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalSalario(${c.id})">✎</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="7" class="empty">Nenhum colaborador encontrado</td></tr>`;
+
+    renderSalarioCharts(linhas);
+  }
+
+  function renderSalarioCharts(linhas) {
+    const comSal = linhas.filter(r => r.temSalario);
+
+    // Folha por setor
+    const porSetor = {};
+    comSal.forEach(r => {
+      porSetor[r.colab.setor] = (porSetor[r.colab.setor] || 0) + r.valor;
+    });
+    const setores = Object.keys(porSetor).sort((a,b) => porSetor[b] - porSetor[a]);
+    const totalSetor = Object.values(porSetor).reduce((a,b) => a + b, 0);
+    $('#sal-setor-badge').textContent = fmtBRL(totalSetor);
+
+    _chartSalSetor?.destroy();
+    _chartSalSetor = new Chart($('#chart-sal-setor'), {
+      type: 'doughnut',
+      data: {
+        labels: setores,
+        datasets: [{
+          data: setores.map(s => porSetor[s]),
+          backgroundColor: [
+            CHART_COLORS.phthalo, CHART_COLORS.phthaloLight, CHART_COLORS.phthaloBright,
+            '#7EB9E0', '#B1D4EA',
+          ],
+          borderColor: '#fff',
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+          legend: { position:'right', labels:{ padding:10, boxWidth:12, font:{ size:11 } } },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${fmtBRL(ctx.parsed)}` } },
+        },
+      },
+    });
+
+    // Distribuição por faixa
+    const contagem = FAIXAS.map(() => 0);
+    comSal.forEach(r => contagem[faixaIdx(r.valor)]++);
+
+    _chartSalFaixa?.destroy();
+    _chartSalFaixa = new Chart($('#chart-sal-faixa'), {
+      type: 'bar',
+      data: {
+        labels: FAIXAS.map(f => f.short),
+        datasets: [{
+          label: 'Colaboradores',
+          data: contagem,
+          backgroundColor: CHART_COLORS.phthaloLight,
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { title: (items) => FAIXAS[items[0].dataIndex].label } },
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: CHART_COLORS.grid }, ticks:{ stepSize:1 } },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+  }
+
+  function abrirModalSalario(colabId) {
+    const c = COLABORADORES.find(x => x.id === colabId);
+    if (!c) return;
+    const s = SALARIOS[colabId];
+    const form = $('#form-salario');
+    form.reset();
+    form.elements['colaborador_id'].value = colabId;
+    $('#sal-colab-nome').value = `${c.nome} — ${c.cargo}`;
+    $('#sal-modal-title').textContent = s ? `Editar salário — ${c.nome}` : `Cadastrar salário — ${c.nome}`;
+    if (s) {
+      form.elements['valor'].value          = s.valor;
+      form.elements['data_alteracao'].value = s.data_alteracao;
+      form.elements['observacoes'].value    = s.observacoes || '';
+    } else {
+      form.elements['data_alteracao'].value = new Date().toISOString().slice(0,10);
+    }
+    $('#modal-salario').classList.add('active');
+  }
+
+  function fecharModalSalario() {
+    $('#modal-salario').classList.remove('active');
+  }
+
+  function salvarSalario(ev) {
+    ev.preventDefault();
+    const form = $('#form-salario');
+    const data = Object.fromEntries(new FormData(form));
+    const id = parseInt(data.colaborador_id, 10);
+    SALARIOS[id] = {
+      valor:          parseFloat(data.valor) || 0,
+      data_alteracao: data.data_alteracao,
+      observacoes:    data.observacoes || '',
+    };
+    fecharModalSalario();
+    renderSalarios();
+    showToast('Salário atualizado', 'ok');
+  }
+
+  function exportSalarios() {
+    showToast('Exportação CSV será implementada na integração', 'ok');
+  }
+
+  document.addEventListener('input',  (e) => { if (e.target.id === 'sal-search') renderSalarios(); });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'sal-filter-setor' || e.target.id === 'sal-filter-faixa') renderSalarios();
+  });
+  document.querySelectorAll('.nav-item[data-page="salarios"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderSalarios, 60));
   });
 </script>
 
