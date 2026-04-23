@@ -2094,10 +2094,70 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">EPI</h1>
-          <div class="page-subtitle">Ficha de entrega por colaborador</div>
+          <div class="page-subtitle">Ficha de entrega · CA · validade · próxima troca</div>
         </div>
       </div>
-      <div class="page-placeholder">CONTROLE DE EPI A CONSTRUIR</div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="epi-search" placeholder="Buscar colaborador, EPI ou CA…">
+        </div>
+        <select id="epi-filter-tipo">
+          <option value="">Todos os EPIs</option>
+        </select>
+        <select id="epi-filter-status">
+          <option value="">Qualquer status</option>
+          <option value="vigente">Vigente</option>
+          <option value="trocar">Trocar (≤30d)</option>
+          <option value="vencido">Vencido</option>
+          <option value="devolvido">Devolvido</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalEpiCatalogo()">⚙ Catálogo</button>
+        <button class="btn" type="button" onclick="abrirModalEpiEntrega()">+ Nova entrega</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat stat-success">
+          <div class="stat-label">Vigentes</div>
+          <div class="stat-value" id="epi-stat-vigentes">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Trocar ≤30d</div>
+          <div class="stat-value" id="epi-stat-trocar">—</div>
+        </div>
+        <div class="stat stat-danger">
+          <div class="stat-label">Vencidos</div>
+          <div class="stat-value" id="epi-stat-vencidos">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Itens no catálogo</div>
+          <div class="stat-value" id="epi-stat-catalogo">—</div>
+        </div>
+      </div>
+
+      <!-- Tabela de entregas -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width:22%">Colaborador</th>
+                <th>EPI</th>
+                <th>CA</th>
+                <th>Entrega</th>
+                <th>Próxima troca</th>
+                <th>Qtd</th>
+                <th>Status</th>
+                <th style="width:140px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-epi-entregas"></tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- ───── VALE COMBUSTÍVEL ───── -->
@@ -2508,6 +2568,112 @@
   </div>
 </div>
 
+<!-- ════════════ MODAL — ENTREGA DE EPI ════════════ -->
+<div id="modal-epi-entrega" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-epi-entrega-title">Nova entrega de EPI</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalEpiEntrega()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-epi-entrega" class="form-grid" onsubmit="salvarEpiEntrega(event)">
+        <input type="hidden" name="id">
+        <div class="form-group full">
+          <label>Colaborador</label>
+          <select name="colaborador_id" id="form-epi-colab" required></select>
+        </div>
+        <div class="form-group full">
+          <label>EPI (do catálogo)</label>
+          <select name="epi_tipo_id" id="form-epi-tipo" required></select>
+        </div>
+        <div class="form-group">
+          <label>Data da entrega</label>
+          <input type="date" name="data_entrega" required>
+        </div>
+        <div class="form-group">
+          <label>Quantidade</label>
+          <input type="number" name="quantidade" min="1" value="1" required>
+        </div>
+        <div class="form-group">
+          <label>Próxima troca</label>
+          <input type="date" name="proxima_troca">
+        </div>
+        <div class="form-group">
+          <label>Recebido por</label>
+          <input type="text" name="recebido_por" placeholder="Ass. do colaborador / RH">
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea name="observacoes"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalEpiEntrega()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-epi-entrega">Salvar entrega</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — CATÁLOGO DE EPI ════════════ -->
+<div id="modal-epi-catalogo" class="modal">
+  <div class="modal-box" style="max-width:720px;">
+    <div class="modal-header">
+      <div class="modal-title">Catálogo de EPI</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalEpiCatalogo()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-epi-catalogo-new" class="form-grid" onsubmit="salvarEpiCatalogo(event)" style="margin-bottom:18px;">
+        <input type="hidden" name="id">
+        <div class="form-group">
+          <label>Nome do EPI</label>
+          <input type="text" name="nome" required placeholder="Ex.: Botina de segurança">
+        </div>
+        <div class="form-group">
+          <label>CA</label>
+          <input type="text" name="ca" required placeholder="Nº do CA">
+        </div>
+        <div class="form-group">
+          <label>Validade do CA</label>
+          <input type="date" name="validade_ca">
+        </div>
+        <div class="form-group">
+          <label>Vida útil (meses)</label>
+          <input type="number" name="vida_util_meses" min="1" value="12">
+        </div>
+        <div class="form-group full">
+          <label>Fabricante</label>
+          <input type="text" name="fabricante">
+        </div>
+        <div class="form-group full" style="flex-direction:row; justify-content:flex-end; gap:8px;">
+          <button class="btn btn-secondary btn-sm" type="button" onclick="resetEpiCatalogoForm()">Limpar</button>
+          <button class="btn btn-sm" type="submit">Salvar item</button>
+        </div>
+      </form>
+
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>CA</th>
+                <th>Validade CA</th>
+                <th>Vida útil</th>
+                <th style="width:100px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-epi-catalogo"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" type="button" onclick="fecharModalEpiCatalogo()">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ TOAST ════════════ -->
 <div id="toast"></div>
 
@@ -2653,6 +2819,7 @@
     renderRotatividade();
     renderDesligamentos();
     if (typeof renderVencimentos === 'function') renderVencimentos();
+    if (typeof renderEpi === 'function') renderEpi();
   }
 
   if (document.readyState === 'loading') {
@@ -3880,6 +4047,322 @@
   // Re-render ao voltar para a aba
   document.querySelectorAll('.nav-item[data-page="vencimentos"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderVencimentos, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     EPI — catálogo + entregas
+     ════════════════════════════════════════════════ */
+
+  let EPI_CATALOGO = [
+    { id:1, nome:'Botina de segurança',    ca:'12345', validade_ca:'2027-06-30', vida_util_meses:12, fabricante:'Marluvas' },
+    { id:2, nome:'Luva nitrílica',         ca:'87654', validade_ca:'2026-12-15', vida_util_meses:3,  fabricante:'Volk' },
+    { id:3, nome:'Óculos ampla visão',     ca:'33221', validade_ca:'2028-01-10', vida_util_meses:12, fabricante:'3M' },
+    { id:4, nome:'Protetor auricular',     ca:'55678', validade_ca:'2026-09-20', vida_util_meses:6,  fabricante:'3M' },
+    { id:5, nome:'Capacete classe B',      ca:'44556', validade_ca:'2029-03-05', vida_util_meses:60, fabricante:'MSA' },
+    { id:6, nome:'Respirador PFF2',        ca:'88990', validade_ca:'2026-08-18', vida_util_meses:1,  fabricante:'3M' },
+    { id:7, nome:'Cinto paraquedista',     ca:'77665', validade_ca:'2027-11-22', vida_util_meses:24, fabricante:'MG' },
+  ];
+
+  let EPI_ENTREGAS = [
+    { id:1, colaborador_id:3, epi_tipo_id:1, data_entrega:'2026-03-03', quantidade:1, proxima_troca:'2027-03-03', recebido_por:'José Silva Ramos',    observacoes:'', devolvido:false },
+    { id:2, colaborador_id:3, epi_tipo_id:2, data_entrega:'2026-04-18', quantidade:1, proxima_troca:'2026-05-18', recebido_por:'José Silva Ramos',    observacoes:'', devolvido:false },
+    { id:3, colaborador_id:3, epi_tipo_id:3, data_entrega:'2026-01-12', quantidade:1, proxima_troca:'2027-01-12', recebido_por:'José Silva Ramos',    observacoes:'', devolvido:false },
+    { id:4, colaborador_id:2, epi_tipo_id:1, data_entrega:'2026-04-20', quantidade:1, proxima_troca:'2027-04-20', recebido_por:'Carlos Eduardo Mendes', observacoes:'Admissão', devolvido:false },
+    { id:5, colaborador_id:2, epi_tipo_id:4, data_entrega:'2026-04-20', quantidade:1, proxima_troca:'2026-10-20', recebido_por:'Carlos Eduardo Mendes', observacoes:'', devolvido:false },
+    { id:6, colaborador_id:8, epi_tipo_id:1, data_entrega:'2025-09-15', quantidade:1, proxima_troca:'2026-09-15', recebido_por:'João Silveira Matos', observacoes:'', devolvido:false },
+    { id:7, colaborador_id:8, epi_tipo_id:6, data_entrega:'2026-04-10', quantidade:10,proxima_troca:'2026-05-10', recebido_por:'João Silveira Matos', observacoes:'Caixa', devolvido:false },
+    { id:8, colaborador_id:9, epi_tipo_id:1, data_entrega:'2025-10-02', quantidade:1, proxima_troca:'2026-04-02', recebido_por:'Paulo Rocha Almeida', observacoes:'', devolvido:false },
+    { id:9, colaborador_id:5, epi_tipo_id:7, data_entrega:'2025-05-01', quantidade:1, proxima_troca:'2027-05-01', recebido_por:'Pedro Henrique Souza',observacoes:'Uso em altura esporádico', devolvido:false },
+    { id:10,colaborador_id:6, epi_tipo_id:1, data_entrega:'2024-12-10', quantidade:1, proxima_troca:'2025-12-10', recebido_por:'Rafael Fernandes Lima',observacoes:'', devolvido:true  },
+  ];
+
+  function epiStatus(e) {
+    if (e.devolvido) return 'devolvido';
+    if (!e.proxima_troca) return 'vigente';
+    const dias = diasAte(e.proxima_troca);
+    if (dias < 0)  return 'vencido';
+    if (dias <= 30) return 'trocar';
+    return 'vigente';
+  }
+
+  function epiBadge(status) {
+    if (status === 'vencido')    return `<span class="badge danger">Vencido</span>`;
+    if (status === 'trocar')     return `<span class="badge warn">Trocar</span>`;
+    if (status === 'devolvido')  return `<span class="badge neutral">Devolvido</span>`;
+    return `<span class="badge ok">Vigente</span>`;
+  }
+
+  function renderEpi() {
+    const tb = $('#tb-epi-entregas');
+    if (!tb) return;
+
+    // Popula dropdowns de filtro de tipo
+    const filtroTipo = $('#epi-filter-tipo');
+    if (filtroTipo && filtroTipo.options.length <= 1) {
+      EPI_CATALOGO.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id; opt.textContent = t.nome;
+        filtroTipo.appendChild(opt);
+      });
+    }
+
+    const q      = ($('#epi-search')?.value || '').trim().toLowerCase();
+    const fTipo  = $('#epi-filter-tipo')?.value   || '';
+    const fSt    = $('#epi-filter-status')?.value || '';
+
+    const enriched = EPI_ENTREGAS.map(e => {
+      const colab = COLABORADORES.find(c => c.id === e.colaborador_id);
+      const tipo  = EPI_CATALOGO.find(t => t.id === e.epi_tipo_id);
+      return { ...e, _colab: colab, _tipo: tipo, _status: epiStatus(e) };
+    });
+
+    const lista = enriched.filter(e => {
+      if (fTipo && e.epi_tipo_id !== parseInt(fTipo,10)) return false;
+      if (fSt   && e._status !== fSt) return false;
+      if (q) {
+        const hay = [e._colab?.nome, e._tipo?.nome, e._tipo?.ca].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).sort((a,b) => (a.proxima_troca || '').localeCompare(b.proxima_troca || ''));
+
+    tb.innerHTML = lista.length ? lista.map(e => {
+      const c = e._colab;
+      const t = e._tipo;
+      return `
+        <tr onclick="if(${c?.id || 0}) abrirDrawerColab(${c?.id || 0})">
+          <td>
+            ${c ? `
+              <div class="cell-person">
+                <div class="cell-avatar">${h(iniciais(c.nome))}</div>
+                <div>
+                  <div class="cell-person-name">${h(c.nome)}</div>
+                  <div class="cell-person-sub">${h(c.setor)}</div>
+                </div>
+              </div>
+            ` : `<span style="color:var(--text-soft)">—</span>`}
+          </td>
+          <td style="font-weight:500;">${h(t?.nome || '—')}</td>
+          <td class="cell-mono">${h(t?.ca || '—')}</td>
+          <td class="cell-mono">${fmtDate(e.data_entrega)}</td>
+          <td class="cell-mono">${fmtDate(e.proxima_troca)}</td>
+          <td class="cell-mono">${e.quantidade}</td>
+          <td>${epiBadge(e._status)}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            ${!e.devolvido ? `<button class="btn btn-ghost btn-sm btn-icon" title="Devolver" onclick="devolverEpi(${e.id})">↩</button>` : ''}
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalEpiEntrega(${e.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirEpi(${e.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="8" class="empty">Nenhuma entrega encontrada</td></tr>`;
+
+    // Stats
+    const tot = (st) => enriched.filter(e => e._status === st).length;
+    $('#epi-stat-vigentes').textContent = tot('vigente');
+    $('#epi-stat-trocar').textContent   = tot('trocar');
+    $('#epi-stat-vencidos').textContent = tot('vencido');
+    $('#epi-stat-catalogo').textContent = EPI_CATALOGO.length;
+  }
+
+  document.addEventListener('input',  (e) => { if (e.target.id === 'epi-search') renderEpi(); });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'epi-filter-tipo' || e.target.id === 'epi-filter-status') renderEpi();
+  });
+
+  // --- Entrega ---
+  function abrirModalEpiEntrega(id = null) {
+    const form = $('#form-epi-entrega');
+    form.reset();
+    // popula colaboradores ativos
+    $('#form-epi-colab').innerHTML = COLABORADORES
+      .filter(c => c.status !== 'inativo')
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(c => `<option value="${c.id}">${h(c.nome)} — ${h(c.setor)}</option>`).join('');
+    // popula catálogo
+    $('#form-epi-tipo').innerHTML = EPI_CATALOGO
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(t => `<option value="${t.id}">${h(t.nome)} — CA ${h(t.ca)}</option>`).join('');
+
+    if (id != null) {
+      const e = EPI_ENTREGAS.find(x => x.id === id);
+      if (e) {
+        $('#modal-epi-entrega-title').textContent = 'Editar entrega';
+        for (const [k,v] of Object.entries(e)) {
+          const f = form.elements[k];
+          if (f) f.value = v ?? '';
+        }
+      }
+    } else {
+      $('#modal-epi-entrega-title').textContent = 'Nova entrega de EPI';
+      // Sugere próxima troca a partir da vida útil do item selecionado
+      const tipoSel = $('#form-epi-tipo');
+      const upd = () => {
+        const t = EPI_CATALOGO.find(x => x.id === parseInt(tipoSel.value, 10));
+        const dataEntrega = form.elements['data_entrega'].value;
+        if (t && dataEntrega) {
+          const d = new Date(dataEntrega + 'T00:00:00');
+          d.setMonth(d.getMonth() + (t.vida_util_meses || 12));
+          form.elements['proxima_troca'].value = d.toISOString().slice(0,10);
+        }
+      };
+      tipoSel.addEventListener('change', upd, { once:false });
+      form.elements['data_entrega'].addEventListener('change', upd, { once:false });
+    }
+
+    $('#modal-epi-entrega').classList.add('active');
+  }
+
+  function fecharModalEpiEntrega() {
+    $('#modal-epi-entrega').classList.remove('active');
+  }
+
+  function salvarEpiEntrega(ev) {
+    ev.preventDefault();
+    const form = $('#form-epi-entrega');
+    const data = Object.fromEntries(new FormData(form));
+    const id = data.id ? parseInt(data.id,10) : null;
+
+    const payload = {
+      colaborador_id: parseInt(data.colaborador_id,10),
+      epi_tipo_id:    parseInt(data.epi_tipo_id,10),
+      data_entrega:   data.data_entrega,
+      quantidade:     parseInt(data.quantidade,10) || 1,
+      proxima_troca:  data.proxima_troca || null,
+      recebido_por:   data.recebido_por || '',
+      observacoes:    data.observacoes || '',
+    };
+
+    if (id != null) {
+      const i = EPI_ENTREGAS.findIndex(x => x.id === id);
+      if (i >= 0) EPI_ENTREGAS[i] = { ...EPI_ENTREGAS[i], ...payload };
+      showToast('Entrega atualizada', 'ok');
+    } else {
+      const newId = Math.max(0, ...EPI_ENTREGAS.map(x => x.id)) + 1;
+      EPI_ENTREGAS.unshift({ id:newId, devolvido:false, ...payload });
+      showToast('Entrega registrada', 'ok');
+    }
+    fecharModalEpiEntrega();
+    renderEpi();
+  }
+
+  function devolverEpi(id) {
+    const e = EPI_ENTREGAS.find(x => x.id === id);
+    if (!e) return;
+    if (!confirm('Registrar devolução deste EPI?')) return;
+    e.devolvido = true;
+    renderEpi();
+    showToast('EPI devolvido', 'ok');
+  }
+
+  function excluirEpi(id) {
+    if (!confirm('Excluir este registro de entrega?')) return;
+    EPI_ENTREGAS = EPI_ENTREGAS.filter(x => x.id !== id);
+    renderEpi();
+    showToast('Registro excluído');
+  }
+
+  // --- Catálogo ---
+  function abrirModalEpiCatalogo() {
+    renderEpiCatalogo();
+    resetEpiCatalogoForm();
+    $('#modal-epi-catalogo').classList.add('active');
+  }
+
+  function fecharModalEpiCatalogo() {
+    $('#modal-epi-catalogo').classList.remove('active');
+    // Re-popula filtros e re-renderiza para pegar mudanças no catálogo
+    const f = $('#epi-filter-tipo');
+    if (f) {
+      const cur = f.value;
+      f.innerHTML = '<option value="">Todos os EPIs</option>' +
+        EPI_CATALOGO.map(t => `<option value="${t.id}">${h(t.nome)}</option>`).join('');
+      f.value = cur;
+    }
+    renderEpi();
+  }
+
+  function renderEpiCatalogo() {
+    const tb = $('#tb-epi-catalogo');
+    if (!tb) return;
+    tb.innerHTML = EPI_CATALOGO.length ? EPI_CATALOGO.map(t => {
+      const diasCa = t.validade_ca ? diasAte(t.validade_ca) : null;
+      const badgeCa = diasCa == null ? '' :
+        diasCa < 0      ? `<span class="badge danger" style="margin-left:6px">CA venc.</span>` :
+        diasCa <= 90    ? `<span class="badge warn"   style="margin-left:6px">${diasCa}d</span>` : '';
+      return `
+        <tr>
+          <td style="font-weight:500;">${h(t.nome)}<div class="cell-person-sub">${h(t.fabricante || '—')}</div></td>
+          <td class="cell-mono">${h(t.ca)}</td>
+          <td class="cell-mono">${fmtDate(t.validade_ca)} ${badgeCa}</td>
+          <td class="cell-mono">${t.vida_util_meses || '—'}m</td>
+          <td class="actions">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="editarEpiCatalogo(${t.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirEpiCatalogo(${t.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="5" class="empty">Catálogo vazio — cadastre o primeiro item</td></tr>`;
+  }
+
+  function resetEpiCatalogoForm() {
+    const f = $('#form-epi-catalogo-new');
+    f.reset();
+    f.elements['id'].value = '';
+  }
+
+  function editarEpiCatalogo(id) {
+    const t = EPI_CATALOGO.find(x => x.id === id);
+    if (!t) return;
+    const f = $('#form-epi-catalogo-new');
+    for (const [k,v] of Object.entries(t)) {
+      if (f.elements[k]) f.elements[k].value = v ?? '';
+    }
+    f.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+
+  function salvarEpiCatalogo(ev) {
+    ev.preventDefault();
+    const f = $('#form-epi-catalogo-new');
+    const data = Object.fromEntries(new FormData(f));
+    const id = data.id ? parseInt(data.id,10) : null;
+
+    const payload = {
+      nome:            data.nome,
+      ca:              data.ca,
+      validade_ca:     data.validade_ca || null,
+      vida_util_meses: parseInt(data.vida_util_meses,10) || null,
+      fabricante:      data.fabricante || '',
+    };
+
+    if (id != null) {
+      const i = EPI_CATALOGO.findIndex(x => x.id === id);
+      if (i >= 0) EPI_CATALOGO[i] = { ...EPI_CATALOGO[i], ...payload };
+      showToast('Item atualizado', 'ok');
+    } else {
+      const newId = Math.max(0, ...EPI_CATALOGO.map(x => x.id)) + 1;
+      EPI_CATALOGO.unshift({ id:newId, ...payload });
+      showToast('Item adicionado ao catálogo', 'ok');
+    }
+    resetEpiCatalogoForm();
+    renderEpiCatalogo();
+  }
+
+  function excluirEpiCatalogo(id) {
+    // Impede remover se há entregas referenciando
+    const emUso = EPI_ENTREGAS.some(e => e.epi_tipo_id === id && !e.devolvido);
+    if (emUso) {
+      showToast('Existem entregas ativas deste EPI — não é possível excluir', 'err');
+      return;
+    }
+    if (!confirm('Excluir este item do catálogo?')) return;
+    EPI_CATALOGO = EPI_CATALOGO.filter(x => x.id !== id);
+    renderEpiCatalogo();
+    showToast('Item removido');
+  }
+
+  document.querySelectorAll('.nav-item[data-page="epi"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderEpi, 60));
   });
 </script>
 
