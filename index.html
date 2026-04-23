@@ -1395,6 +1395,101 @@
   }
 
   /* ════════════════════════════════════════════════
+     FÉRIAS — timeline anual
+     ════════════════════════════════════════════════ */
+  .fer-timeline { min-width: 760px; }
+
+  .fer-header {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+  }
+
+  .fer-header-spacer { width: 230px; flex-shrink: 0; }
+
+  .fer-header-months {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+  }
+
+  .fer-header-month {
+    font-family: var(--mono);
+    font-size: .68rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    text-align: center;
+    border-left: 1px solid var(--border-soft);
+    padding: 2px 0;
+  }
+  .fer-header-month:first-child { border-left: none; }
+
+  .fer-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .fer-today {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--danger);
+    opacity: .5;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .fer-row {
+    display: flex;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-soft);
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .fer-row:hover { background: var(--bluish-soft); }
+  .fer-row:last-child { border-bottom: none; }
+
+  .fer-row-name {
+    width: 230px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-right: 10px;
+  }
+
+  .fer-row-track {
+    flex: 1;
+    position: relative;
+    height: 24px;
+    background: linear-gradient(to right,
+      var(--border-soft) 0%, var(--border-soft) calc(100%/12 - 1px), transparent calc(100%/12 - 1px), transparent calc(100%/12),
+      var(--border-soft) calc(100%/12), var(--border-soft) calc(2*100%/12 - 1px), transparent calc(2*100%/12 - 1px), transparent calc(2*100%/12)
+    );
+    border-radius: 3px;
+    background-color: var(--bluish-bg);
+    background-image:
+      repeating-linear-gradient(to right, transparent 0 calc(100%/12 - 1px), var(--border) calc(100%/12 - 1px) calc(100%/12));
+  }
+
+  .fer-seg {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 3px;
+    z-index: 1;
+    transition: filter .15s;
+  }
+  .fer-seg:hover { filter: brightness(1.1); }
+
+  /* ════════════════════════════════════════════════
      EMPTY STATE
      ════════════════════════════════════════════════ */
   .empty {
@@ -2246,10 +2341,84 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Férias</h1>
-          <div class="page-subtitle">Planejamento e saldo</div>
+          <div class="page-subtitle">Saldo · período aquisitivo · agendamento · concessivo (CLT)</div>
         </div>
       </div>
-      <div class="page-placeholder">CONTROLE DE FÉRIAS A CONSTRUIR</div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="fer-search" placeholder="Buscar colaborador…">
+        </div>
+        <select id="fer-filter-setor">
+          <option value="">Todos os setores</option>
+          <option>Produção</option>
+          <option>Logística</option>
+          <option>Administrativo</option>
+          <option>Manutenção</option>
+          <option>Comercial</option>
+        </select>
+        <select id="fer-filter-status">
+          <option value="">Qualquer status</option>
+          <option value="em_ferias">Em férias agora</option>
+          <option value="planejada">Próximas 30d</option>
+          <option value="pendente">Pendente de agendamento</option>
+          <option value="vencendo">Vencendo (≤60d)</option>
+          <option value="vencido">Vencido</option>
+        </select>
+        <button class="btn" type="button" onclick="abrirModalFerias()">+ Agendar</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat stat-success">
+          <div class="stat-label">Em férias agora</div>
+          <div class="stat-value" id="fer-stat-agora">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Próximas 30d</div>
+          <div class="stat-value" id="fer-stat-prox">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Pendentes</div>
+          <div class="stat-value" id="fer-stat-pend">—</div>
+        </div>
+        <div class="stat stat-danger">
+          <div class="stat-label">Vencendo / vencidas</div>
+          <div class="stat-value" id="fer-stat-venc">—</div>
+        </div>
+      </div>
+
+      <!-- Timeline 12 meses -->
+      <div class="widget" style="margin-bottom:14px; overflow-x:auto;">
+        <div class="widget-header">
+          <div class="widget-title">Calendário do ano</div>
+          <span class="widget-badge" id="fer-timeline-ano">—</span>
+        </div>
+        <div id="fer-timeline"></div>
+      </div>
+
+      <!-- Tabela por colaborador -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width:24%">Colaborador</th>
+                <th>Admissão</th>
+                <th>Aquisitivo atual</th>
+                <th>Concessivo limite</th>
+                <th style="text-align:right">Saldo (dias)</th>
+                <th>Próximo período</th>
+                <th>Status</th>
+                <th style="width:120px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-ferias"></tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- ───── SALÁRIOS (restrito) ───── -->
@@ -2842,6 +3011,72 @@
   </div>
 </div>
 
+<!-- ════════════ MODAL — FÉRIAS DO COLABORADOR ════════════ -->
+<div id="modal-ferias" class="modal">
+  <div class="modal-box" style="max-width:740px;">
+    <div class="modal-header">
+      <div class="modal-title" id="fer-modal-title">Férias do colaborador</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalFerias()">×</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-group full" style="margin-bottom:14px;">
+        <label>Colaborador</label>
+        <select id="fer-select-colab" onchange="renderFeriasModal()"></select>
+      </div>
+
+      <div class="info-grid" id="fer-modal-summary" style="margin-bottom:18px;"></div>
+
+      <div style="font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">
+        Períodos agendados / realizados
+      </div>
+      <div class="table-card" style="margin-bottom:18px;">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead><tr><th>Início</th><th>Fim</th><th style="text-align:right">Dias</th><th>Abono</th><th>Status</th><th style="width:80px; text-align:right">Ações</th></tr></thead>
+            <tbody id="tb-fer-periodos"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">
+        Adicionar novo período (CLT: máx. 3 tranches · mín. 14 dias em uma delas)
+      </div>
+      <form id="form-ferias-periodo" class="form-grid" onsubmit="salvarFeriasPeriodo(event)">
+        <input type="hidden" name="colaborador_id">
+        <div class="form-group">
+          <label>Início</label>
+          <input type="date" name="inicio" required onchange="calcDiasFerias()">
+        </div>
+        <div class="form-group">
+          <label>Fim</label>
+          <input type="date" name="fim" required onchange="calcDiasFerias()">
+        </div>
+        <div class="form-group">
+          <label>Dias de férias</label>
+          <input type="number" name="dias" min="1" max="30" readonly style="background:var(--bluish-soft);">
+        </div>
+        <div class="form-group">
+          <label>Abono pecuniário (0-10 dias)</label>
+          <input type="number" name="abono" min="0" max="10" value="0">
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <input type="text" name="observacoes">
+        </div>
+        <div class="form-group full" style="flex-direction:row; justify-content:flex-end; gap:8px;">
+          <button class="btn btn-secondary btn-sm" type="button" onclick="document.getElementById('form-ferias-periodo').reset()">Limpar</button>
+          <button class="btn btn-sm" type="submit">Adicionar período</button>
+        </div>
+      </form>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" type="button" onclick="fecharModalFerias()">Concluído</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ TOAST ════════════ -->
 <div id="toast"></div>
 
@@ -2989,6 +3224,7 @@
     if (typeof renderVencimentos === 'function') renderVencimentos();
     if (typeof renderEpi === 'function') renderEpi();
     if (typeof renderVale === 'function') renderVale();
+    if (typeof renderFerias === 'function') renderFerias();
   }
 
   if (document.readyState === 'loading') {
@@ -4876,6 +5112,351 @@
 
   document.querySelectorAll('.nav-item[data-page="vale-combustivel"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderVale, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     FÉRIAS — aquisitivo · concessivo · agendamento
+     ════════════════════════════════════════════════ */
+
+  let FERIAS = [
+    { id:1, colaborador_id:4, inicio:'2026-07-15', fim:'2026-08-03', dias:20, abono:10, observacoes:'Tranche 1/1', status:'planejada' },
+    { id:2, colaborador_id:1, inicio:'2026-04-15', fim:'2026-04-30', dias:16, abono:0,  observacoes:'',            status:'em_curso' },
+    { id:3, colaborador_id:3, inicio:'2025-12-20', fim:'2026-01-18', dias:30, abono:0,  observacoes:'',            status:'concluida' },
+    { id:4, colaborador_id:8, inicio:'2026-09-01', fim:'2026-09-20', dias:20, abono:0,  observacoes:'',            status:'planejada' },
+    { id:5, colaborador_id:8, inicio:'2026-12-22', fim:'2026-12-31', dias:10, abono:0,  observacoes:'Tranche 2/2', status:'planejada' },
+    { id:6, colaborador_id:7, inicio:'2026-02-10', fim:'2026-03-01', dias:20, abono:0,  observacoes:'',            status:'concluida' },
+    { id:7, colaborador_id:6, inicio:'2026-05-20', fim:'2026-06-08', dias:20, abono:10, observacoes:'',            status:'planejada' },
+  ];
+
+  // ── Helpers ──
+  function addDays(iso, n) {
+    const d = new Date(iso + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0,10);
+  }
+
+  function addYears(iso, n) {
+    const d = new Date(iso + 'T00:00:00');
+    d.setFullYear(d.getFullYear() + n);
+    return d.toISOString().slice(0,10);
+  }
+
+  // Calcula o período aquisitivo vigente (o mais recente que já completou 12 meses desde admissão)
+  function periodoAquisitivoAtual(admissao) {
+    if (!admissao) return null;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const adm = new Date(admissao + 'T00:00:00');
+    const anos = (hoje - adm) / (1000 * 60 * 60 * 24 * 365.25);
+    const ciclo = Math.max(0, Math.floor(anos));
+    if (ciclo < 1) return null;
+    const ini = addYears(admissao, ciclo - 1);
+    const fim = addDays(addYears(admissao, ciclo), -1);
+    const concessivoLimite = addYears(fim, 1);
+    return { inicio:ini, fim, concessivoLimite };
+  }
+
+  function periodoFeriasStatus(f) {
+    const hoje = new Date().toISOString().slice(0,10);
+    if (f.status === 'concluida') return 'concluida';
+    if (f.inicio > hoje)  return 'planejada';
+    if (f.fim    >= hoje) return 'em_curso';
+    return 'concluida';
+  }
+
+  function diasEntreISO(a, b) {
+    return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / (1000*60*60*24)) + 1;
+  }
+
+  function renderFerias() {
+    const tb = $('#tb-ferias');
+    if (!tb) return;
+
+    const q     = ($('#fer-search')?.value || '').trim().toLowerCase();
+    const fSet  = $('#fer-filter-setor')?.value || '';
+    const fSt   = $('#fer-filter-status')?.value || '';
+
+    const hoje = new Date().toISOString().slice(0,10);
+    const d30  = addDays(hoje, 30);
+
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo');
+
+    const linhas = ativos.map(c => {
+      const aq = periodoAquisitivoAtual(c.admissao);
+      const periodos = FERIAS.filter(f => f.colaborador_id === c.id);
+      const diasUsados = periodos
+        .filter(p => p.status !== 'planejada' ||  new Date(p.inicio) <= new Date())
+        .reduce((s,p) => s + (p.dias + (p.abono || 0)), 0);
+      const saldo = aq ? Math.max(0, 30 - diasUsados) : 0;
+
+      // próximo período (futuro ou em curso)
+      const proximos = periodos
+        .filter(p => p.fim >= hoje)
+        .sort((a,b) => a.inicio.localeCompare(b.inicio));
+      const proximo = proximos[0] || null;
+
+      // status do colaborador
+      let status = 'pendente';
+      if (proximo && proximo.inicio <= hoje && proximo.fim >= hoje) status = 'em_ferias';
+      else if (proximo && proximo.inicio <= d30) status = 'planejada';
+      else if (aq && aq.concessivoLimite < hoje) status = 'vencido';
+      else if (aq && aq.concessivoLimite <= addDays(hoje, 60)) status = 'vencendo';
+
+      return { colab:c, aq, periodos, saldo, proximo, status };
+    });
+
+    const filtradas = linhas.filter(r => {
+      if (fSet && r.colab.setor !== fSet) return false;
+      if (fSt  && r.status !== fSt) return false;
+      if (q && !r.colab.nome.toLowerCase().includes(q)) return false;
+      if (!r.aq) return false;
+      return true;
+    }).sort((a,b) => {
+      // prioriza vencido/vencendo/em_ferias
+      const order = { vencido:0, vencendo:1, em_ferias:2, planejada:3, pendente:4 };
+      return (order[a.status] ?? 9) - (order[b.status] ?? 9);
+    });
+
+    tb.innerHTML = filtradas.length ? filtradas.map(r => {
+      const c = r.colab;
+      const stBadge = {
+        em_ferias: `<span class="badge info">Em férias</span>`,
+        planejada: `<span class="badge ok">Planejada</span>`,
+        pendente:  `<span class="badge neutral">Pendente</span>`,
+        vencendo:  `<span class="badge warn">Vencendo</span>`,
+        vencido:   `<span class="badge danger">Vencido</span>`,
+      }[r.status];
+      const proxTxt = r.proximo
+        ? `${fmtDate(r.proximo.inicio)} → ${fmtDate(r.proximo.fim)}`
+        : '<span style="color:var(--text-soft)">—</span>';
+      return `
+        <tr onclick="abrirModalFerias(${c.id})">
+          <td>
+            <div class="cell-person">
+              <div class="cell-avatar">${h(iniciais(c.nome))}</div>
+              <div>
+                <div class="cell-person-name">${h(c.nome)}</div>
+                <div class="cell-person-sub">${h(c.cargo)} · ${h(c.setor)}</div>
+              </div>
+            </div>
+          </td>
+          <td class="cell-mono">${fmtDate(c.admissao)}</td>
+          <td class="cell-mono">${fmtDate(r.aq.inicio)} → ${fmtDate(r.aq.fim)}</td>
+          <td class="cell-mono">${fmtDate(r.aq.concessivoLimite)}</td>
+          <td class="cell-mono" style="text-align:right; font-weight:600; ${r.saldo === 0 ? 'color:var(--text-muted)' : ''}">${r.saldo}</td>
+          <td class="cell-mono">${proxTxt}</td>
+          <td>${stBadge}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Agendar" onclick="abrirModalFerias(${c.id})">+</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="8" class="empty">Nenhum colaborador encontrado</td></tr>`;
+
+    // Stats
+    $('#fer-stat-agora').textContent = linhas.filter(r => r.status === 'em_ferias').length;
+    $('#fer-stat-prox').textContent  = linhas.filter(r => r.status === 'planejada').length;
+    $('#fer-stat-pend').textContent  = linhas.filter(r => r.status === 'pendente').length;
+    $('#fer-stat-venc').textContent  = linhas.filter(r => r.status === 'vencendo' || r.status === 'vencido').length;
+
+    renderFeriasTimeline(linhas);
+  }
+
+  function renderFeriasTimeline(linhas) {
+    const wrap = $('#fer-timeline');
+    if (!wrap) return;
+    const ano = new Date().getFullYear();
+    $('#fer-timeline-ano').textContent = String(ano);
+
+    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+    // Mantém somente colaboradores com períodos no ano (ou em_ferias)
+    const ativas = linhas
+      .map(r => ({ r, periodos: r.periodos.filter(p => p.inicio.startsWith(String(ano)) || p.fim.startsWith(String(ano))) }))
+      .filter(x => x.periodos.length)
+      .sort((a,b) => a.periodos[0].inicio.localeCompare(b.periodos[0].inicio));
+
+    if (!ativas.length) {
+      wrap.innerHTML = `<div class="empty">Nenhuma férias agendada para ${ano}</div>`;
+      return;
+    }
+
+    const hoje = new Date();
+    const todayPct = ((hoje.getMonth() * 30 + hoje.getDate()) / (12 * 30)) * 100;
+
+    const rowsHtml = ativas.map(({ r, periodos }) => {
+      const segsHtml = periodos.map(p => {
+        const ini = new Date(p.inicio + 'T00:00:00');
+        const fim = new Date(p.fim + 'T00:00:00');
+        const iniDay = (Math.max(0, ini.getMonth()) * 30) + (ini.getFullYear() === ano ? ini.getDate() : 1);
+        const fimDay = (Math.min(11, fim.getMonth()) * 30) + (fim.getFullYear() === ano ? fim.getDate() : 30);
+        const left = Math.max(0, (iniDay / (12 * 30)) * 100);
+        const width= Math.max(0.8, ((fimDay - iniDay + 1) / (12 * 30)) * 100);
+        const st = periodoFeriasStatus(p);
+        const color = st === 'em_curso' ? '#2E7AB8' : st === 'concluida' ? '#8A98A8' : '#4A9FD6';
+        const label = `${fmtDate(p.inicio)} — ${fmtDate(p.fim)} · ${p.dias}d${p.abono ? ' + ' + p.abono + ' abono' : ''}`;
+        return `<div class="fer-seg" style="left:${left}%; width:${width}%; background:${color};" title="${h(label)}"></div>`;
+      }).join('');
+      return `
+        <div class="fer-row" onclick="abrirModalFerias(${r.colab.id})">
+          <div class="fer-row-name">
+            <div class="cell-avatar" style="width:24px;height:24px;font-size:.65rem;">${h(iniciais(r.colab.nome))}</div>
+            <div>
+              <div style="font-size:.85rem; font-weight:600; color:var(--text);">${h(r.colab.nome)}</div>
+              <div class="cell-person-sub">${h(r.colab.setor)}</div>
+            </div>
+          </div>
+          <div class="fer-row-track">
+            ${segsHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    wrap.innerHTML = `
+      <div class="fer-timeline">
+        <div class="fer-header">
+          <div class="fer-header-spacer"></div>
+          <div class="fer-header-months">
+            ${meses.map(m => `<div class="fer-header-month">${m}</div>`).join('')}
+          </div>
+        </div>
+        <div class="fer-body">
+          <div class="fer-today" style="left:calc(230px + ${todayPct}% - ${todayPct * 230 / 100}px)"></div>
+          ${rowsHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Modal agendamento ──
+  function abrirModalFerias(colabId = null) {
+    const sel = $('#fer-select-colab');
+    sel.innerHTML = COLABORADORES
+      .filter(c => c.status !== 'inativo')
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(c => `<option value="${c.id}">${h(c.nome)} — ${h(c.setor)}</option>`).join('');
+    if (colabId) sel.value = colabId;
+    renderFeriasModal();
+    $('#modal-ferias').classList.add('active');
+  }
+
+  function renderFeriasModal() {
+    const sel = $('#fer-select-colab');
+    const colabId = parseInt(sel.value, 10);
+    const c = COLABORADORES.find(x => x.id === colabId);
+    if (!c) return;
+
+    $('#fer-modal-title').textContent = `Férias — ${c.nome}`;
+    $('#form-ferias-periodo').elements['colaborador_id'].value = c.id;
+
+    const aq = periodoAquisitivoAtual(c.admissao);
+    const periodos = FERIAS.filter(f => f.colaborador_id === c.id).sort((a,b) => a.inicio.localeCompare(b.inicio));
+    const diasUsados = periodos.reduce((s,p) => s + (p.dias + (p.abono || 0)), 0);
+    const saldo = aq ? Math.max(0, 30 - diasUsados) : 0;
+
+    $('#fer-modal-summary').innerHTML = aq ? `
+      <div class="info-item"><div class="info-label">Admissão</div><div class="info-value mono">${fmtDate(c.admissao)}</div></div>
+      <div class="info-item"><div class="info-label">Aquisitivo atual</div><div class="info-value mono">${fmtDate(aq.inicio)} → ${fmtDate(aq.fim)}</div></div>
+      <div class="info-item"><div class="info-label">Concessivo limite</div><div class="info-value mono">${fmtDate(aq.concessivoLimite)}</div></div>
+      <div class="info-item"><div class="info-label">Saldo de dias</div><div class="info-value mono" style="${saldo === 0 ? 'color:var(--text-muted)' : 'color:var(--success); font-weight:700'}">${saldo} / 30</div></div>
+    ` : `<div class="empty" style="grid-column:1/-1">Colaborador ainda não completou o primeiro período aquisitivo (12 meses de admissão).</div>`;
+
+    const tbP = $('#tb-fer-periodos');
+    tbP.innerHTML = periodos.length ? periodos.map(p => {
+      const st = periodoFeriasStatus(p);
+      const stBadge = {
+        planejada:  `<span class="badge ok">Planejada</span>`,
+        em_curso:   `<span class="badge info">Em curso</span>`,
+        concluida:  `<span class="badge neutral">Concluída</span>`,
+      }[st];
+      return `
+        <tr>
+          <td class="cell-mono">${fmtDate(p.inicio)}</td>
+          <td class="cell-mono">${fmtDate(p.fim)}</td>
+          <td class="cell-mono" style="text-align:right">${p.dias}</td>
+          <td class="cell-mono">${p.abono ? p.abono + 'd' : '—'}</td>
+          <td>${stBadge}</td>
+          <td class="actions">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirFerias(${p.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="6" class="empty">Sem períodos registrados</td></tr>`;
+  }
+
+  function calcDiasFerias() {
+    const f = $('#form-ferias-periodo');
+    const ini = f.elements['inicio'].value;
+    const fim = f.elements['fim'].value;
+    if (ini && fim && fim >= ini) {
+      f.elements['dias'].value = diasEntreISO(ini, fim);
+    }
+  }
+
+  function salvarFeriasPeriodo(ev) {
+    ev.preventDefault();
+    const f = $('#form-ferias-periodo');
+    const data = Object.fromEntries(new FormData(f));
+    const colabId = parseInt(data.colaborador_id, 10);
+    const dias  = parseInt(data.dias, 10) || diasEntreISO(data.inicio, data.fim);
+    const abono = parseInt(data.abono, 10) || 0;
+
+    if (!data.inicio || !data.fim || dias <= 0) {
+      showToast('Período inválido', 'err');
+      return;
+    }
+
+    // Validação de saldo (CLT)
+    const existentes = FERIAS.filter(x => x.colaborador_id === colabId)
+                             .reduce((s,p) => s + (p.dias + (p.abono || 0)), 0);
+    if (existentes + dias + abono > 30) {
+      if (!confirm(`Este período somado aos já existentes (${existentes}d) ultrapassa 30 dias. Confirmar mesmo assim?`)) return;
+    }
+
+    const newId = Math.max(0, ...FERIAS.map(x => x.id)) + 1;
+    FERIAS.push({
+      id: newId,
+      colaborador_id: colabId,
+      inicio: data.inicio,
+      fim:    data.fim,
+      dias,
+      abono,
+      observacoes: data.observacoes || '',
+      status: data.inicio > new Date().toISOString().slice(0,10) ? 'planejada' : 'em_curso',
+    });
+
+    // Atualiza status do colaborador se em férias hoje
+    const c = COLABORADORES.find(x => x.id === colabId);
+    const hoje = new Date().toISOString().slice(0,10);
+    if (c && data.inicio <= hoje && data.fim >= hoje && c.status === 'ativo') {
+      c.status = 'ferias';
+    }
+
+    f.reset();
+    renderFeriasModal();
+    renderFerias();
+    renderColaboradores();
+    showToast('Período agendado', 'ok');
+  }
+
+  function excluirFerias(id) {
+    if (!confirm('Excluir este período?')) return;
+    FERIAS = FERIAS.filter(x => x.id !== id);
+    renderFeriasModal();
+    renderFerias();
+    showToast('Período excluído');
+  }
+
+  function fecharModalFerias() {
+    $('#modal-ferias').classList.remove('active');
+  }
+
+  document.addEventListener('input',  (e) => { if (e.target.id === 'fer-search') renderFerias(); });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'fer-filter-setor' || e.target.id === 'fer-filter-status') renderFerias();
+  });
+  document.querySelectorAll('.nav-item[data-page="ferias"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderFerias, 60));
   });
 </script>
 
