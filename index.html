@@ -2568,10 +2568,79 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Advertências</h1>
-          <div class="page-subtitle">Registro formal de ocorrências</div>
+          <div class="page-subtitle">Registro formal · reincidência · risco de justa causa</div>
         </div>
       </div>
-      <div class="page-placeholder">REGISTRO DE ADVERTÊNCIAS A CONSTRUIR</div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="adv-search" placeholder="Buscar colaborador, gestor ou motivo…">
+        </div>
+        <select id="adv-filter-tipo">
+          <option value="">Todos os tipos</option>
+          <option value="verbal">Verbal</option>
+          <option value="escrita">Escrita</option>
+          <option value="suspensao">Suspensão</option>
+        </select>
+        <select id="adv-filter-categoria">
+          <option value="">Todas as categorias</option>
+          <option>Atraso / falta</option>
+          <option>Conduta / postura</option>
+          <option>Desempenho</option>
+          <option>Segurança do trabalho</option>
+          <option>Uso indevido de EPI</option>
+          <option>Outros</option>
+        </select>
+        <select id="adv-filter-status">
+          <option value="">Qualquer status</option>
+          <option value="pendente">Pendente assinatura</option>
+          <option value="assinada">Assinada</option>
+          <option value="recusada">Recusada</option>
+        </select>
+        <button class="btn" type="button" onclick="abrirModalAdvertencia()">+ Nova advertência</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat stat-warn">
+          <div class="stat-label">No mês</div>
+          <div class="stat-value" id="adv-stat-mes">—</div>
+        </div>
+        <div class="stat stat-danger">
+          <div class="stat-label">Reincidentes (≥3)</div>
+          <div class="stat-value" id="adv-stat-reinc">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Pendentes</div>
+          <div class="stat-value" id="adv-stat-pend">—</div>
+        </div>
+        <div class="stat stat-danger">
+          <div class="stat-label">Suspensões / mês</div>
+          <div class="stat-value" id="adv-stat-susp">—</div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width:24%">Colaborador</th>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Categoria</th>
+                <th>Gestor</th>
+                <th>Status</th>
+                <th>Reincidência</th>
+                <th style="width:120px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-advertencias"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ───── FEEDBACK & CLIMA ───── -->
@@ -3243,6 +3312,110 @@
   </div>
 </div>
 
+<!-- ════════════ DRAWER — DETALHE ADVERTÊNCIA ════════════ -->
+<div id="drawer-backdrop-adv" class="drawer-backdrop" onclick="fecharDrawerAdv()"></div>
+<aside id="drawer-adv" class="drawer">
+  <div class="drawer-header" style="background: linear-gradient(135deg, #B45309 0%, var(--phthalo) 100%);">
+    <div class="drawer-avatar" id="dadv-avatar" style="background:#FEF3C7; color:#92400E;">—</div>
+    <div class="drawer-title-block">
+      <div class="drawer-name" id="dadv-name">—</div>
+      <div class="drawer-role" id="dadv-role">—</div>
+    </div>
+    <button class="drawer-close" onclick="fecharDrawerAdv()">×</button>
+  </div>
+
+  <div class="drawer-tabs">
+    <div class="drawer-tab active" data-dtab-adv="detalhes">Detalhes</div>
+    <div class="drawer-tab" data-dtab-adv="historico">Histórico</div>
+  </div>
+
+  <div class="drawer-body">
+    <div class="drawer-section active" data-dsec-adv="detalhes">
+      <div id="dadv-alerta"></div>
+      <div class="info-grid" id="dadv-detalhes" style="margin-top:12px;"></div>
+    </div>
+    <div class="drawer-section" data-dsec-adv="historico">
+      <div id="dadv-historico"></div>
+    </div>
+  </div>
+
+  <div class="drawer-footer">
+    <button class="btn btn-secondary btn-sm" onclick="fecharDrawerAdv()">Fechar</button>
+    <button class="btn btn-sm" id="btn-dadv-assinar" onclick="marcarAssinadaDoDrawer()">Marcar como assinada</button>
+  </div>
+</aside>
+
+<!-- ════════════ MODAL — NOVA / EDITAR ADVERTÊNCIA ════════════ -->
+<div id="modal-advertencia" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="adv-modal-title">Nova advertência</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalAdvertencia()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-advertencia" class="form-grid" onsubmit="salvarAdvertencia(event)">
+        <input type="hidden" name="id">
+        <div class="form-group full">
+          <label>Colaborador</label>
+          <select name="colaborador_id" id="form-adv-colab" required onchange="mostrarAlertaReincidencia()"></select>
+        </div>
+        <div id="adv-form-alert" style="grid-column:1/-1"></div>
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" name="data" required>
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="tipo" required>
+            <option value="verbal">Verbal</option>
+            <option value="escrita">Escrita</option>
+            <option value="suspensao">Suspensão</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Categoria</label>
+          <select name="categoria" required>
+            <option>Atraso / falta</option>
+            <option>Conduta / postura</option>
+            <option>Desempenho</option>
+            <option>Segurança do trabalho</option>
+            <option>Uso indevido de EPI</option>
+            <option>Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="pendente">Pendente assinatura</option>
+            <option value="assinada">Assinada</option>
+            <option value="recusada">Recusada</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Descrição do ocorrido</label>
+          <textarea name="descricao" required placeholder="Descreva o fato ocorrido, data, horário e circunstâncias…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Gestor responsável</label>
+          <input type="text" name="gestor" required placeholder="Nome do gestor">
+        </div>
+        <div class="form-group">
+          <label>Testemunhas</label>
+          <input type="text" name="testemunhas" placeholder="Separadas por vírgula">
+        </div>
+        <div class="form-group full" id="adv-suspensao-dias" style="display:none;">
+          <label>Dias de suspensão</label>
+          <input type="number" name="dias_suspensao" min="1" max="30" value="1">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalAdvertencia()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-advertencia">Registrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ TOAST ════════════ -->
 <div id="toast"></div>
 
@@ -3392,6 +3565,7 @@
     if (typeof renderVale === 'function') renderVale();
     if (typeof renderFerias === 'function') renderFerias();
     if (typeof renderSalarios === 'function') renderSalarios();
+    if (typeof renderAdvertencias === 'function') renderAdvertencias();
   }
 
   if (document.readyState === 'loading') {
@@ -5863,6 +6037,339 @@
   });
   document.querySelectorAll('.nav-item[data-page="salarios"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderSalarios, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     ADVERTÊNCIAS — registro + reincidência
+     ════════════════════════════════════════════════ */
+
+  let ADVERTENCIAS = [
+    { id:1, colaborador_id:9, data:'2026-04-21', tipo:'escrita',   categoria:'Atraso / falta',       descricao:'Chegou 1h15 atrasado sem justificativa. 3º atraso em 30 dias.', gestor:'Maria Santos Oliveira',   testemunhas:'Carlos Mendes', status:'pendente',  assinada_em:null,         dias_suspensao:null },
+    { id:2, colaborador_id:9, data:'2026-03-18', tipo:'escrita',   categoria:'Atraso / falta',       descricao:'Falta sem comunicação. 2º episódio.',                           gestor:'Maria Santos Oliveira',   testemunhas:'',              status:'assinada',  assinada_em:'2026-03-19', dias_suspensao:null },
+    { id:3, colaborador_id:9, data:'2026-02-12', tipo:'verbal',    categoria:'Atraso / falta',       descricao:'Atraso recorrente — 1ª advertência verbal.',                    gestor:'Maria Santos Oliveira',   testemunhas:'',              status:'assinada',  assinada_em:'2026-02-12', dias_suspensao:null },
+    { id:4, colaborador_id:5, data:'2026-04-14', tipo:'verbal',    categoria:'Uso indevido de EPI',  descricao:'Flagrado sem botina em área de produção.',                      gestor:'José Silva Ramos',        testemunhas:'',              status:'assinada',  assinada_em:'2026-04-14', dias_suspensao:null },
+    { id:5, colaborador_id:3, data:'2026-03-22', tipo:'verbal',    categoria:'Segurança do trabalho',descricao:'Realizou manutenção sem travamento do painel elétrico.',        gestor:'Supervisor Industrial',   testemunhas:'Ana Paula Costa',status:'assinada', assinada_em:'2026-03-22', dias_suspensao:null },
+    { id:6, colaborador_id:8, data:'2026-01-28', tipo:'verbal',    categoria:'Conduta / postura',    descricao:'Discussão verbal com colega.',                                  gestor:'Maria Santos Oliveira',   testemunhas:'',              status:'assinada',  assinada_em:'2026-01-29', dias_suspensao:null },
+    { id:7, colaborador_id:2, data:'2026-04-25', tipo:'suspensao', categoria:'Conduta / postura',    descricao:'Acúmulo de ocorrências — suspensão de 1 dia.',                  gestor:'Maria Santos Oliveira',   testemunhas:'Ana Paula Costa',status:'pendente',  assinada_em:null,         dias_suspensao:1 },
+  ];
+
+  const ADV_TIPO_BADGE = {
+    verbal:    { cls:'warn',   t:'Verbal' },
+    escrita:   { cls:'danger', t:'Escrita' },
+    suspensao: { cls:'danger', t:'Suspensão' },
+  };
+
+  const ADV_STATUS_BADGE = {
+    pendente:  `<span class="badge warn">Pendente</span>`,
+    assinada:  `<span class="badge ok">Assinada</span>`,
+    recusada:  `<span class="badge danger">Recusada</span>`,
+  };
+
+  function contarAdvertenciasUltimoAno(colabId) {
+    const limite = new Date();
+    limite.setFullYear(limite.getFullYear() - 1);
+    const iso = limite.toISOString().slice(0,10);
+    return ADVERTENCIAS.filter(a => a.colaborador_id === colabId && a.data >= iso).length;
+  }
+
+  function renderAdvertencias() {
+    const tb = $('#tb-advertencias');
+    if (!tb) return;
+
+    const q     = ($('#adv-search')?.value || '').trim().toLowerCase();
+    const fT    = $('#adv-filter-tipo')?.value      || '';
+    const fC    = $('#adv-filter-categoria')?.value || '';
+    const fS    = $('#adv-filter-status')?.value    || '';
+
+    const enriched = ADVERTENCIAS.map(a => {
+      const c = COLABORADORES.find(x => x.id === a.colaborador_id);
+      return { ...a, _colab: c, _reinc: contarAdvertenciasUltimoAno(a.colaborador_id) };
+    });
+
+    const lista = enriched.filter(a => {
+      if (fT && a.tipo !== fT) return false;
+      if (fC && a.categoria !== fC) return false;
+      if (fS && a.status !== fS) return false;
+      if (q) {
+        const hay = [a._colab?.nome, a.gestor, a.categoria, a.descricao].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).sort((a,b) => b.data.localeCompare(a.data));
+
+    tb.innerHTML = lista.length ? lista.map(a => {
+      const c = a._colab;
+      const tipoBadge = ADV_TIPO_BADGE[a.tipo] || { cls:'neutral', t:a.tipo };
+      const reincBadge = a._reinc >= 3
+        ? `<span class="badge danger" title="Risco de justa causa">${a._reinc}/ano ⚠</span>`
+        : a._reinc === 2
+          ? `<span class="badge warn">${a._reinc}/ano</span>`
+          : `<span class="badge neutral">${a._reinc}/ano</span>`;
+      return `
+        <tr onclick="abrirDrawerAdv(${a.id})">
+          <td>
+            ${c ? `
+              <div class="cell-person">
+                <div class="cell-avatar" style="background:linear-gradient(135deg,#B45309,#92400E);">${h(iniciais(c.nome))}</div>
+                <div>
+                  <div class="cell-person-name">${h(c.nome)}</div>
+                  <div class="cell-person-sub">${h(c.setor)}</div>
+                </div>
+              </div>` : `<span style="color:var(--text-soft)">—</span>`}
+          </td>
+          <td class="cell-mono">${fmtDate(a.data)}</td>
+          <td><span class="badge ${tipoBadge.cls}">${tipoBadge.t}${a.tipo === 'suspensao' && a.dias_suspensao ? ` ${a.dias_suspensao}d` : ''}</span></td>
+          <td>${h(a.categoria)}</td>
+          <td>${h(a.gestor)}</td>
+          <td>${ADV_STATUS_BADGE[a.status] || '—'}</td>
+          <td>${reincBadge}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalAdvertencia(${a.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirAdvertencia(${a.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="8" class="empty">Nenhuma advertência encontrada</td></tr>`;
+
+    // Stats
+    const now = new Date();
+    const mesChaveAtual = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    $('#adv-stat-mes').textContent = ADVERTENCIAS.filter(a => a.data.startsWith(mesChaveAtual)).length;
+
+    const contPorColab = {};
+    ADVERTENCIAS.forEach(a => {
+      if (!contPorColab[a.colaborador_id]) contPorColab[a.colaborador_id] = 0;
+      contPorColab[a.colaborador_id] = contarAdvertenciasUltimoAno(a.colaborador_id);
+    });
+    $('#adv-stat-reinc').textContent = Object.values(contPorColab).filter(n => n >= 3).length;
+    $('#adv-stat-pend').textContent  = ADVERTENCIAS.filter(a => a.status === 'pendente').length;
+    $('#adv-stat-susp').textContent  = ADVERTENCIAS.filter(a => a.tipo === 'suspensao' && a.data.startsWith(mesChaveAtual)).length;
+  }
+
+  document.addEventListener('input',  (e) => { if (e.target.id === 'adv-search') renderAdvertencias(); });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'adv-filter-tipo' || e.target.id === 'adv-filter-categoria' || e.target.id === 'adv-filter-status') renderAdvertencias();
+  });
+
+  // ── Drawer ──
+  let _drawerAdvId = null;
+
+  function abrirDrawerAdv(id) {
+    const a = ADVERTENCIAS.find(x => x.id === id);
+    if (!a) return;
+    _drawerAdvId = id;
+
+    const c = COLABORADORES.find(x => x.id === a.colaborador_id);
+
+    $('#dadv-avatar').textContent = c ? iniciais(c.nome) : '—';
+    $('#dadv-name').textContent   = c?.nome || 'Colaborador removido';
+    $('#dadv-role').textContent   = c ? `${c.cargo} · ${c.setor}` : '—';
+
+    const reinc = contarAdvertenciasUltimoAno(a.colaborador_id);
+    $('#dadv-alerta').innerHTML = reinc >= 3
+      ? `<div class="sensitive-banner" style="background:linear-gradient(135deg,#FEE2E2,#FEF2F2); border-color:#FCA5A5; border-left-color:#DC2626;">
+           <div class="sb-icon" style="background:#DC2626;">!</div>
+           <div>
+             <div class="sb-title" style="color:#991B1B;">Risco de justa causa</div>
+             <div class="sb-sub" style="color:#7F1D1D;">${reinc} advertências nos últimos 12 meses. Considerar análise jurídica antes de novas medidas.</div>
+           </div>
+         </div>`
+      : '';
+
+    const tipoBadge = ADV_TIPO_BADGE[a.tipo] || { cls:'neutral', t:a.tipo };
+
+    $('#dadv-detalhes').innerHTML = `
+      <div class="info-item"><div class="info-label">Data</div><div class="info-value mono">${fmtDate(a.data)}</div></div>
+      <div class="info-item"><div class="info-label">Tipo</div><div class="info-value"><span class="badge ${tipoBadge.cls}">${tipoBadge.t}${a.tipo === 'suspensao' && a.dias_suspensao ? ` ${a.dias_suspensao}d` : ''}</span></div></div>
+      <div class="info-item"><div class="info-label">Categoria</div><div class="info-value">${h(a.categoria)}</div></div>
+      <div class="info-item"><div class="info-label">Status</div><div class="info-value">${ADV_STATUS_BADGE[a.status] || '—'}</div></div>
+      <div class="info-item"><div class="info-label">Gestor</div><div class="info-value">${h(a.gestor)}</div></div>
+      <div class="info-item"><div class="info-label">Testemunhas</div><div class="info-value">${h(a.testemunhas || '—')}</div></div>
+      ${a.assinada_em ? `<div class="info-item"><div class="info-label">Assinada em</div><div class="info-value mono">${fmtDate(a.assinada_em)}</div></div>` : ''}
+      <div class="info-sep"></div>
+      <div class="info-item" style="grid-column:1/-1"><div class="info-label">Descrição</div><div class="info-value" style="white-space:pre-wrap">${h(a.descricao)}</div></div>
+    `;
+
+    // Histórico do mesmo colaborador
+    const hist = ADVERTENCIAS
+      .filter(x => x.colaborador_id === a.colaborador_id && x.id !== a.id)
+      .sort((x,y) => y.data.localeCompare(x.data));
+
+    $('#dadv-historico').innerHTML = hist.length ? `
+      <div style="font-family:var(--mono); font-size:.72rem; color:var(--text-muted); margin-bottom:12px; letter-spacing:.06em;">
+        ${hist.length} advertência${hist.length > 1 ? 's' : ''} anterior${hist.length > 1 ? 'es' : ''} deste colaborador:
+      </div>
+      <ul class="activity-feed">
+        ${hist.map(x => {
+          const tb = ADV_TIPO_BADGE[x.tipo] || {};
+          return `
+            <li class="activity-item" style="cursor:pointer" onclick="abrirDrawerAdv(${x.id})">
+              <span class="badge ${tb.cls || 'neutral'}" style="min-width:80px; text-align:center;">${tb.t || x.tipo}</span>
+              <span class="activity-text"><strong>${h(x.categoria)}</strong> — ${h(x.descricao.slice(0, 80))}${x.descricao.length > 80 ? '…' : ''}</span>
+              <span class="activity-time">${fmtDate(x.data)}</span>
+            </li>
+          `;
+        }).join('')}
+      </ul>
+    ` : `<div class="empty">Sem outras advertências registradas</div>`;
+
+    // Botão assinar
+    const btn = $('#btn-dadv-assinar');
+    if (a.status === 'assinada') {
+      btn.textContent = 'Já assinada';
+      btn.disabled = true;
+      btn.style.opacity = '.55';
+    } else {
+      btn.textContent = 'Marcar como assinada';
+      btn.disabled = false;
+      btn.style.opacity = '';
+    }
+
+    // reset tabs
+    document.querySelectorAll('[data-dtab-adv]').forEach(t => t.classList.toggle('active', t.dataset.dtabAdv === 'detalhes'));
+    document.querySelectorAll('[data-dsec-adv]').forEach(s => s.classList.toggle('active', s.dataset.dsecAdv === 'detalhes'));
+
+    $('#drawer-backdrop-adv').classList.add('active');
+    $('#drawer-adv').classList.add('active');
+  }
+
+  function fecharDrawerAdv() {
+    $('#drawer-backdrop-adv').classList.remove('active');
+    $('#drawer-adv').classList.remove('active');
+    _drawerAdvId = null;
+  }
+
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-dtab-adv]');
+    if (!tab) return;
+    const name = tab.dataset.dtabAdv;
+    tab.parentElement.querySelectorAll('[data-dtab-adv]').forEach(t => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('[data-dsec-adv]').forEach(s => s.classList.toggle('active', s.dataset.dsecAdv === name));
+  });
+
+  function marcarAssinadaDoDrawer() {
+    if (_drawerAdvId == null) return;
+    const a = ADVERTENCIAS.find(x => x.id === _drawerAdvId);
+    if (!a) return;
+    a.status = 'assinada';
+    a.assinada_em = new Date().toISOString().slice(0,10);
+    renderAdvertencias();
+    abrirDrawerAdv(_drawerAdvId);
+    showToast('Advertência assinada', 'ok');
+  }
+
+  // ── Modal ──
+  function abrirModalAdvertencia(id = null) {
+    const form = $('#form-advertencia');
+    form.reset();
+    $('#adv-form-alert').innerHTML = '';
+    $('#adv-suspensao-dias').style.display = 'none';
+
+    $('#form-adv-colab').innerHTML = COLABORADORES
+      .filter(c => c.status !== 'inativo')
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(c => `<option value="${c.id}">${h(c.nome)} — ${h(c.setor)}</option>`).join('');
+
+    if (id != null) {
+      const a = ADVERTENCIAS.find(x => x.id === id);
+      if (a) {
+        $('#adv-modal-title').textContent = 'Editar advertência';
+        for (const [k,v] of Object.entries(a)) {
+          const f = form.elements[k];
+          if (f) f.value = v ?? '';
+        }
+        if (a.tipo === 'suspensao') $('#adv-suspensao-dias').style.display = '';
+        mostrarAlertaReincidencia();
+      }
+    } else {
+      $('#adv-modal-title').textContent = 'Nova advertência';
+      form.elements['data'].value = new Date().toISOString().slice(0,10);
+      form.elements['status'].value = 'pendente';
+    }
+
+    // tipo change — mostrar dias suspensão
+    form.elements['tipo'].addEventListener('change', () => {
+      $('#adv-suspensao-dias').style.display = form.elements['tipo'].value === 'suspensao' ? '' : 'none';
+    }, { once:false });
+
+    $('#modal-advertencia').classList.add('active');
+  }
+
+  function mostrarAlertaReincidencia() {
+    const form = $('#form-advertencia');
+    const colabId = parseInt(form.elements['colaborador_id'].value, 10);
+    if (!colabId) { $('#adv-form-alert').innerHTML = ''; return; }
+    const n = contarAdvertenciasUltimoAno(colabId);
+    if (n >= 3) {
+      $('#adv-form-alert').innerHTML = `
+        <div class="sensitive-banner" style="background:linear-gradient(135deg,#FEE2E2,#FEF2F2); border-color:#FCA5A5; border-left-color:#DC2626;">
+          <div class="sb-icon" style="background:#DC2626;">!</div>
+          <div>
+            <div class="sb-title" style="color:#991B1B;">Risco de justa causa</div>
+            <div class="sb-sub" style="color:#7F1D1D;">Este colaborador já possui ${n} advertências nos últimos 12 meses.</div>
+          </div>
+        </div>
+      `;
+    } else if (n === 2) {
+      $('#adv-form-alert').innerHTML = `
+        <div class="sensitive-banner">
+          <div class="sb-icon">!</div>
+          <div>
+            <div class="sb-title">Atenção</div>
+            <div class="sb-sub">Este colaborador já possui 2 advertências nos últimos 12 meses. Esta seria a 3ª.</div>
+          </div>
+        </div>
+      `;
+    } else {
+      $('#adv-form-alert').innerHTML = '';
+    }
+  }
+
+  function fecharModalAdvertencia() {
+    $('#modal-advertencia').classList.remove('active');
+  }
+
+  function salvarAdvertencia(ev) {
+    ev.preventDefault();
+    const form = $('#form-advertencia');
+    const data = Object.fromEntries(new FormData(form));
+    const id = data.id ? parseInt(data.id,10) : null;
+
+    const payload = {
+      colaborador_id:  parseInt(data.colaborador_id,10),
+      data:            data.data,
+      tipo:            data.tipo,
+      categoria:       data.categoria,
+      descricao:       data.descricao,
+      gestor:          data.gestor,
+      testemunhas:     data.testemunhas || '',
+      status:          data.status,
+      assinada_em:     data.status === 'assinada' ? (new Date().toISOString().slice(0,10)) : null,
+      dias_suspensao:  data.tipo === 'suspensao' ? parseInt(data.dias_suspensao,10) || 1 : null,
+    };
+
+    if (id != null) {
+      const i = ADVERTENCIAS.findIndex(x => x.id === id);
+      if (i >= 0) ADVERTENCIAS[i] = { ...ADVERTENCIAS[i], ...payload };
+      showToast('Advertência atualizada', 'ok');
+    } else {
+      const newId = Math.max(0, ...ADVERTENCIAS.map(x => x.id)) + 1;
+      ADVERTENCIAS.unshift({ id:newId, ...payload });
+      showToast('Advertência registrada', 'ok');
+    }
+    fecharModalAdvertencia();
+    renderAdvertencias();
+  }
+
+  function excluirAdvertencia(id) {
+    if (!confirm('Excluir esta advertência?')) return;
+    ADVERTENCIAS = ADVERTENCIAS.filter(x => x.id !== id);
+    renderAdvertencias();
+    showToast('Advertência excluída');
+  }
+
+  document.querySelectorAll('.nav-item[data-page="advertencias"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderAdvertencias, 60));
   });
 </script>
 
