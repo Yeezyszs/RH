@@ -1402,8 +1402,40 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow);
   }
+
+  /* Legenda de tipos no topo */
+  .cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 10px 18px;
+    background: linear-gradient(180deg, var(--bluish-bg), var(--white));
+    border-bottom: 1px solid var(--border);
+  }
+  .cal-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: .7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .cal-legend-chip {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .cal-legend-chip.treinamento { background: #3730A3; }
+  .cal-legend-chip.reuniao     { background: var(--phthalo); }
+  .cal-legend-chip.admissao    { background: #047857; }
+  .cal-legend-chip.avaliacao   { background: #7C3AED; }
+  .cal-legend-chip.feriado     { background: var(--danger); }
+  .cal-legend-chip.outro       { background: var(--text-muted); }
 
   .cal-header {
     display: grid;
@@ -1413,95 +1445,129 @@
   }
 
   .cal-header-day {
-    padding: 10px 14px;
+    padding: 11px 14px;
     font-family: var(--mono);
     font-size: .7rem;
     font-weight: 600;
     color: var(--text-muted);
-    letter-spacing: .1em;
+    letter-spacing: .14em;
     text-transform: uppercase;
     text-align: center;
   }
+  .cal-header-day.weekend { color: var(--phthalo-light); }
 
   .cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: minmax(110px, auto);
+    grid-auto-rows: minmax(118px, auto);
   }
 
   .cal-cell {
     border-right: 1px solid var(--border-soft);
     border-bottom: 1px solid var(--border-soft);
-    padding: 6px 8px;
+    padding: 8px 8px 8px 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
     cursor: pointer;
     transition: background .12s;
     position: relative;
-    min-height: 110px;
+    min-height: 118px;
+    overflow: hidden;
   }
   .cal-cell:nth-child(7n) { border-right: none; }
-  .cal-cell:hover { background: var(--bluish-soft); }
+  .cal-cell:hover { background: rgba(74,159,214,.05); }
+
+  .cal-cell.weekend { background: #F3F7FA; }
+  .cal-cell.weekend:hover { background: #EAF1F7; }
+
   .cal-cell.out-of-month {
-    background: #FAFBFC;
-    color: var(--text-soft);
+    background: #FBFCFD;
   }
-  .cal-cell.out-of-month .cal-day { color: var(--text-soft); }
+  .cal-cell.out-of-month.weekend { background: #F6F9FC; }
+  .cal-cell.out-of-month .cal-day { color: var(--text-soft); opacity: .7; }
+
+  .cal-cell.holiday {
+    background: linear-gradient(180deg, #FEF2F2 0%, #FEFBFB 55%, transparent 100%);
+  }
+  .cal-cell.holiday .cal-day { color: var(--danger); }
+
   .cal-cell.today {
-    background: linear-gradient(135deg, rgba(74,159,214,.08), transparent);
+    box-shadow: inset 0 0 0 2px var(--phthalo-light);
   }
   .cal-cell.today .cal-day {
     background: var(--phthalo);
     color: var(--on-dark);
     border-radius: 50%;
-    width: 24px; height: 24px;
+    width: 26px; height: 26px;
     display: grid; place-items: center;
     font-weight: 700;
+    box-shadow: 0 2px 6px rgba(18,62,107,.3);
   }
 
   .cal-day {
     font-family: var(--mono);
-    font-size: .78rem;
+    font-size: .82rem;
     font-weight: 600;
     color: var(--text);
     align-self: flex-start;
+    line-height: 1;
+    padding: 2px 0;
   }
 
   .cal-event {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     font-size: .72rem;
     font-weight: 500;
-    padding: 3px 6px;
+    padding: 3px 7px 3px 7px;
     border-radius: 4px;
-    background: var(--phthalo-light);
-    color: #fff;
+    border-left: 3px solid var(--phthalo-light);
+    background: rgba(46,122,184,.1);
+    color: var(--phthalo);
     cursor: pointer;
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
-    transition: filter .12s;
+    transition: all .12s;
+    line-height: 1.3;
   }
-  .cal-event:hover { filter: brightness(1.1); }
+  .cal-event:hover { transform: translateX(1px); filter: brightness(.98); }
 
-  .cal-event.treinamento { background: #3730A3; }
-  .cal-event.reuniao     { background: var(--phthalo); }
-  .cal-event.admissao    { background: var(--success); }
-  .cal-event.avaliacao   { background: #7C3AED; }
-  .cal-event.feriado     { background: var(--danger); }
-  .cal-event.outro       { background: var(--text-muted); }
+  .cal-event-time {
+    font-family: var(--mono);
+    font-size: .66rem;
+    font-weight: 600;
+    color: inherit;
+    opacity: .75;
+    flex-shrink: 0;
+  }
+  .cal-event-title {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cal-event.treinamento { border-left-color: #3730A3; background: rgba(55,48,163,.08);  color: #3730A3; }
+  .cal-event.reuniao     { border-left-color: var(--phthalo);  background: rgba(18,62,107,.09); color: var(--phthalo); }
+  .cal-event.admissao    { border-left-color: #047857;         background: rgba(4,120,87,.1);   color: #047857; }
+  .cal-event.avaliacao   { border-left-color: #7C3AED;         background: rgba(124,58,237,.09);color: #7C3AED; }
+  .cal-event.feriado     { border-left-color: var(--danger);   background: rgba(239,68,68,.1);  color: #991B1B; font-style: italic; }
+  .cal-event.outro       { border-left-color: var(--text-muted);background: rgba(138,152,168,.1);color: var(--text-muted); }
 
   .cal-event-more {
-    font-size: .7rem;
-    color: var(--phthalo-light);
+    font-size: .68rem;
+    color: var(--phthalo);
     font-weight: 600;
-    padding: 2px 6px;
+    padding: 2px 0 0 4px;
+    letter-spacing: .02em;
   }
 
   /* Cabeçalho de controle do calendário */
   .cal-nav {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     margin-bottom: 10px;
   }
   .cal-nav-title {
@@ -1510,8 +1576,9 @@
     font-weight: 700;
     color: var(--phthalo-dark);
     letter-spacing: .02em;
-    margin-right: 4px;
-    min-width: 160px;
+    margin: 0 6px;
+    min-width: 170px;
+    text-align: center;
   }
 
   /* ════════════════════════════════════════════════
@@ -2996,14 +3063,22 @@
 
       <!-- Calendário -->
       <div class="cal-wrapper">
+        <div class="cal-legend">
+          <span class="cal-legend-item"><span class="cal-legend-chip reuniao"></span>Reunião</span>
+          <span class="cal-legend-item"><span class="cal-legend-chip treinamento"></span>Treinamento</span>
+          <span class="cal-legend-item"><span class="cal-legend-chip admissao"></span>Admissão</span>
+          <span class="cal-legend-item"><span class="cal-legend-chip avaliacao"></span>Avaliação</span>
+          <span class="cal-legend-item"><span class="cal-legend-chip feriado"></span>Feriado</span>
+          <span class="cal-legend-item"><span class="cal-legend-chip outro"></span>Outro</span>
+        </div>
         <div class="cal-header">
-          <div class="cal-header-day">Dom</div>
+          <div class="cal-header-day weekend">Dom</div>
           <div class="cal-header-day">Seg</div>
           <div class="cal-header-day">Ter</div>
           <div class="cal-header-day">Qua</div>
           <div class="cal-header-day">Qui</div>
           <div class="cal-header-day">Sex</div>
-          <div class="cal-header-day">Sáb</div>
+          <div class="cal-header-day weekend">Sáb</div>
         </div>
         <div class="cal-grid" id="cal-grid"></div>
       </div>
@@ -7336,6 +7411,61 @@
     outro:       'Outro',
   };
 
+  // Calcula domingo da Páscoa (algoritmo de Gauss / Computus)
+  function pascoaISO(ano) {
+    const a = ano % 19;
+    const b = Math.floor(ano / 100);
+    const c = ano % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2*e + 2*i - h - k) % 7;
+    const m = Math.floor((a + 11*h + 22*l) / 451);
+    const mes = Math.floor((h + l - 7*m + 114) / 31);
+    const dia = ((h + l - 7*m + 114) % 31) + 1;
+    return `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+  }
+
+  // Retorna os feriados nacionais brasileiros de um dado ano.
+  // Inclui os oficiais (fixos + Sexta-feira Santa) e os pontos facultativos
+  // amplamente observados (Carnaval, Cinzas, Corpus Christi).
+  function feriadosNacionais(ano) {
+    const pascoa = pascoaISO(ano);
+    return [
+      // Oficiais — fixos
+      { data: `${ano}-01-01`, titulo: 'Confraternização Universal',  oficial: true  },
+      { data: `${ano}-04-21`, titulo: 'Tiradentes',                   oficial: true  },
+      { data: `${ano}-05-01`, titulo: 'Dia do Trabalho',              oficial: true  },
+      { data: `${ano}-09-07`, titulo: 'Independência do Brasil',      oficial: true  },
+      { data: `${ano}-10-12`, titulo: 'N. Sra. Aparecida',            oficial: true  },
+      { data: `${ano}-11-02`, titulo: 'Finados',                      oficial: true  },
+      { data: `${ano}-11-15`, titulo: 'Proclamação da República',     oficial: true  },
+      { data: `${ano}-11-20`, titulo: 'Consciência Negra',            oficial: true  },
+      { data: `${ano}-12-25`, titulo: 'Natal',                        oficial: true  },
+      // Móveis — baseados na Páscoa
+      { data: addDays(pascoa, -48), titulo: 'Carnaval (segunda)',     oficial: false },
+      { data: addDays(pascoa, -47), titulo: 'Carnaval (terça)',       oficial: false },
+      { data: addDays(pascoa, -46), titulo: 'Quarta-feira de Cinzas', oficial: false },
+      { data: addDays(pascoa,  -2), titulo: 'Sexta-feira Santa',      oficial: true  },
+      { data: addDays(pascoa,  60), titulo: 'Corpus Christi',         oficial: false },
+    ].map((f, idx) => ({
+      id: -1000 - idx,  // ID negativo para distinguir de EVENTOS editáveis
+      tipo: 'feriado',
+      hora_inicio: '',
+      hora_fim: '',
+      local: '',
+      participantes: '',
+      descricao: f.oficial ? 'Feriado nacional' : 'Ponto facultativo nacional',
+      status: 'agendado',
+      _feriado: true,
+      ...f,
+    }));
+  }
+
   let EVENTOS = [
     { id:1, titulo:'Treinamento NR-35 (turma A)', tipo:'treinamento', data:'2026-04-24', hora_inicio:'08:00', hora_fim:'12:00', local:'Sala de treinamento',   participantes:'José Silva, João Silveira, Paulo Rocha', descricao:'Reciclagem obrigatória.', status:'agendado' },
     { id:2, titulo:'Reunião mensal de lideranças', tipo:'reuniao',   data:'2026-04-28', hora_inicio:'14:00', hora_fim:'15:30', local:'Sala de reuniões',      participantes:'Maria Santos, Ana Paula Costa, Diretoria', descricao:'Fechamento de abril e metas para maio.', status:'agendado' },
@@ -7377,7 +7507,25 @@
     const q    = ($('#cron-search')?.value || '').trim().toLowerCase();
     const fT   = $('#cron-filter-tipo')?.value || '';
 
-    const eventosVisiveis = EVENTOS.filter(e => {
+    // Monta células
+    const ano = _calMes.getFullYear();
+    const mes = _calMes.getMonth();
+    const primeiroDia = new Date(ano, mes, 1);
+    const ultimoDia   = new Date(ano, mes + 1, 0);
+    const diaSemanaIni = primeiroDia.getDay();
+    const totalDias    = ultimoDia.getDate();
+
+    // Feriados: calcula para os anos visíveis (mês anterior, atual, próximo)
+    // para cobrir bordas das células out-of-month.
+    const anosVisiveis = new Set([ano]);
+    if (mes === 0)  anosVisiveis.add(ano - 1);
+    if (mes === 11) anosVisiveis.add(ano + 1);
+    const feriados = [...anosVisiveis].flatMap(y => feriadosNacionais(y));
+
+    // Mescla eventos do usuário + feriados nacionais
+    const todosEventos = [...EVENTOS, ...feriados];
+
+    const eventosVisiveis = todosEventos.filter(e => {
       if (fT && e.tipo !== fT) return false;
       if (q) {
         const hay = [e.titulo, e.local, e.participantes, e.descricao].join(' ').toLowerCase();
@@ -7386,25 +7534,15 @@
       return true;
     });
 
-    // Monta células
-    const ano = _calMes.getFullYear();
-    const mes = _calMes.getMonth();
-    const primeiroDia = new Date(ano, mes, 1);
-    const ultimoDia   = new Date(ano, mes + 1, 0);
-    const diaSemanaIni = primeiroDia.getDay();                  // 0 = domingo
-    const totalDias    = ultimoDia.getDate();
-
-    // Inclui dias do mês anterior
+    // Dias do mês anterior (para preencher grade)
     const cells = [];
     for (let i = diaSemanaIni - 1; i >= 0; i--) {
       const d = new Date(ano, mes, -i);
       cells.push({ date: d, out: true });
     }
-    // Dias do mês corrente
     for (let i = 1; i <= totalDias; i++) {
       cells.push({ date: new Date(ano, mes, i), out: false });
     }
-    // Completa 6 semanas (42 células) ou 5 se couber
     const total = cells.length <= 35 ? 35 : 42;
     let extra = 1;
     while (cells.length < total) {
@@ -7416,24 +7554,42 @@
     grid.innerHTML = cells.map(cell => {
       const iso = cell.date.toISOString().slice(0,10);
       const dia = cell.date.getDate();
+      const dow = cell.date.getDay();
       const eventosDia = eventosVisiveis
         .filter(e => e.data === iso)
-        .sort((a,b) => (a.hora_inicio || '').localeCompare(b.hora_inicio || ''));
+        .sort((a,b) => {
+          // Feriados sempre aparecem no topo
+          if (a._feriado && !b._feriado) return -1;
+          if (b._feriado && !a._feriado) return 1;
+          return (a.hora_inicio || '').localeCompare(b.hora_inicio || '');
+        });
 
+      const ehFeriado = eventosDia.some(e => e._feriado);
       const maxShow = 3;
       const visibles = eventosDia.slice(0, maxShow);
       const extraN   = eventosDia.length - visibles.length;
 
       const eventosHtml = visibles.map(e => {
-        const hora = e.hora_inicio ? e.hora_inicio + ' ' : '';
-        return `<div class="cal-event ${h(e.tipo)}" onclick="event.stopPropagation(); abrirModalEvento(${e.id})" title="${h(e.titulo)}">${h(hora + e.titulo)}</div>`;
+        const horaHtml = e.hora_inicio
+          ? `<span class="cal-event-time">${h(e.hora_inicio)}</span>`
+          : '';
+        const onclick = e._feriado
+          ? ''   // feriados não são editáveis
+          : `onclick="event.stopPropagation(); abrirModalEvento(${e.id})"`;
+        return `
+          <div class="cal-event ${h(e.tipo)}" ${onclick} title="${h(e.titulo)}">
+            ${horaHtml}<span class="cal-event-title">${h(e.titulo)}</span>
+          </div>
+        `;
       }).join('');
 
       const maisHtml = extraN > 0 ? `<div class="cal-event-more">+${extraN} mais</div>` : '';
 
       const classes = ['cal-cell'];
-      if (cell.out) classes.push('out-of-month');
-      if (iso === hojeIso) classes.push('today');
+      if (cell.out)                 classes.push('out-of-month');
+      if (dow === 0 || dow === 6)   classes.push('weekend');
+      if (ehFeriado)                classes.push('holiday');
+      if (iso === hojeIso)          classes.push('today');
 
       return `
         <div class="${classes.join(' ')}" onclick="abrirModalEvento(null, '${iso}')">
@@ -7444,20 +7600,24 @@
       `;
     }).join('');
 
-    // Stats
+    // Stats (consideram EVENTOS e feriados juntos, dentro do mês visível)
     const mesChaveAtual = `${ano}-${String(mes + 1).padStart(2, '0')}`;
-    $('#cron-stat-mes').textContent = EVENTOS.filter(e => e.data.startsWith(mesChaveAtual)).length;
-    $('#cron-stat-hoje').textContent = EVENTOS.filter(e => e.data === hojeIso).length;
+    const eventosDoMes = todosEventos.filter(e => e.data.startsWith(mesChaveAtual));
+    $('#cron-stat-mes').textContent  = eventosDoMes.length;
+    $('#cron-stat-hoje').textContent = todosEventos.filter(e => e.data === hojeIso).length;
 
     const fim7 = addDays(hojeIso, 7);
-    $('#cron-stat-7d').textContent = EVENTOS.filter(e => e.data >= hojeIso && e.data <= fim7).length;
-    $('#cron-stat-conc').textContent = EVENTOS.filter(e => e.data.startsWith(mesChaveAtual) && e.status === 'concluido').length;
+    $('#cron-stat-7d').textContent   = todosEventos.filter(e => e.data >= hojeIso && e.data <= fim7).length;
+    $('#cron-stat-conc').textContent = eventosDoMes.filter(e => e.status === 'concluido' && !e._feriado).length;
   }
 
   // Modal de evento
   let _editandoEventoId = null;
 
   function abrirModalEvento(id = null, dataPre = null) {
+    // Feriados (ID negativo) não são editáveis
+    if (id != null && id < 0) return;
+
     const form = $('#form-evento');
     form.reset();
     _editandoEventoId = id;
