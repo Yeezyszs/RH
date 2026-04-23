@@ -349,130 +349,6 @@
   .hidden { display: none !important; }
 
   /* ════════════════════════════════════════════════
-     LOGIN SCREEN
-     ════════════════════════════════════════════════ */
-  .login-screen {
-    position: fixed;
-    inset: 0;
-    background: linear-gradient(135deg, var(--phthalo-deep) 0%, var(--phthalo-dark) 55%, var(--phthalo) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    padding: 24px;
-  }
-
-  .login-card {
-    width: 100%;
-    max-width: 380px;
-    background: var(--white);
-    border-radius: 14px;
-    padding: 36px 34px 28px;
-    box-shadow: 0 20px 60px rgba(6,26,48,.45);
-  }
-
-  .login-brand {
-    text-align: center;
-    margin-bottom: 28px;
-  }
-
-  .login-mark {
-    width: 56px; height: 56px;
-    margin: 0 auto 14px;
-    display: grid;
-    place-items: center;
-    background: var(--phthalo);
-    color: var(--on-dark);
-    border-radius: 14px;
-    font-weight: 800;
-    font-size: 1.3rem;
-    letter-spacing: .06em;
-  }
-
-  .login-title {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: var(--phthalo-dark);
-    letter-spacing: .1em;
-    text-transform: uppercase;
-  }
-
-  .login-subtitle {
-    font-family: var(--mono);
-    font-size: .72rem;
-    color: var(--text-muted);
-    letter-spacing: .12em;
-    margin-top: 4px;
-    text-transform: uppercase;
-  }
-
-  .login-form { display: flex; flex-direction: column; gap: 4px; }
-
-  .login-form label {
-    font-size: .72rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    margin: 10px 0 6px;
-  }
-
-  .login-form input {
-    background: var(--bluish-bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 11px 14px;
-    font-family: var(--font);
-    font-size: .92rem;
-    color: var(--text);
-    transition: border-color .15s, background .15s;
-  }
-
-  .login-form input:focus {
-    outline: none;
-    border-color: var(--phthalo-light);
-    background: var(--white);
-  }
-
-  .login-form button {
-    margin-top: 20px;
-    background: var(--phthalo);
-    color: var(--on-dark);
-    border: none;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-family: var(--font);
-    font-weight: 700;
-    font-size: .88rem;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background .15s;
-  }
-
-  .login-form button:hover { background: var(--phthalo-mid); }
-  .login-form button:active { background: var(--phthalo-dark); }
-
-  .login-error {
-    color: var(--danger);
-    font-size: .78rem;
-    margin-top: 12px;
-    min-height: 1em;
-    text-align: center;
-  }
-
-  .login-footer {
-    font-family: var(--mono);
-    font-size: .68rem;
-    color: var(--text-soft);
-    text-align: center;
-    letter-spacing: .08em;
-    margin-top: 24px;
-    padding-top: 18px;
-    border-top: 1px solid var(--border-soft);
-  }
-
-  /* ════════════════════════════════════════════════
      DASHBOARD — KPIs, widgets, grids
      ════════════════════════════════════════════════ */
   .kpi-grid {
@@ -1559,28 +1435,8 @@
 </head>
 <body>
 
-<!-- ════════════ LOGIN ════════════ -->
-<div id="login-screen" class="login-screen">
-  <div class="login-card">
-    <div class="login-brand">
-      <div class="login-mark">RH</div>
-      <div class="login-title">Recursos Humanos</div>
-      <div class="login-subtitle">Sistema de Gestão</div>
-    </div>
-    <form id="login-form" class="login-form" autocomplete="off">
-      <label for="login-user">Usuário</label>
-      <input type="text" id="login-user" required autocomplete="username">
-      <label for="login-pass">Senha</label>
-      <input type="password" id="login-pass" required autocomplete="current-password">
-      <button type="submit">Entrar</button>
-      <div id="login-error" class="login-error"></div>
-    </form>
-    <div class="login-footer">Acesso restrito · RH e Diretoria</div>
-  </div>
-</div>
-
 <!-- ════════════ APP ════════════ -->
-<div id="app" class="hidden">
+<div id="app">
 
 <!-- ════════════ TOPBAR ════════════ -->
 <header class="topbar">
@@ -1596,13 +1452,12 @@
 
   <div class="topbar-right">
     <div class="user-chip">
-      <div class="avatar">—</div>
+      <div class="avatar">A</div>
       <div>
-        <div class="user-name">—</div>
-        <div class="user-role">—</div>
+        <div class="user-name">Admin</div>
+        <div class="user-role">RH</div>
       </div>
     </div>
-    <button id="btn-logout" class="btn-logout" type="button">Sair</button>
   </div>
 </header>
 
@@ -2155,10 +2010,83 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Vencimentos</h1>
-          <div class="page-subtitle">ASO · documentos · treinamentos (semáforo)</div>
+          <div class="page-subtitle">Central única de ASO · documentos · treinamentos com semáforo por prazo</div>
         </div>
       </div>
-      <div class="page-placeholder">CENTRAL DE VENCIMENTOS A CONSTRUIR</div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="venc-search" placeholder="Buscar colaborador ou item…">
+        </div>
+        <select id="venc-filter-cat">
+          <option value="">Todas as categorias</option>
+          <option value="ASO">ASO</option>
+          <option value="Documento">Documento</option>
+          <option value="Treinamento">Treinamento</option>
+        </select>
+        <select id="venc-filter-status">
+          <option value="">Todos os status</option>
+          <option value="vencido">Vencidos</option>
+          <option value="critico">Críticos (≤7d)</option>
+          <option value="alerta">Atenção (≤30d)</option>
+          <option value="ok">OK</option>
+        </select>
+        <button class="btn" type="button" onclick="abrirModalVencimento()">+ Novo vencimento</button>
+      </div>
+
+      <!-- Stats (clicáveis como filtros rápidos) -->
+      <div class="stats-row">
+        <div class="stat stat-danger" onclick="setVencStatus('vencido')" style="cursor:pointer;">
+          <div class="stat-label">Vencidos</div>
+          <div class="stat-value" id="venc-stat-vencidos">—</div>
+        </div>
+        <div class="stat stat-warn" onclick="setVencStatus('critico')" style="cursor:pointer;">
+          <div class="stat-label">Críticos ≤7d</div>
+          <div class="stat-value" id="venc-stat-criticos">—</div>
+        </div>
+        <div class="stat" onclick="setVencStatus('alerta')" style="cursor:pointer;">
+          <div class="stat-label">Atenção ≤30d</div>
+          <div class="stat-value" id="venc-stat-alerta">—</div>
+        </div>
+        <div class="stat stat-success" onclick="setVencStatus('ok')" style="cursor:pointer;">
+          <div class="stat-label">OK</div>
+          <div class="stat-value" id="venc-stat-ok">—</div>
+        </div>
+      </div>
+
+      <!-- Timeline 90 dias -->
+      <div class="widget" style="margin-bottom:14px;">
+        <div class="widget-header">
+          <div class="widget-title">Timeline — próximos 90 dias</div>
+          <span class="widget-badge">vencimentos por semana</span>
+        </div>
+        <div class="chart-container" style="height:180px;">
+          <canvas id="chart-venc-timeline"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width:24%">Colaborador</th>
+                <th>Categoria</th>
+                <th>Item</th>
+                <th>Emissão</th>
+                <th>Vencimento</th>
+                <th>Dias</th>
+                <th>Status</th>
+                <th style="width:140px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-vencimentos"></tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- ───── EPI ───── -->
@@ -2533,74 +2461,60 @@
   </div>
 </div>
 
+<!-- ════════════ MODAL — NOVO/RENOVAR VENCIMENTO ════════════ -->
+<div id="modal-vencimento" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-venc-title">Novo vencimento</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalVencimento()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-vencimento" class="form-grid" onsubmit="salvarVencimento(event)">
+        <input type="hidden" name="id">
+        <div class="form-group full">
+          <label>Colaborador</label>
+          <select name="colaborador_id" id="form-venc-colab" required></select>
+        </div>
+        <div class="form-group">
+          <label>Categoria</label>
+          <select name="categoria" required>
+            <option value="ASO">ASO</option>
+            <option value="Documento">Documento</option>
+            <option value="Treinamento">Treinamento</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Item</label>
+          <input type="text" name="item" required placeholder="Ex.: ASO Periódico · NR-35 · CNH">
+        </div>
+        <div class="form-group">
+          <label>Data de emissão</label>
+          <input type="date" name="emissao" required>
+        </div>
+        <div class="form-group">
+          <label>Data de vencimento</label>
+          <input type="date" name="vencimento" required>
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea name="observacoes"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalVencimento()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-vencimento">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ TOAST ════════════ -->
 <div id="toast"></div>
 
 <script>
   /* ════════════════════════════════════════════════
-     RH — lógica de navegação e auth (mock)
+     RH — lógica de navegação
      ════════════════════════════════════════════════ */
-
-  // --- Estado ---
-  const AUTH = { user: null, role: null };
-
-  // Usuários mockados. Substituir por Supabase Auth na integração.
-  const MOCK_USERS = {
-    'rh':      { pass: 'rh123',      role: 'rh',      name: 'RH'      },
-    'diretor': { pass: 'diretor123', role: 'diretor', name: 'Diretor' },
-  };
-
-  // --- Elementos ---
-  const $loginScreen = document.getElementById('login-screen');
-  const $app         = document.getElementById('app');
-  const $loginForm   = document.getElementById('login-form');
-  const $loginUser   = document.getElementById('login-user');
-  const $loginPass   = document.getElementById('login-pass');
-  const $loginError  = document.getElementById('login-error');
-  const $btnLogout   = document.getElementById('btn-logout');
-
-  // --- Auth ---
-  $loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const u = $loginUser.value.trim().toLowerCase();
-    const p = $loginPass.value;
-    const match = MOCK_USERS[u];
-    if (!match || match.pass !== p) {
-      $loginError.textContent = 'Usuário ou senha inválidos.';
-      return;
-    }
-    AUTH.user = match.name;
-    AUTH.role = match.role;
-    $loginError.textContent = '';
-    $loginPass.value = '';
-    renderUserChip();
-    applyRoleVisibility();
-    $loginScreen.classList.add('hidden');
-    $app.classList.remove('hidden');
-    showToast(`Bem-vindo, ${AUTH.user}`, 'ok');
-  });
-
-  $btnLogout.addEventListener('click', () => {
-    AUTH.user = null; AUTH.role = null;
-    $loginForm.reset();
-    $app.classList.add('hidden');
-    $loginScreen.classList.remove('hidden');
-    goPage('dashboard');
-  });
-
-  function renderUserChip() {
-    document.querySelector('.user-chip .avatar').textContent = AUTH.user[0].toUpperCase();
-    document.querySelector('.user-chip .user-name').textContent = AUTH.user;
-    document.querySelector('.user-chip .user-role').textContent = AUTH.role;
-  }
-
-  // Aplica visibilidade de itens restritos (Salários) conforme role.
-  function applyRoleVisibility() {
-    const allowed = (AUTH.role === 'rh' || AUTH.role === 'diretor');
-    document.querySelectorAll('.nav-restricted').forEach(el => {
-      el.style.display = allowed ? '' : 'none';
-    });
-  }
 
   // --- Navegação ---
   document.querySelectorAll('.nav-item[data-page]').forEach(el => {
@@ -2638,9 +2552,6 @@
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[c]));
   }
-
-  // Foco inicial no campo de usuário.
-  $loginUser.focus();
 
   /* ════════════════════════════════════════════════
      DASHBOARD — charts (mock)
@@ -2734,18 +2645,21 @@
     }
   }
 
-  // Renderiza charts quando o login conclui (Chart.js precisa do container visível)
-  $loginForm.addEventListener('submit', () => {
-    setTimeout(() => {
-      if (!$app.classList.contains('hidden')) {
-        renderDashboardCharts();
-        renderColaboradores();
-        renderQuadro();
-        renderRotatividade();
-        renderDesligamentos();
-      }
-    }, 50);
-  });
+  // Renderiza todos os módulos ao carregar a página.
+  function renderAll() {
+    renderDashboardCharts();
+    renderColaboradores();
+    renderQuadro();
+    renderRotatividade();
+    renderDesligamentos();
+    if (typeof renderVencimentos === 'function') renderVencimentos();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderAll);
+  } else {
+    renderAll();
+  }
 
   /* ════════════════════════════════════════════════
      COLABORADORES — mock + render + drawer + modal
@@ -3682,6 +3596,290 @@
   // Re-render ao voltar para a aba Desligamentos
   document.querySelectorAll('.nav-item[data-page="desligamentos"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderDesligamentos, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     VENCIMENTOS — ASO + Documentos + Treinamentos
+     ════════════════════════════════════════════════ */
+
+  // Mock. colaborador_id referencia COLABORADORES.
+  let VENCIMENTOS = [
+    // ASOs
+    { id:1, colaborador_id:3, categoria:'ASO',         item:'ASO Periódico',         emissao:'2025-04-15', vencimento:'2026-04-15', observacoes:'' },
+    { id:2, colaborador_id:1, categoria:'ASO',         item:'ASO Periódico',         emissao:'2025-06-10', vencimento:'2026-06-10', observacoes:'' },
+    { id:3, colaborador_id:5, categoria:'ASO',         item:'ASO Periódico',         emissao:'2025-03-20', vencimento:'2026-03-20', observacoes:'Vencido — agendar renovação' },
+    { id:4, colaborador_id:8, categoria:'ASO',         item:'ASO Periódico',         emissao:'2025-05-02', vencimento:'2026-05-02', observacoes:'' },
+    { id:5, colaborador_id:9, categoria:'ASO',         item:'ASO Periódico',         emissao:'2025-07-18', vencimento:'2026-07-18', observacoes:'' },
+    // Documentos
+    { id:6, colaborador_id:5, categoria:'Documento',   item:'CNH',                   emissao:'2020-01-10', vencimento:'2025-01-10', observacoes:'' },
+    { id:7, colaborador_id:6, categoria:'Documento',   item:'CNH',                   emissao:'2022-03-22', vencimento:'2027-03-22', observacoes:'' },
+    { id:8, colaborador_id:4, categoria:'Documento',   item:'Carteira profissional', emissao:'2019-01-01', vencimento:'2029-01-01', observacoes:'' },
+    { id:9, colaborador_id:2, categoria:'Documento',   item:'RG',                    emissao:'2015-08-12', vencimento:'2030-08-12', observacoes:'' },
+    // Treinamentos
+    { id:10,colaborador_id:3, categoria:'Treinamento', item:'NR-10',                 emissao:'2024-04-29', vencimento:'2026-04-29', observacoes:'Reciclagem próxima' },
+    { id:11,colaborador_id:8, categoria:'Treinamento', item:'NR-35',                 emissao:'2024-08-22', vencimento:'2026-08-22', observacoes:'' },
+    { id:12,colaborador_id:9, categoria:'Treinamento', item:'NR-12',                 emissao:'2024-11-05', vencimento:'2026-11-05', observacoes:'' },
+    { id:13,colaborador_id:5, categoria:'Treinamento', item:'Direção defensiva',     emissao:'2024-10-15', vencimento:'2025-10-15', observacoes:'Vencido' },
+    { id:14,colaborador_id:6, categoria:'Treinamento', item:'Direção defensiva',     emissao:'2025-09-01', vencimento:'2026-09-01', observacoes:'' },
+    { id:15,colaborador_id:1, categoria:'Treinamento', item:'Primeiros socorros',    emissao:'2025-03-10', vencimento:'2026-05-01', observacoes:'' },
+  ];
+
+  const VENC_CAT_BADGE = {
+    'ASO':          { cls:'info',    t:'ASO' },
+    'Documento':    { cls:'neutral', t:'Documento' },
+    'Treinamento':  { cls:'ok',      t:'Treinamento' },
+  };
+
+  function diasAte(isoVenc) {
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+    const v = new Date(isoVenc + 'T00:00:00');
+    return Math.round((v - hoje) / (1000 * 60 * 60 * 24));
+  }
+
+  function vencStatus(dias) {
+    if (dias < 0)  return 'vencido';
+    if (dias <= 7) return 'critico';
+    if (dias <= 30) return 'alerta';
+    return 'ok';
+  }
+
+  function vencBadge(dias) {
+    const st = vencStatus(dias);
+    if (st === 'vencido')  return `<span class="badge danger">Vencido</span>`;
+    if (st === 'critico')  return `<span class="badge warn">Crítico</span>`;
+    if (st === 'alerta')   return `<span class="badge info">Atenção</span>`;
+    return `<span class="badge ok">OK</span>`;
+  }
+
+  function diasFmt(dias) {
+    if (dias < 0)   return `<span style="color:var(--danger); font-weight:600;">${Math.abs(dias)}d atrás</span>`;
+    if (dias === 0) return `<span style="color:var(--warning); font-weight:600;">Hoje</span>`;
+    if (dias <= 7)  return `<span style="color:var(--warning); font-weight:600;">${dias}d</span>`;
+    return `<span style="color:var(--text-muted);">${dias}d</span>`;
+  }
+
+  let _chartVencTimeline;
+
+  function renderVencimentos() {
+    const tb = $('#tb-vencimentos');
+    if (!tb) return;
+
+    const q     = ($('#venc-search')?.value || '').trim().toLowerCase();
+    const fCat  = $('#venc-filter-cat')?.value    || '';
+    const fSt   = $('#venc-filter-status')?.value || '';
+
+    // Enriquece com dados do colaborador e dias
+    const enriched = VENCIMENTOS.map(v => {
+      const c = COLABORADORES.find(x => x.id === v.colaborador_id);
+      const dias = diasAte(v.vencimento);
+      return { ...v, _colab: c, _dias: dias, _status: vencStatus(dias) };
+    });
+
+    const lista = enriched.filter(v => {
+      if (fCat && v.categoria !== fCat) return false;
+      if (fSt  && v._status   !== fSt)  return false;
+      if (q) {
+        const hay = [v._colab?.nome, v.item, v.categoria].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).sort((a,b) => a._dias - b._dias);
+
+    tb.innerHTML = lista.length ? lista.map(v => {
+      const c = v._colab;
+      const catBadge = VENC_CAT_BADGE[v.categoria] || { cls:'neutral', t:v.categoria };
+      return `
+        <tr onclick="if(${c?.id || 0}) abrirDrawerColab(${c?.id || 0})">
+          <td>
+            ${c ? `
+              <div class="cell-person">
+                <div class="cell-avatar">${h(iniciais(c.nome))}</div>
+                <div>
+                  <div class="cell-person-name">${h(c.nome)}</div>
+                  <div class="cell-person-sub">${h(c.setor)}</div>
+                </div>
+              </div>
+            ` : `<span style="color:var(--text-soft)">— colaborador removido —</span>`}
+          </td>
+          <td><span class="badge ${catBadge.cls}">${catBadge.t}</span></td>
+          <td style="font-weight:500;">${h(v.item)}</td>
+          <td class="cell-mono">${fmtDate(v.emissao)}</td>
+          <td class="cell-mono">${fmtDate(v.vencimento)}</td>
+          <td class="cell-mono">${diasFmt(v._dias)}</td>
+          <td>${vencBadge(v._dias)}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Renovar" onclick="renovarVencimento(${v.id})">↻</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalVencimento(${v.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirVencimento(${v.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="8" class="empty">Nenhum vencimento encontrado</td></tr>`;
+
+    // Stats (sobre TODOS, ignorando filtros)
+    const tot = (st) => enriched.filter(v => v._status === st).length;
+    $('#venc-stat-vencidos').textContent = tot('vencido');
+    $('#venc-stat-criticos').textContent = tot('critico');
+    $('#venc-stat-alerta').textContent   = tot('alerta');
+    $('#venc-stat-ok').textContent       = tot('ok');
+
+    renderVencTimeline(enriched);
+  }
+
+  function renderVencTimeline(enriched) {
+    const el = $('#chart-venc-timeline');
+    if (!el) return;
+
+    // 13 semanas (≈ 90 dias) à frente
+    const semanas = [];
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+    for (let i = 0; i < 13; i++) {
+      const start = new Date(hoje);
+      start.setDate(hoje.getDate() + i * 7);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      semanas.push({ start, end, aso:0, doc:0, trn:0, label: `${String(start.getDate()).padStart(2,'0')}/${String(start.getMonth()+1).padStart(2,'0')}` });
+    }
+
+    enriched.forEach(v => {
+      const dias = v._dias;
+      if (dias < 0 || dias > 13 * 7) return;
+      const idx = Math.floor(dias / 7);
+      const bucket = semanas[idx];
+      if (!bucket) return;
+      if (v.categoria === 'ASO')         bucket.aso++;
+      else if (v.categoria === 'Documento')   bucket.doc++;
+      else if (v.categoria === 'Treinamento') bucket.trn++;
+    });
+
+    _chartVencTimeline?.destroy();
+    _chartVencTimeline = new Chart(el, {
+      type: 'bar',
+      data: {
+        labels: semanas.map(s => s.label),
+        datasets: [
+          { label:'ASO',         data: semanas.map(s => s.aso), backgroundColor: CHART_COLORS.phthaloBright, stack:'s', borderRadius:3 },
+          { label:'Documento',   data: semanas.map(s => s.doc), backgroundColor: CHART_COLORS.phthaloLight,  stack:'s', borderRadius:3 },
+          { label:'Treinamento', data: semanas.map(s => s.trn), backgroundColor: CHART_COLORS.phthalo,       stack:'s', borderRadius:3 },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position:'bottom', labels: { boxWidth:12, padding:10, font:{ size:11 } } } },
+        scales: {
+          x: { stacked:true, grid:{ display:false } },
+          y: { stacked:true, beginAtZero:true, grid:{ color: CHART_COLORS.grid }, ticks:{ stepSize:1 } },
+        },
+      },
+    });
+  }
+
+  // Toolbar / stats-click
+  document.addEventListener('input',  (e) => { if (e.target.id === 'venc-search') renderVencimentos(); });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'venc-filter-cat' || e.target.id === 'venc-filter-status') renderVencimentos();
+  });
+  function setVencStatus(st) {
+    const el = $('#venc-filter-status');
+    if (!el) return;
+    el.value = (el.value === st) ? '' : st;
+    renderVencimentos();
+  }
+
+  // Modal
+  function abrirModalVencimento(id = null) {
+    const form = $('#form-vencimento');
+    form.reset();
+    const sel = $('#form-venc-colab');
+    sel.innerHTML = COLABORADORES
+      .filter(c => c.status !== 'inativo')
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(c => `<option value="${c.id}">${h(c.nome)} — ${h(c.setor)}</option>`)
+      .join('');
+
+    if (id != null) {
+      const v = VENCIMENTOS.find(x => x.id === id);
+      if (v) {
+        $('#modal-venc-title').textContent = 'Editar vencimento';
+        for (const [k,val] of Object.entries(v)) {
+          const f = form.elements[k];
+          if (f) f.value = val ?? '';
+        }
+      }
+    } else {
+      $('#modal-venc-title').textContent = 'Novo vencimento';
+    }
+    $('#modal-vencimento').classList.add('active');
+  }
+
+  function fecharModalVencimento() {
+    $('#modal-vencimento').classList.remove('active');
+  }
+
+  function salvarVencimento(e) {
+    e.preventDefault();
+    const form = $('#form-vencimento');
+    const data = Object.fromEntries(new FormData(form));
+    const id = data.id ? parseInt(data.id, 10) : null;
+
+    const payload = {
+      colaborador_id: parseInt(data.colaborador_id, 10),
+      categoria:      data.categoria,
+      item:           data.item,
+      emissao:        data.emissao,
+      vencimento:     data.vencimento,
+      observacoes:    data.observacoes || '',
+    };
+
+    if (id != null) {
+      const i = VENCIMENTOS.findIndex(x => x.id === id);
+      if (i >= 0) VENCIMENTOS[i] = { ...VENCIMENTOS[i], ...payload };
+      showToast('Vencimento atualizado', 'ok');
+    } else {
+      const newId = Math.max(0, ...VENCIMENTOS.map(x => x.id)) + 1;
+      VENCIMENTOS.unshift({ id:newId, ...payload });
+      showToast('Vencimento cadastrado', 'ok');
+    }
+    fecharModalVencimento();
+    renderVencimentos();
+  }
+
+  // "Renovar" = cria novo ciclo com nova emissão/vencimento preenchidos
+  function renovarVencimento(id) {
+    const v = VENCIMENTOS.find(x => x.id === id);
+    if (!v) return;
+
+    // Cadência comum: 1 ano para ASO/NR, 5 anos para CNH. Heurística.
+    const meses = /CNH/i.test(v.item) ? 60 : 12;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const novoVenc = new Date(hoje);
+    novoVenc.setMonth(novoVenc.getMonth() + meses);
+
+    // Preenche modal com os dados clonados mas com novas datas
+    abrirModalVencimento();
+    const form = $('#form-vencimento');
+    form.elements['colaborador_id'].value = v.colaborador_id;
+    form.elements['categoria'].value      = v.categoria;
+    form.elements['item'].value           = v.item;
+    form.elements['emissao'].value        = hoje.toISOString().slice(0,10);
+    form.elements['vencimento'].value     = novoVenc.toISOString().slice(0,10);
+    form.elements['observacoes'].value    = `Renovação do registro #${id}`;
+    $('#modal-venc-title').textContent = 'Renovar vencimento';
+  }
+
+  function excluirVencimento(id) {
+    if (!confirm('Excluir este vencimento?')) return;
+    VENCIMENTOS = VENCIMENTOS.filter(x => x.id !== id);
+    renderVencimentos();
+    showToast('Vencimento excluído');
+  }
+
+  // Re-render ao voltar para a aba
+  document.querySelectorAll('.nav-item[data-page="vencimentos"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderVencimentos, 60));
   });
 </script>
 
