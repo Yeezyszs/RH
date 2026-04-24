@@ -2829,14 +2829,15 @@
           <table class="data">
             <thead>
               <tr>
-                <th style="width:28%">Colaborador</th>
-                <th>Setor</th>
+                <th style="width:24%">Colaborador</th>
+                <th>Setor / Área</th>
                 <th style="text-align:right">Cota</th>
                 <th style="text-align:right">Utilizado</th>
                 <th style="text-align:right">Saldo</th>
-                <th>Lançamentos</th>
+                <th style="text-align:right">Desconto em folha</th>
+                <th>Lanç.</th>
                 <th>Status</th>
-                <th style="width:120px; text-align:right">Ações</th>
+                <th style="width:100px; text-align:right">Ações</th>
               </tr>
             </thead>
             <tbody id="tb-vale-resumo"></tbody>
@@ -6505,15 +6506,22 @@
     $('#vale-stat-acima').textContent    = acimaCota;
     $('#vale-stat-media').textContent    = fmtBRL(comLanc ? totalMes / comLanc : 0);
 
-    // Tabela
+    // Tabela — lista TODOS os colaboradores ativos no mês selecionado.
+    // Ordena: 1º acima da cota (maior excesso primeiro), depois com lançamentos, depois sem.
     const tb = $('#tb-vale-resumo');
     if (tb) {
-      const lista = filtrados
-        .filter(r => r.lancs.length > 0 || r.cota > 0)
-        .sort((a,b) => (b.usado - b.cota) - (a.usado - a.cota));
+      const lista = filtrados.sort((a,b) => {
+        const ea = a.usado - a.cota;
+        const eb = b.usado - b.cota;
+        if (ea > 0 && eb <= 0) return -1;
+        if (eb > 0 && ea <= 0) return 1;
+        if (ea !== eb) return eb - ea;
+        return a.colab.nome.localeCompare(b.colab.nome);
+      });
       tb.innerHTML = lista.length ? lista.map(r => {
         const c = r.colab;
         const excesso = r.usado - r.cota;
+        const desconto = Math.max(0, excesso);
         const statusBadge = r.cota === 0
           ? `<span class="badge neutral">Sem cota</span>`
           : r.usado === 0
@@ -6524,6 +6532,7 @@
                 ? `<span class="badge warn">No limite</span>`
                 : `<span class="badge ok">Dentro</span>`;
         const saldoStyle = r.saldo < 0 ? 'color:var(--danger); font-weight:700;' : r.saldo === 0 ? 'color:var(--text-muted)' : 'color:var(--success)';
+        const descStyle = desconto > 0 ? 'color:var(--danger); font-weight:700;' : 'color:var(--text-soft);';
         return `
           <tr onclick="abrirModalValeDetalhe(${c.id}, '${mesAtual}')">
             <td>
@@ -6535,10 +6544,14 @@
                 </div>
               </div>
             </td>
-            <td>${h(c.setor)}</td>
+            <td>
+              <div>${h(c.setor)}</div>
+              ${c.area ? `<div class="cell-person-sub">${h(c.area)}</div>` : ''}
+            </td>
             <td class="cell-mono" style="text-align:right">${fmtBRL(r.cota)}</td>
             <td class="cell-mono" style="text-align:right">${fmtBRL(r.usado)}</td>
             <td class="cell-mono" style="text-align:right; ${saldoStyle}">${fmtBRL(r.saldo)}</td>
+            <td class="cell-mono" style="text-align:right; ${descStyle}">${fmtBRL(desconto)}</td>
             <td class="cell-mono">${r.lancs.length}</td>
             <td>${statusBadge}</td>
             <td class="actions" onclick="event.stopPropagation()">
@@ -6546,7 +6559,7 @@
             </td>
           </tr>
         `;
-      }).join('') : `<tr><td colspan="8" class="empty">Sem dados para ${mesLabel(mesAtual)}</td></tr>`;
+      }).join('') : `<tr><td colspan="9" class="empty">Sem dados para ${mesLabel(mesAtual)}</td></tr>`;
     }
 
     renderValeEvolucao();
