@@ -2974,6 +2974,38 @@
         </div>
       </div>
 
+      <!-- Gráficos -->
+      <div class="dash-row-charts" style="grid-template-columns: 1fr 1.4fr; margin-bottom:14px;">
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Distribuição por tipo</div>
+            <span class="widget-badge" id="adv-chart-tipo-badge">—</span>
+          </div>
+          <div class="chart-container" style="height:230px;">
+            <canvas id="chart-adv-tipo"></canvas>
+          </div>
+        </div>
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Evolução mensal por tipo</div>
+            <span class="widget-badge">últimos 6 meses</span>
+          </div>
+          <div class="chart-container" style="height:230px;">
+            <canvas id="chart-adv-evolucao"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="widget" style="margin-bottom:14px;">
+        <div class="widget-header">
+          <div class="widget-title">Top reincidentes — últimos 12 meses</div>
+          <span class="widget-badge">colaboradores com ≥2 advertências</span>
+        </div>
+        <div class="chart-container" style="height:220px;">
+          <canvas id="chart-adv-top"></canvas>
+        </div>
+      </div>
+
       <!-- Tabela -->
       <div class="table-card">
         <div class="table-wrapper">
@@ -7144,6 +7176,146 @@
     $('#adv-stat-reinc').textContent = Object.values(contPorColab).filter(n => n >= 3).length;
     $('#adv-stat-pend').textContent  = ADVERTENCIAS.filter(a => a.status === 'pendente').length;
     $('#adv-stat-susp').textContent  = ADVERTENCIAS.filter(a => a.tipo === 'suspensao' && a.data.startsWith(mesChaveAtual)).length;
+
+    renderAdvertenciaCharts();
+  }
+
+  let _chartAdvTipo, _chartAdvEvo, _chartAdvTop;
+
+  const ADV_COLOR = {
+    verbal:    '#F59E0B',
+    escrita:   '#F97316',
+    suspensao: '#DC2626',
+  };
+
+  function renderAdvertenciaCharts() {
+    // 1. Distribuição por tipo (donut)
+    const porTipo = { verbal: 0, escrita: 0, suspensao: 0 };
+    ADVERTENCIAS.forEach(a => { if (porTipo[a.tipo] != null) porTipo[a.tipo]++; });
+    const totalTipo = porTipo.verbal + porTipo.escrita + porTipo.suspensao;
+    const badgeEl = $('#adv-chart-tipo-badge');
+    if (badgeEl) badgeEl.textContent = `${totalTipo} total`;
+
+    _chartAdvTipo?.destroy();
+    const ctxTipo = $('#chart-adv-tipo');
+    if (ctxTipo) {
+      _chartAdvTipo = new Chart(ctxTipo, {
+        type: 'doughnut',
+        data: {
+          labels: ['Verbal', 'Escrita', 'Suspensão'],
+          datasets: [{
+            data: [porTipo.verbal, porTipo.escrita, porTipo.suspensao],
+            backgroundColor: [ADV_COLOR.verbal, ADV_COLOR.escrita, ADV_COLOR.suspensao],
+            borderColor: '#fff',
+            borderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '62%',
+          plugins: {
+            legend: { position: 'bottom', labels: { padding: 10, boxWidth: 12, font: { size: 11 } } },
+          },
+        },
+      });
+    }
+
+    // 2. Evolução mensal por tipo (barras empilhadas - últimos 6 meses)
+    const hoje = new Date();
+    const meses = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      meses.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        label: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()],
+        verbal: 0, escrita: 0, suspensao: 0,
+      });
+    }
+    ADVERTENCIAS.forEach(a => {
+      const mChave = a.data.slice(0, 7);
+      const m = meses.find(x => x.key === mChave);
+      if (m && m[a.tipo] != null) m[a.tipo]++;
+    });
+
+    _chartAdvEvo?.destroy();
+    const ctxEvo = $('#chart-adv-evolucao');
+    if (ctxEvo) {
+      _chartAdvEvo = new Chart(ctxEvo, {
+        type: 'bar',
+        data: {
+          labels: meses.map(m => m.label),
+          datasets: [
+            { label: 'Verbal',    data: meses.map(m => m.verbal),    backgroundColor: ADV_COLOR.verbal,    stack:'s', borderRadius: 3 },
+            { label: 'Escrita',   data: meses.map(m => m.escrita),   backgroundColor: ADV_COLOR.escrita,   stack:'s', borderRadius: 3 },
+            { label: 'Suspensão', data: meses.map(m => m.suspensao), backgroundColor: ADV_COLOR.suspensao, stack:'s', borderRadius: 3 },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } } },
+          scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: { stacked: true, beginAtZero: true, grid: { color: CHART_COLORS.grid }, ticks: { stepSize: 1 } },
+          },
+        },
+      });
+    }
+
+    // 3. Top reincidentes (barra horizontal - últimos 12 meses)
+    const limite = new Date();
+    limite.setFullYear(limite.getFullYear() - 1);
+    const limiteIso = limite.toISOString().slice(0, 10);
+
+    const counts = {};
+    ADVERTENCIAS.forEach(a => {
+      if (a.data < limiteIso) return;
+      if (!counts[a.colaborador_id]) counts[a.colaborador_id] = { verbal:0, escrita:0, suspensao:0, total:0 };
+      counts[a.colaborador_id][a.tipo]++;
+      counts[a.colaborador_id].total++;
+    });
+
+    const top = Object.entries(counts)
+      .filter(([, c]) => c.total >= 2)
+      .sort(([,a], [,b]) => b.total - a.total)
+      .slice(0, 8);
+
+    _chartAdvTop?.destroy();
+    const ctxTop = $('#chart-adv-top');
+    if (ctxTop) {
+      if (top.length === 0) {
+        // Nenhum reincidente — exibe mensagem
+        const parent = ctxTop.parentElement;
+        parent.innerHTML = `<div class="empty">Nenhum colaborador com 2+ advertências nos últimos 12 meses 🎉</div>`;
+      } else {
+        const labels = top.map(([id]) => {
+          const c = COLABORADORES.find(x => x.id === parseInt(id, 10));
+          return c ? c.nome : '—';
+        });
+        _chartAdvTop = new Chart(ctxTop, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Verbal',    data: top.map(([,c]) => c.verbal),    backgroundColor: ADV_COLOR.verbal,    stack:'s', borderRadius: 3 },
+              { label: 'Escrita',   data: top.map(([,c]) => c.escrita),   backgroundColor: ADV_COLOR.escrita,   stack:'s', borderRadius: 3 },
+              { label: 'Suspensão', data: top.map(([,c]) => c.suspensao), backgroundColor: ADV_COLOR.suspensao, stack:'s', borderRadius: 3 },
+            ],
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } } },
+            scales: {
+              x: { stacked: true, beginAtZero: true, grid: { color: CHART_COLORS.grid }, ticks: { stepSize: 1 } },
+              y: { stacked: true, grid: { display: false } },
+            },
+          },
+        });
+      }
+    }
   }
 
   document.addEventListener('input',  (e) => { if (e.target.id === 'adv-search') renderAdvertencias(); });
