@@ -2585,67 +2585,183 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">EPI</h1>
-          <div class="page-subtitle">Ficha de entrega · CA · validade · próxima troca</div>
+          <div class="page-subtitle">Entregas · catálogo · kits por setor</div>
         </div>
       </div>
 
-      <!-- Toolbar -->
-      <div class="toolbar">
-        <div class="toolbar-search">
-          <input type="text" id="epi-search" placeholder="Buscar colaborador, EPI ou CA…">
-        </div>
-        <select id="epi-filter-tipo">
-          <option value="">Todos os EPIs</option>
-        </select>
-        <select id="epi-filter-status">
-          <option value="">Qualquer status</option>
-          <option value="vigente">Vigente</option>
-          <option value="trocar">Trocar (≤30d)</option>
-          <option value="vencido">Vencido</option>
-          <option value="devolvido">Devolvido</option>
-        </select>
-        <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalEpiCatalogo()">⚙ Catálogo</button>
-        <button class="btn" type="button" onclick="abrirModalEpiEntrega()">+ Nova entrega</button>
+      <!-- Sub-abas -->
+      <div class="view-tabs">
+        <div class="view-tab active" data-view="epi-entregas">Entregas</div>
+        <div class="view-tab" data-view="epi-catalogo">Catálogo</div>
+        <div class="view-tab" data-view="epi-kits">Kits por setor</div>
       </div>
 
-      <!-- Stats -->
-      <div class="stats-row">
-        <div class="stat stat-success">
-          <div class="stat-label">Vigentes</div>
-          <div class="stat-value" id="epi-stat-vigentes">—</div>
+      <!-- ══════ ENTREGAS ══════ -->
+      <div id="view-epi-entregas" class="view-content active">
+
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <input type="text" id="epi-search" placeholder="Buscar colaborador, EPI ou CA…">
+          </div>
+          <select id="epi-filter-tipo">
+            <option value="">Todos os EPIs</option>
+          </select>
+          <select id="epi-filter-status">
+            <option value="">Qualquer status</option>
+            <option value="vigente">Vigente</option>
+            <option value="trocar">Trocar (≤30d)</option>
+            <option value="vencido">Vencido</option>
+            <option value="devolvido">Devolvido</option>
+          </select>
+          <button class="btn" type="button" onclick="abrirModalEpiEntrega()">+ Nova entrega</button>
         </div>
-        <div class="stat stat-warn">
-          <div class="stat-label">Trocar ≤30d</div>
-          <div class="stat-value" id="epi-stat-trocar">—</div>
+
+        <div class="stats-row">
+          <div class="stat stat-success">
+            <div class="stat-label">Vigentes</div>
+            <div class="stat-value" id="epi-stat-vigentes">—</div>
+          </div>
+          <div class="stat stat-warn">
+            <div class="stat-label">Trocar ≤30d</div>
+            <div class="stat-value" id="epi-stat-trocar">—</div>
+          </div>
+          <div class="stat stat-danger">
+            <div class="stat-label">Vencidos</div>
+            <div class="stat-value" id="epi-stat-vencidos">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Itens no catálogo</div>
+            <div class="stat-value" id="epi-stat-catalogo">—</div>
+          </div>
         </div>
-        <div class="stat stat-danger">
-          <div class="stat-label">Vencidos</div>
-          <div class="stat-value" id="epi-stat-vencidos">—</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Itens no catálogo</div>
-          <div class="stat-value" id="epi-stat-catalogo">—</div>
+
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th style="width:22%">Colaborador</th>
+                  <th>EPI</th>
+                  <th>CA</th>
+                  <th>Entrega</th>
+                  <th>Próxima troca</th>
+                  <th>Qtd</th>
+                  <th>Status</th>
+                  <th style="width:140px; text-align:right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tb-epi-entregas"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- Tabela de entregas -->
-      <div class="table-card">
-        <div class="table-wrapper">
-          <table class="data">
-            <thead>
-              <tr>
-                <th style="width:22%">Colaborador</th>
-                <th>EPI</th>
-                <th>CA</th>
-                <th>Entrega</th>
-                <th>Próxima troca</th>
-                <th>Qtd</th>
-                <th>Status</th>
-                <th style="width:140px; text-align:right">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tb-epi-entregas"></tbody>
-          </table>
+      <!-- ══════ CATÁLOGO ══════ -->
+      <div id="view-epi-catalogo" class="view-content">
+
+        <div class="widget" style="margin-bottom:14px;">
+          <div class="widget-header">
+            <div class="widget-title" id="epi-cat-form-title">Cadastrar novo item do catálogo</div>
+            <span class="widget-badge" id="epi-cat-total-badge">—</span>
+          </div>
+          <form id="form-epi-catalogo-new" class="form-grid" onsubmit="salvarEpiCatalogo(event)">
+            <input type="hidden" name="id">
+            <div class="form-group">
+              <label>Nome do EPI</label>
+              <input type="text" name="nome" required placeholder="Ex.: Botina de segurança">
+            </div>
+            <div class="form-group">
+              <label>CA</label>
+              <input type="text" name="ca" required placeholder="Nº do CA">
+            </div>
+            <div class="form-group">
+              <label>Validade do CA</label>
+              <input type="date" name="validade_ca">
+            </div>
+            <div class="form-group">
+              <label>Vida útil (meses)</label>
+              <input type="number" name="vida_util_meses" min="1" value="12">
+            </div>
+            <div class="form-group full">
+              <label>Fabricante</label>
+              <input type="text" name="fabricante">
+            </div>
+            <div class="form-group full" style="flex-direction:row; justify-content:flex-end; gap:8px;">
+              <button class="btn btn-secondary btn-sm" type="button" onclick="resetEpiCatalogoForm()">Limpar</button>
+              <button class="btn btn-sm" type="submit">Salvar item</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>CA</th>
+                  <th>Validade CA</th>
+                  <th>Vida útil</th>
+                  <th>Entregas ativas</th>
+                  <th style="width:100px; text-align:right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tb-epi-catalogo"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ KITS POR SETOR ══════ -->
+      <div id="view-epi-kits" class="view-content">
+
+        <div class="sensitive-banner" style="background:linear-gradient(135deg,#DBEAFE,#F0F7FF); border-color:#93C5FD; border-left-color:var(--info);">
+          <div class="sb-icon" style="background:var(--info);">ℹ</div>
+          <div>
+            <div class="sb-title" style="color:var(--phthalo-dark);">Uso consultivo</div>
+            <div class="sb-sub" style="color:var(--text-muted);">Defina os EPIs esperados para cada setor. Ao admitir novo colaborador, o sistema sugere o kit — não bloqueia admissão.</div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-label">Setores configurados</div>
+            <div class="stat-value" id="epi-kits-stat-setores">—</div>
+          </div>
+          <div class="stat stat-warn">
+            <div class="stat-label">Colaboradores com pendência</div>
+            <div class="stat-value" id="epi-kits-stat-pend">—</div>
+          </div>
+          <div class="stat stat-danger">
+            <div class="stat-label">Total de pendências</div>
+            <div class="stat-value" id="epi-kits-stat-total-pend">—</div>
+          </div>
+          <div class="stat stat-success">
+            <div class="stat-label">Cobertura média</div>
+            <div class="stat-value" id="epi-kits-stat-cobertura" style="font-size:1.3rem;">—</div>
+          </div>
+        </div>
+
+        <div id="epi-kits-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap:14px; margin-bottom:18px;"></div>
+
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">Pendências por colaborador</div>
+            <span class="widget-badge" id="epi-kits-pend-badge">—</span>
+          </div>
+          <div class="table-wrapper" style="max-height:320px;">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th>Setor / Área</th>
+                  <th>EPIs pendentes</th>
+                  <th style="width:120px; text-align:right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tb-epi-pendencias"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -3672,61 +3788,22 @@
   </div>
 </div>
 
-<!-- ════════════ MODAL — CATÁLOGO DE EPI ════════════ -->
-<div id="modal-epi-catalogo" class="modal">
-  <div class="modal-box" style="max-width:720px;">
+<!-- ════════════ MODAL — EDITAR KIT DE SETOR ════════════ -->
+<div id="modal-epi-kit" class="modal">
+  <div class="modal-box" style="max-width:560px;">
     <div class="modal-header">
-      <div class="modal-title">Catálogo de EPI</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalEpiCatalogo()">×</button>
+      <div class="modal-title" id="epi-kit-modal-title">Kit do setor</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalEpiKit()">×</button>
     </div>
     <div class="modal-body">
-      <form id="form-epi-catalogo-new" class="form-grid" onsubmit="salvarEpiCatalogo(event)" style="margin-bottom:18px;">
-        <input type="hidden" name="id">
-        <div class="form-group">
-          <label>Nome do EPI</label>
-          <input type="text" name="nome" required placeholder="Ex.: Botina de segurança">
-        </div>
-        <div class="form-group">
-          <label>CA</label>
-          <input type="text" name="ca" required placeholder="Nº do CA">
-        </div>
-        <div class="form-group">
-          <label>Validade do CA</label>
-          <input type="date" name="validade_ca">
-        </div>
-        <div class="form-group">
-          <label>Vida útil (meses)</label>
-          <input type="number" name="vida_util_meses" min="1" value="12">
-        </div>
-        <div class="form-group full">
-          <label>Fabricante</label>
-          <input type="text" name="fabricante">
-        </div>
-        <div class="form-group full" style="flex-direction:row; justify-content:flex-end; gap:8px;">
-          <button class="btn btn-secondary btn-sm" type="button" onclick="resetEpiCatalogoForm()">Limpar</button>
-          <button class="btn btn-sm" type="submit">Salvar item</button>
-        </div>
-      </form>
-
-      <div class="table-card">
-        <div class="table-wrapper">
-          <table class="data">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>CA</th>
-                <th>Validade CA</th>
-                <th>Vida útil</th>
-                <th style="width:100px; text-align:right">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tb-epi-catalogo"></tbody>
-          </table>
-        </div>
+      <div style="font-family:var(--mono); font-size:.72rem; color:var(--text-muted); letter-spacing:.04em; margin-bottom:12px;">
+        Marque os EPIs do catálogo que são esperados para este setor.
       </div>
+      <div id="epi-kit-lista" style="display:flex; flex-direction:column; gap:6px;"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-sm" type="button" onclick="fecharModalEpiCatalogo()">Fechar</button>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalEpiKit()">Cancelar</button>
+      <button class="btn btn-sm" type="button" onclick="salvarEpiKit()">Salvar kit</button>
     </div>
   </div>
 </div>
@@ -4412,6 +4489,8 @@
     renderDesligamentos();
     if (typeof renderVencimentos === 'function') renderVencimentos();
     if (typeof renderEpi === 'function') renderEpi();
+    if (typeof renderEpiCatalogo === 'function') renderEpiCatalogo();
+    if (typeof renderEpiKits === 'function') renderEpiKits();
     if (typeof renderVale === 'function') renderVale();
     if (typeof renderFerias === 'function') renderFerias();
     if (typeof renderSalarios === 'function') renderSalarios();
@@ -4512,11 +4591,11 @@
     }, 150);
   }
 
-  // Aplica badge na sidebar (nav-item "Colaboradores") com contagem
+  // Aplica badge na sidebar (nav-item "Vencimentos") com contagem
   function atualizarBadgeVencimentos() {
     const urgentes = vencimentosUrgentes();
     const vencidos = urgentes.filter(v => v._dias < 0).length;
-    const navItem  = document.querySelector('.nav-item[data-page="colaboradores"]');
+    const navItem  = document.querySelector('.nav-item[data-page="vencimentos"]');
     if (!navItem) return;
 
     let badge = navItem.querySelector('.nav-badge');
@@ -6035,26 +6114,7 @@
     showToast('Registro excluído');
   }
 
-  // --- Catálogo ---
-  function abrirModalEpiCatalogo() {
-    renderEpiCatalogo();
-    resetEpiCatalogoForm();
-    $('#modal-epi-catalogo').classList.add('active');
-  }
-
-  function fecharModalEpiCatalogo() {
-    $('#modal-epi-catalogo').classList.remove('active');
-    // Re-popula filtros e re-renderiza para pegar mudanças no catálogo
-    const f = $('#epi-filter-tipo');
-    if (f) {
-      const cur = f.value;
-      f.innerHTML = '<option value="">Todos os EPIs</option>' +
-        EPI_CATALOGO.map(t => `<option value="${t.id}">${h(t.nome)}</option>`).join('');
-      f.value = cur;
-    }
-    renderEpi();
-  }
-
+  // --- Catálogo (aba interna) ---
   function renderEpiCatalogo() {
     const tb = $('#tb-epi-catalogo');
     if (!tb) return;
@@ -6063,25 +6123,31 @@
       const badgeCa = diasCa == null ? '' :
         diasCa < 0      ? `<span class="badge danger" style="margin-left:6px">CA venc.</span>` :
         diasCa <= 90    ? `<span class="badge warn"   style="margin-left:6px">${diasCa}d</span>` : '';
+      const ativas = EPI_ENTREGAS.filter(e => e.epi_tipo_id === t.id && !e.devolvido).length;
       return `
         <tr>
           <td style="font-weight:500;">${h(t.nome)}<div class="cell-person-sub">${h(t.fabricante || '—')}</div></td>
           <td class="cell-mono">${h(t.ca)}</td>
           <td class="cell-mono">${fmtDate(t.validade_ca)} ${badgeCa}</td>
           <td class="cell-mono">${t.vida_util_meses || '—'}m</td>
+          <td class="cell-mono">${ativas}</td>
           <td class="actions">
             <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="editarEpiCatalogo(${t.id})">✎</button>
             <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirEpiCatalogo(${t.id})">🗑</button>
           </td>
         </tr>
       `;
-    }).join('') : `<tr><td colspan="5" class="empty">Catálogo vazio — cadastre o primeiro item</td></tr>`;
+    }).join('') : `<tr><td colspan="6" class="empty">Catálogo vazio — cadastre o primeiro item acima</td></tr>`;
+    const badge = $('#epi-cat-total-badge');
+    if (badge) badge.textContent = `${EPI_CATALOGO.length} ${EPI_CATALOGO.length === 1 ? 'item' : 'itens'}`;
   }
 
   function resetEpiCatalogoForm() {
     const f = $('#form-epi-catalogo-new');
     f.reset();
     f.elements['id'].value = '';
+    const title = $('#epi-cat-form-title');
+    if (title) title.textContent = 'Cadastrar novo item do catálogo';
   }
 
   function editarEpiCatalogo(id) {
@@ -6091,6 +6157,8 @@
     for (const [k,v] of Object.entries(t)) {
       if (f.elements[k]) f.elements[k].value = v ?? '';
     }
+    const title = $('#epi-cat-form-title');
+    if (title) title.textContent = `Editando: ${t.nome}`;
     f.scrollIntoView({ behavior:'smooth', block:'center' });
   }
 
@@ -6119,10 +6187,19 @@
     }
     resetEpiCatalogoForm();
     renderEpiCatalogo();
+    renderEpi();       // atualiza contador de catálogo no stats
+    renderEpiKits();   // kits podem ganhar opções novas
+    // Re-popula filtro de tipos na aba Entregas
+    const f2 = $('#epi-filter-tipo');
+    if (f2) {
+      const cur = f2.value;
+      f2.innerHTML = '<option value="">Todos os EPIs</option>' +
+        EPI_CATALOGO.map(t => `<option value="${t.id}">${h(t.nome)}</option>`).join('');
+      f2.value = cur;
+    }
   }
 
   function excluirEpiCatalogo(id) {
-    // Impede remover se há entregas referenciando
     const emUso = EPI_ENTREGAS.some(e => e.epi_tipo_id === id && !e.devolvido);
     if (emUso) {
       showToast('Existem entregas ativas deste EPI — não é possível excluir', 'err');
@@ -6130,12 +6207,199 @@
     }
     if (!confirm('Excluir este item do catálogo?')) return;
     EPI_CATALOGO = EPI_CATALOGO.filter(x => x.id !== id);
+    // Remove esse EPI de todos os kits
+    Object.keys(EPI_KITS).forEach(s => {
+      EPI_KITS[s] = EPI_KITS[s].filter(epiId => epiId !== id);
+    });
     renderEpiCatalogo();
+    renderEpi();
+    renderEpiKits();
     showToast('Item removido');
   }
 
+  // --- Kits por setor ---
+  let EPI_KITS = {
+    'Produção':      [1, 2, 3, 4],   // Botina, Luva, Óculos, Protetor auricular
+    'Administração': [],
+    'Gado':          [1, 3, 7],      // Botina, Óculos, Cinto paraquedista (seed inicial)
+  };
+
+  function renderEpiKits() {
+    const grid = $('#epi-kits-grid');
+    if (!grid) return;
+
+    const setores = ['Produção', 'Administração', 'Gado'];
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo');
+
+    // Calcula pendências por colab
+    const colabsPendencias = ativos.map(c => {
+      const kit = EPI_KITS[c.setor] || [];
+      if (!kit.length) return null;
+      const entreguesAtivos = new Set(
+        EPI_ENTREGAS
+          .filter(e => e.colaborador_id === c.id && !e.devolvido)
+          .map(e => e.epi_tipo_id)
+      );
+      const faltando = kit.filter(epiId => !entreguesAtivos.has(epiId));
+      if (!faltando.length) return null;
+      return { colab: c, faltando };
+    }).filter(Boolean);
+
+    // Grid de cards por setor
+    grid.innerHTML = setores.map(setor => {
+      const kit = EPI_KITS[setor] || [];
+      const ativosSetor = ativos.filter(c => c.setor === setor);
+      const n = ativosSetor.length;
+
+      if (kit.length === 0) {
+        return `
+          <div class="widget">
+            <div class="widget-header">
+              <div class="widget-title">${SETOR_ICON[setor] || ''} ${h(setor)}</div>
+              <span class="widget-badge">${n} ${n === 1 ? 'colab.' : 'colabs.'}</span>
+            </div>
+            <div class="empty" style="padding:24px 12px">Nenhum EPI definido — configure o kit</div>
+            <div style="display:flex; justify-content:flex-end; padding:0 2px;">
+              <button class="btn btn-sm" type="button" onclick="abrirModalEpiKit('${h(setor)}')">Configurar kit</button>
+            </div>
+          </div>
+        `;
+      }
+
+      const itensHtml = kit.map(epiId => {
+        const t = EPI_CATALOGO.find(x => x.id === epiId);
+        if (!t) return '';
+        const entregues = ativosSetor.filter(c =>
+          EPI_ENTREGAS.some(e => e.colaborador_id === c.id && e.epi_tipo_id === epiId && !e.devolvido)
+        ).length;
+        const pendentes = n - entregues;
+        const coberturaPct = n ? (entregues / n) * 100 : 100;
+        const icon = pendentes === 0
+          ? `<span class="badge ok" style="margin-left:auto">${entregues}/${n}</span>`
+          : pendentes <= Math.ceil(n * 0.2)
+            ? `<span class="badge warn" style="margin-left:auto">${entregues}/${n}</span>`
+            : `<span class="badge danger" style="margin-left:auto">${entregues}/${n}</span>`;
+        return `
+          <div style="display:flex; align-items:center; gap:10px; padding:8px 2px; border-bottom:1px solid var(--border-soft);">
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:.88rem; font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${h(t.nome)}</div>
+              <div class="cell-person-sub">CA ${h(t.ca)} · ${coberturaPct.toFixed(0)}% cobertura</div>
+            </div>
+            ${icon}
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">${SETOR_ICON[setor] || ''} ${h(setor)}</div>
+            <span class="widget-badge">${n} ${n === 1 ? 'colab.' : 'colabs.'} · ${kit.length} EPIs</span>
+          </div>
+          ${itensHtml}
+          <div style="display:flex; justify-content:flex-end; padding:10px 2px 2px;">
+            <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalEpiKit('${h(setor)}')">Editar kit</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Stats
+    const setoresConfig = setores.filter(s => (EPI_KITS[s] || []).length > 0).length;
+    const totalPendencias = colabsPendencias.reduce((s, x) => s + x.faltando.length, 0);
+
+    // Cobertura média = 1 - (pendencias / esperado_total)
+    let esperadoTotal = 0;
+    ativos.forEach(c => { esperadoTotal += (EPI_KITS[c.setor] || []).length; });
+    const cobertura = esperadoTotal ? (1 - totalPendencias / esperadoTotal) * 100 : 100;
+
+    $('#epi-kits-stat-setores').textContent    = `${setoresConfig}/${setores.length}`;
+    $('#epi-kits-stat-pend').textContent       = colabsPendencias.length;
+    $('#epi-kits-stat-total-pend').textContent = totalPendencias;
+    $('#epi-kits-stat-cobertura').textContent  = `${cobertura.toFixed(0)}%`;
+
+    // Tabela de pendências por colaborador
+    const tb = $('#tb-epi-pendencias');
+    if (tb) {
+      tb.innerHTML = colabsPendencias.length ? colabsPendencias.map(p => {
+        const c = p.colab;
+        const faltantes = p.faltando.map(epiId => {
+          const t = EPI_CATALOGO.find(x => x.id === epiId);
+          return t ? t.nome : '?';
+        }).join(' · ');
+        return `
+          <tr onclick="abrirDrawerColab(${c.id})">
+            <td>
+              <div class="cell-person">
+                <div class="cell-avatar">${h(iniciais(c.nome))}</div>
+                <div>
+                  <div class="cell-person-name">${h(c.nome)}</div>
+                  <div class="cell-person-sub">${h(c.cargo)}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div>${h(c.setor)}</div>
+              ${c.area ? `<div class="cell-person-sub">${h(c.area)}</div>` : ''}
+            </td>
+            <td>
+              <span class="badge danger">${p.faltando.length}</span>
+              <span style="color:var(--text-muted); font-size:.8rem; margin-left:8px;">${h(faltantes)}</span>
+            </td>
+            <td class="actions" onclick="event.stopPropagation()">
+              <button class="btn btn-ghost btn-sm btn-icon" title="Nova entrega" onclick="abrirModalEpiEntrega(null, ${c.id})">+</button>
+            </td>
+          </tr>
+        `;
+      }).join('') : `<tr><td colspan="4" class="empty">Nenhuma pendência — todas as entregas estão em dia 🎉</td></tr>`;
+    }
+
+    const pendBadge = $('#epi-kits-pend-badge');
+    if (pendBadge) pendBadge.textContent = `${colabsPendencias.length} ${colabsPendencias.length === 1 ? 'colab.' : 'colabs.'}`;
+  }
+
+  // Modal editor do kit
+  let _kitEditando = null;
+
+  function abrirModalEpiKit(setor) {
+    _kitEditando = setor;
+    $('#epi-kit-modal-title').textContent = `Kit do setor · ${setor}`;
+    const atual = new Set(EPI_KITS[setor] || []);
+    const lista = $('#epi-kit-lista');
+    lista.innerHTML = EPI_CATALOGO.length
+      ? EPI_CATALOGO.sort((a,b) => a.nome.localeCompare(b.nome)).map(t => `
+          <label class="toggle-row" style="cursor:pointer;">
+            <input type="checkbox" value="${t.id}" ${atual.has(t.id) ? 'checked' : ''}>
+            <span style="flex:1;">${h(t.nome)}</span>
+            <span class="cell-person-sub">CA ${h(t.ca)}</span>
+          </label>
+        `).join('')
+      : `<div class="empty">Cadastre itens no catálogo primeiro</div>`;
+    $('#modal-epi-kit').classList.add('active');
+  }
+
+  function fecharModalEpiKit() {
+    $('#modal-epi-kit').classList.remove('active');
+    _kitEditando = null;
+  }
+
+  function salvarEpiKit() {
+    if (!_kitEditando) return;
+    const ids = [...$('#epi-kit-lista').querySelectorAll('input[type="checkbox"]:checked')]
+      .map(i => parseInt(i.value, 10));
+    EPI_KITS[_kitEditando] = ids;
+    showToast(`Kit do setor ${_kitEditando} atualizado`, 'ok');
+    fecharModalEpiKit();
+    renderEpiKits();
+  }
+
+  // Entrar na aba EPI: renderiza todas as sub-views (estão escondidas por display:none)
   document.querySelectorAll('.nav-item[data-page="epi"]').forEach(el => {
-    el.addEventListener('click', () => setTimeout(renderEpi, 60));
+    el.addEventListener('click', () => setTimeout(() => {
+      renderEpi();
+      renderEpiCatalogo();
+      renderEpiKits();
+    }, 60));
   });
 
   /* ════════════════════════════════════════════════
