@@ -2301,11 +2301,45 @@
           <h1 class="page-title">Rotatividade</h1>
           <div class="page-subtitle">Admissões · demissões · turnover · motivos de saída</div>
         </div>
-        <select id="rot-periodo" class="toolbar" style="padding:8px 12px; min-width:170px; background:var(--white); border:1px solid var(--border); border-radius:8px; font-size:.85rem;">
+        <select id="rot-periodo" style="padding:8px 12px; min-width:170px; background:var(--white); border:1px solid var(--border); border-radius:8px; font-size:.85rem;">
           <option value="12">Últimos 12 meses</option>
           <option value="6">Últimos 6 meses</option>
           <option value="3">Últimos 3 meses</option>
         </select>
+      </div>
+
+      <!-- Filtros -->
+      <div class="toolbar">
+        <select id="rot-filter-setor">
+          <option value="">Todos os setores</option>
+          <option>Produção</option>
+          <option>Administração</option>
+          <option>Gado</option>
+        </select>
+        <select id="rot-filter-sexo">
+          <option value="">Ambos os sexos</option>
+          <option value="M">Masculino</option>
+          <option value="F">Feminino</option>
+          <option value="O">Outro</option>
+        </select>
+        <select id="rot-filter-escolaridade">
+          <option value="">Toda escolaridade</option>
+          <option>Fundamental</option>
+          <option>Médio</option>
+          <option>Técnico</option>
+          <option>Superior</option>
+          <option>Pós-graduação</option>
+        </select>
+        <select id="rot-filter-faixa">
+          <option value="">Toda faixa salarial</option>
+          <option value="0">Até R$ 2.000</option>
+          <option value="1">R$ 2.000 – 3.500</option>
+          <option value="2">R$ 3.500 – 5.000</option>
+          <option value="3">R$ 5.000 – 7.500</option>
+          <option value="4">Acima R$ 7.500</option>
+        </select>
+        <div class="toolbar-spacer"></div>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="limparFiltrosRotatividade()">Limpar filtros</button>
       </div>
 
       <!-- KPIs -->
@@ -4938,7 +4972,26 @@
     const desligad  = ROT_MOCK.desligad.slice(-n);
     const taxa      = ROT_MOCK.taxa.slice(-n);
 
-    // KPIs
+    // Filtros
+    const fSetor  = $('#rot-filter-setor')?.value        || '';
+    const fSexo   = $('#rot-filter-sexo')?.value         || '';
+    const fEsc    = $('#rot-filter-escolaridade')?.value || '';
+    const fFaixa  = $('#rot-filter-faixa')?.value;
+    const temFiltro = fSetor || fSexo || fEsc || (fFaixa != null && fFaixa !== '');
+
+    const passaFiltro = (c) => {
+      if (fSetor && c.setor !== fSetor) return false;
+      if (fSexo  && c.sexo  !== fSexo)  return false;
+      if (fEsc   && c.escolaridade !== fEsc) return false;
+      if (fFaixa != null && fFaixa !== '') {
+        const sal = SALARIOS[c.id]?.valor;
+        if (!sal) return false;
+        if (faixaIdx(sal) !== parseInt(fFaixa, 10)) return false;
+      }
+      return true;
+    };
+
+    // KPIs (globais — série histórica é dos mocks agregados)
     const totalAdm = admissoes.reduce((a,b) => a+b, 0);
     const totalDes = desligad.reduce((a,b) => a+b, 0);
     const taxaAtual = taxa[taxa.length - 1];
@@ -4958,8 +5011,8 @@
     $('#rot-kpi-desligados').textContent = totalDes;
     $('#rot-kpi-desligados-trend').textContent = `média ${(totalDes/n).toFixed(1).replace('.',',')}/mês`;
 
-    // Permanência média baseada em COLABORADORES ativos
-    const ativos = COLABORADORES.filter(c => c.status !== 'inativo' && c.admissao);
+    // Permanência média — baseada em COLABORADORES ativos filtrados
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo' && c.admissao && passaFiltro(c));
     if (ativos.length) {
       const now = new Date();
       const totalAnos = ativos.reduce((acc, c) => {
@@ -4967,6 +5020,8 @@
         return acc + (now - start) / (1000 * 60 * 60 * 24 * 365.25);
       }, 0);
       $('#rot-kpi-perm').innerHTML = `${(totalAnos/ativos.length).toFixed(1).replace('.',',')}<span class="unit">anos</span>`;
+    } else if (temFiltro) {
+      $('#rot-kpi-perm').innerHTML = `—<span class="unit">sem dados</span>`;
     }
 
     // Chart: movimentação mensal (barras)
@@ -5059,10 +5114,14 @@
       },
     });
 
-    // Tabela movimentações recentes
+    // Tabela movimentações recentes (aplica filtro de setor para as que tenham setor)
     const tb = $('#tb-rot-movimentacoes');
     if (tb) {
-      tb.innerHTML = ROT_MOCK.movimentacoesRecentes.map(m => {
+      const movFiltradas = ROT_MOCK.movimentacoesRecentes.filter(m => {
+        if (fSetor && m.setor !== fSetor) return false;
+        return true;
+      });
+      tb.innerHTML = movFiltradas.length ? movFiltradas.map(m => {
         const chip = m.tipo === 'admissao'
           ? `<span class="activity-chip admissao">Admissão</span>`
           : `<span class="activity-chip desligamento">Desligamento</span>`;
@@ -5083,13 +5142,21 @@
             <td style="color:var(--text-muted)">${h(m.motivo)}</td>
           </tr>
         `;
-      }).join('');
+      }).join('') : `<tr><td colspan="5" class="empty">Nenhuma movimentação no filtro</td></tr>`;
     }
+  }
+
+  function limparFiltrosRotatividade() {
+    ['rot-filter-setor','rot-filter-sexo','rot-filter-escolaridade','rot-filter-faixa'].forEach(id => {
+      const el = $('#' + id);
+      if (el) el.value = '';
+    });
+    renderRotatividade();
   }
 
   // Re-render ao mudar período ou voltar na aba
   document.addEventListener('change', (e) => {
-    if (e.target.id === 'rot-periodo') renderRotatividade();
+    if (['rot-periodo','rot-filter-setor','rot-filter-sexo','rot-filter-escolaridade','rot-filter-faixa'].includes(e.target.id)) renderRotatividade();
   });
   document.querySelectorAll('.nav-item[data-page="rotatividade"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderRotatividade, 60));
