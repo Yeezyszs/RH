@@ -2955,7 +2955,7 @@
         <button class="btn" type="button" onclick="abrirModalFerias()">+ Agendar</button>
       </div>
 
-      <!-- Stats -->
+      <!-- Stats principais -->
       <div class="stats-row">
         <div class="stat stat-success">
           <div class="stat-label">Em férias agora</div>
@@ -2975,6 +2975,26 @@
         </div>
       </div>
 
+      <!-- Stats financeiros (provisão CLT — salário + 1/3 constitucional) -->
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Provisão total</div>
+          <div class="stat-value" id="fer-stat-prov-total" style="font-size:1.2rem;">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Provisão · Produção</div>
+          <div class="stat-value" id="fer-stat-prov-prod" style="font-size:1.2rem;">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Provisão · Administração</div>
+          <div class="stat-value" id="fer-stat-prov-adm" style="font-size:1.2rem;">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Provisão · Gado</div>
+          <div class="stat-value" id="fer-stat-prov-gado" style="font-size:1.2rem;">—</div>
+        </div>
+      </div>
+
       <!-- Timeline 12 meses -->
       <div class="widget" style="margin-bottom:14px; overflow-x:auto;">
         <div class="widget-header">
@@ -2990,14 +3010,15 @@
           <table class="data">
             <thead>
               <tr>
-                <th style="width:24%">Colaborador</th>
+                <th style="width:22%">Colaborador</th>
                 <th>Admissão</th>
                 <th>Aquisitivo atual</th>
                 <th>Concessivo limite</th>
-                <th style="text-align:right">Saldo (dias)</th>
+                <th style="text-align:right">Saldo</th>
+                <th style="text-align:right">Provisão</th>
                 <th>Próximo período</th>
                 <th>Status</th>
-                <th style="width:120px; text-align:right">Ações</th>
+                <th style="width:80px; text-align:right">Ações</th>
               </tr>
             </thead>
             <tbody id="tb-ferias"></tbody>
@@ -7203,7 +7224,19 @@
       else if (aq && aq.concessivoLimite < hoje) status = 'vencido';
       else if (aq && aq.concessivoLimite <= addDays(hoje, 60)) status = 'vencendo';
 
-      return { colab:c, aq, periodos, saldo, proximo, status };
+      // Provisão CLT — em tempo real:
+      //   valor_dia = salário / 30
+      //   bruto = valor_dia × saldo_dias
+      //   1/3 constitucional = bruto / 3
+      //   provisão total = bruto + 1/3
+      const sal = parseFloat(SALARIOS[c.id]?.valor || 0);
+      let provisao = 0;
+      if (sal && saldo > 0) {
+        const bruto = (sal / 30) * saldo;
+        provisao = bruto + (bruto / 3);
+      }
+
+      return { colab:c, aq, periodos, saldo, proximo, status, provisao };
     });
 
     const filtradas = linhas.filter(r => {
@@ -7230,6 +7263,9 @@
       const proxTxt = r.proximo
         ? `${fmtDate(r.proximo.inicio)} → ${fmtDate(r.proximo.fim)}`
         : '<span style="color:var(--text-soft)">—</span>';
+      const provDisp = r.provisao > 0
+        ? `<span class="cell-mono" style="font-weight:600; color:var(--phthalo-dark)">${fmtBRL(r.provisao)}</span>`
+        : `<span style="color:var(--text-soft)">—</span>`;
       return `
         <tr onclick="abrirModalFerias(${c.id})">
           <td>
@@ -7237,7 +7273,7 @@
               <div class="cell-avatar">${h(iniciais(c.nome))}</div>
               <div>
                 <div class="cell-person-name">${h(c.nome)}</div>
-                <div class="cell-person-sub">${h(c.cargo)} · ${h(c.setor)}</div>
+                <div class="cell-person-sub">${h(c.cargo)} · ${h(c.setor)}${c.area ? ' · ' + h(c.area) : ''}</div>
               </div>
             </div>
           </td>
@@ -7245,6 +7281,7 @@
           <td class="cell-mono">${fmtDate(r.aq.inicio)} → ${fmtDate(r.aq.fim)}</td>
           <td class="cell-mono">${fmtDate(r.aq.concessivoLimite)}</td>
           <td class="cell-mono" style="text-align:right; font-weight:600; ${r.saldo === 0 ? 'color:var(--text-muted)' : ''}">${r.saldo}</td>
+          <td style="text-align:right">${provDisp}</td>
           <td class="cell-mono">${proxTxt}</td>
           <td>${stBadge}</td>
           <td class="actions" onclick="event.stopPropagation()">
@@ -7252,13 +7289,22 @@
           </td>
         </tr>
       `;
-    }).join('') : `<tr><td colspan="8" class="empty">Nenhum colaborador encontrado</td></tr>`;
+    }).join('') : `<tr><td colspan="9" class="empty">Nenhum colaborador encontrado</td></tr>`;
 
-    // Stats
+    // Stats principais
     $('#fer-stat-agora').textContent = linhas.filter(r => r.status === 'em_ferias').length;
     $('#fer-stat-prox').textContent  = linhas.filter(r => r.status === 'planejada').length;
     $('#fer-stat-pend').textContent  = linhas.filter(r => r.status === 'pendente').length;
     $('#fer-stat-venc').textContent  = linhas.filter(r => r.status === 'vencendo' || r.status === 'vencido').length;
+
+    // Stats financeiros (provisão por setor)
+    const provBy = (setor) => linhas
+      .filter(r => !setor || r.colab.setor === setor)
+      .reduce((s,r) => s + r.provisao, 0);
+    $('#fer-stat-prov-total').textContent = fmtBRL(provBy(null));
+    $('#fer-stat-prov-prod').textContent  = fmtBRL(provBy('Produção'));
+    $('#fer-stat-prov-adm').textContent   = fmtBRL(provBy('Administração'));
+    $('#fer-stat-prov-gado').textContent  = fmtBRL(provBy('Gado'));
 
     renderFeriasTimeline(linhas);
   }
@@ -7356,11 +7402,25 @@
     const diasUsados = periodos.reduce((s,p) => s + (p.dias + (p.abono || 0)), 0);
     const saldo = aq ? Math.max(0, 30 - diasUsados) : 0;
 
+    // Provisão CLT
+    const sal = parseFloat(SALARIOS[c.id]?.valor || 0);
+    let provBruto = 0, provTerco = 0, provTotal = 0;
+    if (sal && saldo > 0) {
+      provBruto = (sal / 30) * saldo;
+      provTerco = provBruto / 3;
+      provTotal = provBruto + provTerco;
+    }
+
     $('#fer-modal-summary').innerHTML = aq ? `
       <div class="info-item"><div class="info-label">Admissão</div><div class="info-value mono">${fmtDate(c.admissao)}</div></div>
       <div class="info-item"><div class="info-label">Aquisitivo atual</div><div class="info-value mono">${fmtDate(aq.inicio)} → ${fmtDate(aq.fim)}</div></div>
       <div class="info-item"><div class="info-label">Concessivo limite</div><div class="info-value mono">${fmtDate(aq.concessivoLimite)}</div></div>
       <div class="info-item"><div class="info-label">Saldo de dias</div><div class="info-value mono" style="${saldo === 0 ? 'color:var(--text-muted)' : 'color:var(--success); font-weight:700'}">${saldo} / 30</div></div>
+      <div class="info-sep"></div>
+      <div class="info-item"><div class="info-label">Salário base</div><div class="info-value mono">${sal ? fmtBRL(sal) : '<span style="color:var(--text-soft)">não cadastrado</span>'}</div></div>
+      <div class="info-item"><div class="info-label">Bruto férias</div><div class="info-value mono">${provBruto ? fmtBRL(provBruto) : '—'}</div></div>
+      <div class="info-item"><div class="info-label">+ 1/3 constitucional</div><div class="info-value mono">${provTerco ? fmtBRL(provTerco) : '—'}</div></div>
+      <div class="info-item"><div class="info-label">Provisão total</div><div class="info-value mono" style="color:var(--phthalo-dark); font-weight:700">${provTotal ? fmtBRL(provTotal) : '—'}</div></div>
     ` : `<div class="empty" style="grid-column:1/-1">Colaborador ainda não completou o primeiro período aquisitivo (12 meses de admissão).</div>`;
 
     const tbP = $('#tb-fer-periodos');
