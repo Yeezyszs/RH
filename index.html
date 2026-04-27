@@ -2001,6 +2001,74 @@
     color: var(--text-muted);
   }
   .emerg-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+  /* ════════════════════════════════════════════════
+     ABAS INTERNAS DO MODAL DE COLABORADOR
+     ════════════════════════════════════════════════ */
+  .modal-tabs-inner {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bluish-bg);
+    padding: 0 22px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    margin: -22px -22px 22px -22px;
+  }
+  .modal-tab-inner {
+    padding: 11px 16px;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+    white-space: nowrap;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    font-family: var(--font);
+  }
+  .modal-tab-inner:hover { color: var(--phthalo-dark); }
+  .modal-tab-inner.active {
+    color: var(--phthalo);
+    border-bottom-color: var(--phthalo);
+  }
+  .modal-sec { display: none; }
+  .modal-sec.active { display: block; }
+
+  /* Card inline de dependente/emergência dentro do modal */
+  .inline-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--bluish-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .inline-card-body { flex: 1; display: grid; grid-template-columns: repeat(2,1fr); gap: 8px 12px; }
+  .inline-card-body .form-group { margin: 0; }
+  .inline-card-remove {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 1.1rem; padding: 2px 4px;
+    border-radius: 4px; flex-shrink: 0; transition: color .15s;
+  }
+  .inline-card-remove:hover { color: var(--danger); }
+  .inline-card-hint {
+    font-size: .78rem; color: var(--text-muted);
+    background: #EFF6FF; border: 1px solid #BFDBFE;
+    border-radius: 6px; padding: 6px 10px;
+    margin-top: 4px; grid-column: 1/-1;
+  }
+  .req { color: var(--danger); }
+  .modal-sec-hint {
+    font-size: .8rem; color: var(--text-muted);
+    margin-top: 6px; padding: 8px 10px;
+    background: var(--bluish-card); border-radius: 6px;
+    border-left: 3px solid var(--info);
+  }
 </style>
 </head>
 <body>
@@ -3750,117 +3818,217 @@
 
 <!-- ════════════ MODAL — NOVO/EDITAR COLABORADOR ════════════ -->
 <div id="modal-colaborador" class="modal">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:780px;">
     <div class="modal-header">
       <div class="modal-title" id="modal-colab-title">Novo colaborador</div>
       <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalColaborador()">×</button>
     </div>
     <div class="modal-body">
-      <form id="form-colaborador" class="form-grid" onsubmit="salvarColaborador(event)">
-        <div class="form-group">
-          <label>Nome completo</label>
-          <input type="text" name="nome" required>
+      <form id="form-colaborador" onsubmit="salvarColaborador(event)">
+
+        <!-- Navegação por abas interna ao modal -->
+        <div class="modal-tabs-inner" id="modal-colab-tabs">
+          <button type="button" class="modal-tab-inner active" data-mtab="dados">Dados pessoais</button>
+          <button type="button" class="modal-tab-inner" data-mtab="docs">Documentação</button>
+          <button type="button" class="modal-tab-inner" data-mtab="dependentes">Dependentes</button>
+          <button type="button" class="modal-tab-inner" data-mtab="emergencia">Emergência</button>
         </div>
-        <div class="form-group">
-          <label>Matrícula</label>
-          <input type="text" name="matricula">
+
+        <!-- ── ABA: DADOS PESSOAIS ── -->
+        <div class="modal-sec active form-grid" data-msec="dados">
+          <div class="form-group">
+            <label>Nome completo <span class="req">*</span></label>
+            <input type="text" name="nome" required placeholder="Nome completo">
+          </div>
+          <div class="form-group">
+            <label>Matrícula</label>
+            <input type="text" name="matricula" placeholder="000000">
+          </div>
+          <div class="form-group">
+            <label>CPF</label>
+            <input type="text" name="cpf" placeholder="000.000.000-00">
+          </div>
+          <div class="form-group">
+            <label>Data de nascimento</label>
+            <input type="date" name="nascimento">
+          </div>
+          <div class="form-group">
+            <label>Cargo</label>
+            <input type="text" name="cargo" placeholder="Ex.: Operador de Máquina">
+          </div>
+          <div class="form-group">
+            <label>Setor</label>
+            <select name="setor">
+              <option value="">—</option>
+              <option>Produção</option>
+              <option>Administração</option>
+              <option>Gado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Área</label>
+            <input type="text" name="area" list="areas-datalist" placeholder="Ex.: Ensaques · Manutenção">
+            <datalist id="areas-datalist">
+              <option>Operação</option><option>Ensaques</option><option>Extração</option>
+              <option>Manutenção</option><option>Logística</option><option>Limpeza</option>
+              <option>Almoxarifado</option><option>Administrativo</option><option>Financeiro</option>
+              <option>Comercial</option><option>RH</option><option>TI</option><option>Qualidade</option>
+              <option>Manejo</option><option>Sanidade</option><option>Campo</option><option>Externo</option>
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label>Sexo</label>
+            <select name="sexo">
+              <option value="">—</option>
+              <option value="M">Masculino</option>
+              <option value="F">Feminino</option>
+              <option value="O">Outro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Estado civil</label>
+            <select name="estado_civil">
+              <option value="">—</option>
+              <option>Solteiro(a)</option>
+              <option>Casado(a)</option>
+              <option>União estável</option>
+              <option>Divorciado(a)</option>
+              <option>Viúvo(a)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Escolaridade</label>
+            <select name="escolaridade">
+              <option value="">—</option>
+              <option>Fundamental</option>
+              <option>Médio</option>
+              <option>Técnico</option>
+              <option>Superior</option>
+              <option>Pós-graduação</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Admissão</label>
+            <input type="date" name="admissao">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select name="status">
+              <option value="ativo">Ativo</option>
+              <option value="ferias">Em férias</option>
+              <option value="afastado">Afastado</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Telefone</label>
+            <input type="tel" name="telefone" placeholder="(00) 00000-0000">
+          </div>
+          <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" name="email" placeholder="colaborador@empresa.com">
+          </div>
+          <div class="form-group full">
+            <label>Endereço</label>
+            <input type="text" name="endereco" placeholder="Rua, número — Cidade/UF">
+          </div>
         </div>
-        <div class="form-group">
-          <label>CPF</label>
-          <input type="text" name="cpf" placeholder="000.000.000-00">
+
+        <!-- ── ABA: DOCUMENTAÇÃO ── -->
+        <div class="modal-sec form-grid" data-msec="docs">
+          <div class="form-group">
+            <label>RG</label>
+            <input type="text" name="rg" placeholder="00.000.000-0">
+          </div>
+          <div class="form-group">
+            <label>Órgão emissor / UF</label>
+            <input type="text" name="rg_orgao" placeholder="Ex.: SSP/SP">
+          </div>
+          <div class="form-group">
+            <label>Data emissão RG</label>
+            <input type="date" name="rg_emissao">
+          </div>
+          <div class="form-group">
+            <label>PIS / PASEP</label>
+            <input type="text" name="pis" placeholder="000.00000.00-0">
+          </div>
+          <div class="form-group">
+            <label>CTPS nº</label>
+            <input type="text" name="ctps" placeholder="0000000">
+          </div>
+          <div class="form-group">
+            <label>CTPS série / UF</label>
+            <input type="text" name="ctps_serie" placeholder="000-SP">
+          </div>
+          <div class="form-group">
+            <label>CNH nº</label>
+            <input type="text" name="cnh" placeholder="00000000000">
+          </div>
+          <div class="form-group">
+            <label>Categoria CNH</label>
+            <select name="cnh_categoria">
+              <option value="">—</option>
+              <option>A</option><option>B</option><option>AB</option>
+              <option>C</option><option>D</option><option>E</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Validade CNH</label>
+            <input type="date" name="cnh_validade">
+          </div>
+          <div class="form-group">
+            <label>Título de eleitor</label>
+            <input type="text" name="titulo_eleitor" placeholder="0000 0000 0000">
+          </div>
+          <div class="form-group">
+            <label>Zona / Seção</label>
+            <input type="text" name="titulo_zona" placeholder="000 / 0000">
+          </div>
+          <div class="form-group">
+            <label>Nº reservista</label>
+            <input type="text" name="reservista" placeholder="(se aplicável)">
+          </div>
+          <div class="form-group">
+            <label>Banco</label>
+            <input type="text" name="banco" placeholder="Ex.: Banco do Brasil">
+          </div>
+          <div class="form-group">
+            <label>Agência</label>
+            <input type="text" name="agencia" placeholder="0000-0">
+          </div>
+          <div class="form-group">
+            <label>Conta / Tipo</label>
+            <input type="text" name="conta" placeholder="00000-0">
+          </div>
+          <div class="form-group">
+            <label>Tipo de conta</label>
+            <select name="conta_tipo">
+              <option value="">—</option>
+              <option>Corrente</option>
+              <option>Poupança</option>
+              <option>Salário</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Data nascimento</label>
-          <input type="date" name="nascimento">
+
+        <!-- ── ABA: DEPENDENTES ── -->
+        <div class="modal-sec" data-msec="dependentes">
+          <div id="dep-lista-modal"></div>
+          <button type="button" class="btn btn-secondary btn-sm" style="margin-top:4px;" onclick="adicionarDepModal()">+ Adicionar dependente</button>
+          <div class="modal-sec-hint" style="margin-top:10px;">Dependentes com menos de 14 anos exibem campo de escola automaticamente.</div>
         </div>
-        <div class="form-group">
-          <label>Cargo</label>
-          <input type="text" name="cargo">
+
+        <!-- ── ABA: EMERGÊNCIA ── -->
+        <div class="modal-sec" data-msec="emergencia">
+          <div id="emerg-lista-modal"></div>
+          <button type="button" class="btn btn-secondary btn-sm" style="margin-top:4px;" onclick="adicionarEmergModal()">+ Adicionar contato</button>
         </div>
-        <div class="form-group">
-          <label>Setor</label>
-          <select name="setor">
-            <option>Produção</option>
-            <option>Administração</option>
-            <option>Gado</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Área</label>
-          <input type="text" name="area" list="areas-datalist" placeholder="Ex.: Ensaques · Manutenção · Sanidade">
-          <datalist id="areas-datalist">
-            <!-- Produção -->
-            <option>Operação</option>
-            <option>Ensaques</option>
-            <option>Extração</option>
-            <option>Manutenção</option>
-            <option>Logística</option>
-            <option>Limpeza</option>
-            <option>Almoxarifado</option>
-            <!-- Administração -->
-            <option>Administrativo</option>
-            <option>Financeiro</option>
-            <option>Comercial</option>
-            <option>RH</option>
-            <option>TI</option>
-            <option>Qualidade</option>
-            <!-- Gado -->
-            <option>Manejo</option>
-            <option>Sanidade</option>
-            <option>Campo</option>
-            <option>Externo</option>
-          </datalist>
-        </div>
-        <div class="form-group">
-          <label>Sexo</label>
-          <select name="sexo">
-            <option value="">—</option>
-            <option value="M">Masculino</option>
-            <option value="F">Feminino</option>
-            <option value="O">Outro</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Escolaridade</label>
-          <select name="escolaridade">
-            <option value="">—</option>
-            <option>Fundamental</option>
-            <option>Médio</option>
-            <option>Técnico</option>
-            <option>Superior</option>
-            <option>Pós-graduação</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Admissão</label>
-          <input type="date" name="admissao">
-        </div>
-        <div class="form-group">
-          <label>Status</label>
-          <select name="status">
-            <option value="ativo">Ativo</option>
-            <option value="ferias">Em férias</option>
-            <option value="afastado">Afastado</option>
-            <option value="inativo">Inativo</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Telefone</label>
-          <input type="text" name="telefone">
-        </div>
-        <div class="form-group">
-          <label>E-mail</label>
-          <input type="email" name="email">
-        </div>
-        <div class="form-group full">
-          <label>Endereço</label>
-          <input type="text" name="endereco">
-        </div>
+
       </form>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalColaborador()">Cancelar</button>
-      <button class="btn btn-sm" type="submit" form="form-colaborador">Salvar</button>
+      <button class="btn btn-sm" type="submit" form="form-colaborador">Salvar colaborador</button>
     </div>
   </div>
 </div>
@@ -5352,45 +5520,223 @@ Liderança de equipe ≥3 pessoas"></textarea>
   }
 
   /* ── MODAL NOVO/EDITAR ── */
-  let _editandoColabId = null;
+  let _editandoColabId  = null;
+  let _depsModal        = [];   // dependentes sendo editados no modal
+  let _emergsModal      = [];   // contatos de emergência sendo editados no modal
+  let _depSeq           = 0;    // id temporário para itens inline
+  let _emergSeq         = 0;
 
+  /* ─── navegação das abas internas do modal ─── */
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('.modal-tab-inner');
+    if (!tab) return;
+    const name = tab.dataset.mtab;
+    const box  = tab.closest('.modal-box');
+    box.querySelectorAll('.modal-tab-inner').forEach(t => t.classList.toggle('active', t === tab));
+    box.querySelectorAll('.modal-sec').forEach(s => s.classList.toggle('active', s.dataset.msec === name));
+  });
+
+  /* ─── helpers de idade ─── */
+  function idadeAnos(nascimento) {
+    if (!nascimento) return null;
+    const d = new Date(nascimento + 'T00:00:00');
+    const hoje = new Date();
+    let a = hoje.getFullYear() - d.getFullYear();
+    if (hoje.getMonth() < d.getMonth() || (hoje.getMonth() === d.getMonth() && hoje.getDate() < d.getDate())) a--;
+    return a;
+  }
+
+  /* ─── renderizar lista de dependentes no modal ─── */
+  function renderDepsModal() {
+    const el = document.getElementById('dep-lista-modal');
+    if (!el) return;
+    if (!_depsModal.length) {
+      el.innerHTML = '<div style="color:var(--text-muted);font-size:.88rem;padding:4px 0 10px;">Nenhum dependente cadastrado.</div>';
+      return;
+    }
+    el.innerHTML = _depsModal.map(d => {
+      const menor14 = d.nascimento && idadeAnos(d.nascimento) < 14;
+      return `
+      <div class="inline-card" id="dep-card-${d._sid}">
+        <div class="inline-card-body">
+          <div class="form-group">
+            <label>Nome <span class="req">*</span></label>
+            <input type="text" value="${h(d.nome)}" placeholder="Nome completo"
+              oninput="_depsModal.find(x=>x._sid===${d._sid}).nome=this.value">
+          </div>
+          <div class="form-group">
+            <label>Parentesco</label>
+            <select onchange="_depsModal.find(x=>x._sid===${d._sid}).parentesco=this.value">
+              ${['Filho(a)','Cônjuge','Mãe','Pai','Irmã','Irmão','Outro'].map(p =>
+                `<option value="${p}"${d.parentesco===p?' selected':''}>${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Data de nascimento</label>
+            <input type="date" value="${h(d.nascimento||'')}"
+              oninput="_depsModal.find(x=>x._sid===${d._sid}).nascimento=this.value;renderDepsModal()">
+          </div>
+          <div class="form-group">
+            <label>CPF do dependente</label>
+            <input type="text" value="${h(d.cpf||'')}" placeholder="000.000.000-00"
+              oninput="_depsModal.find(x=>x._sid===${d._sid}).cpf=this.value">
+          </div>
+          ${menor14 ? `
+          <div class="form-group full">
+            <label>Escola (obrigatório — menor de 14 anos)</label>
+            <input type="text" value="${h(d.escola||'')}" placeholder="Nome da escola / creche"
+              oninput="_depsModal.find(x=>x._sid===${d._sid}).escola=this.value">
+            <div class="inline-card-hint">📚 Dependente com menos de 14 anos — campo de escola exigido para fins de declaração e benefícios.</div>
+          </div>` : ''}
+        </div>
+        <button type="button" class="inline-card-remove" title="Remover" onclick="removerDepModal(${d._sid})">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  function adicionarDepModal() {
+    _depsModal.push({ _sid: ++_depSeq, nome:'', parentesco:'Filho(a)', nascimento:'', cpf:'', escola:'' });
+    renderDepsModal();
+  }
+
+  function removerDepModal(sid) {
+    _depsModal = _depsModal.filter(x => x._sid !== sid);
+    renderDepsModal();
+  }
+
+  /* ─── renderizar lista de emergência no modal ─── */
+  function renderEmergsModal() {
+    const el = document.getElementById('emerg-lista-modal');
+    if (!el) return;
+    if (!_emergsModal.length) {
+      el.innerHTML = '<div style="color:var(--text-muted);font-size:.88rem;padding:4px 0 10px;">Nenhum contato de emergência cadastrado.</div>';
+      return;
+    }
+    el.innerHTML = _emergsModal.map(c => `
+      <div class="inline-card" id="emerg-card-${c._sid}">
+        <div class="inline-card-body">
+          <div class="form-group">
+            <label>Nome <span class="req">*</span></label>
+            <input type="text" value="${h(c.nome)}" placeholder="Nome do contato"
+              oninput="_emergsModal.find(x=>x._sid===${c._sid}).nome=this.value">
+          </div>
+          <div class="form-group">
+            <label>Parentesco</label>
+            <select onchange="_emergsModal.find(x=>x._sid===${c._sid}).parentesco=this.value">
+              ${['Cônjuge','Mãe','Pai','Filho(a)','Irmã','Irmão','Avó','Avô','Tio(a)','Amigo(a)','Outro'].map(p =>
+                `<option value="${p}"${c.parentesco===p?' selected':''}>${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Telefone</label>
+            <input type="tel" value="${h(c.telefone||'')}" placeholder="(00) 00000-0000"
+              oninput="_emergsModal.find(x=>x._sid===${c._sid}).telefone=this.value">
+          </div>
+        </div>
+        <button type="button" class="inline-card-remove" title="Remover" onclick="removerEmergModal(${c._sid})">×</button>
+      </div>`).join('');
+  }
+
+  function adicionarEmergModal() {
+    _emergsModal.push({ _sid: ++_emergSeq, nome:'', parentesco:'Cônjuge', telefone:'' });
+    renderEmergsModal();
+  }
+
+  function removerEmergModal(sid) {
+    _emergsModal = _emergsModal.filter(x => x._sid !== sid);
+    renderEmergsModal();
+  }
+
+  /* ─── abrir modal ─── */
   function abrirModalColaborador(id = null) {
     _editandoColabId = id;
-    const form = $('#form-colaborador');
+    _depsModal   = [];
+    _emergsModal = [];
+
+    const form = document.getElementById('form-colaborador');
     form.reset();
+
     if (id != null) {
+      document.getElementById('modal-colab-title').textContent = 'Editar colaborador';
       const c = COLABORADORES.find(x => x.id === id);
       if (c) {
-        $('#modal-colab-title').textContent = 'Editar colaborador';
-        for (const [k,v] of Object.entries(c)) {
+        for (const [k, v] of Object.entries(c)) {
           const f = form.elements[k];
           if (f) f.value = v ?? '';
         }
       }
+      // carregar dependentes e contatos existentes como cópias editáveis
+      _depsModal   = (DEPENDENTES || []).filter(d => d.colaborador_id === id)
+                      .map(d => ({ ...d, _sid: ++_depSeq }));
+      _emergsModal = CONTATOS_EMERG.filter(c => c.colaborador_id === id)
+                      .map(c => ({ ...c, _sid: ++_emergSeq }));
     } else {
-      $('#modal-colab-title').textContent = 'Novo colaborador';
+      document.getElementById('modal-colab-title').textContent = 'Novo colaborador';
     }
-    $('#modal-colaborador').classList.add('active');
+
+    // resetar para aba "dados"
+    const box = document.getElementById('modal-colaborador').querySelector('.modal-box');
+    box.querySelectorAll('.modal-tab-inner').forEach(t => t.classList.toggle('active', t.dataset.mtab === 'dados'));
+    box.querySelectorAll('.modal-sec').forEach(s => s.classList.toggle('active', s.dataset.msec === 'dados'));
+
+    renderDepsModal();
+    renderEmergsModal();
+    document.getElementById('modal-colaborador').classList.add('active');
   }
 
   function fecharModalColaborador() {
-    $('#modal-colaborador').classList.remove('active');
+    document.getElementById('modal-colaborador').classList.remove('active');
     _editandoColabId = null;
   }
 
+  /* ─── salvar ─── */
   function salvarColaborador(e) {
     e.preventDefault();
-    const form = $('#form-colaborador');
+    const form = document.getElementById('form-colaborador');
     const data = Object.fromEntries(new FormData(form));
+
+    // validar dependentes com < 14 anos sem escola
+    const depSemEscola = _depsModal.filter(d => {
+      const menor = d.nascimento && idadeAnos(d.nascimento) < 14;
+      return menor && !d.escola.trim();
+    });
+    if (depSemEscola.length) {
+      showToast('Preencha a escola dos dependentes menores de 14 anos', 'err');
+      // navegar para a aba de dependentes
+      const box = document.getElementById('modal-colaborador').querySelector('.modal-box');
+      box.querySelectorAll('.modal-tab-inner').forEach(t => t.classList.toggle('active', t.dataset.mtab === 'dependentes'));
+      box.querySelectorAll('.modal-sec').forEach(s => s.classList.toggle('active', s.dataset.msec === 'dependentes'));
+      return;
+    }
+
+    let colabId;
     if (_editandoColabId != null) {
       const i = COLABORADORES.findIndex(x => x.id === _editandoColabId);
       if (i >= 0) COLABORADORES[i] = { ...COLABORADORES[i], ...data };
+      colabId = _editandoColabId;
       showToast('Colaborador atualizado', 'ok');
     } else {
-      const newId = Math.max(0, ...COLABORADORES.map(x => x.id)) + 1;
-      COLABORADORES.unshift({ id: newId, ...data });
+      colabId = Math.max(0, ...COLABORADORES.map(x => x.id)) + 1;
+      COLABORADORES.unshift({ id: colabId, ...data });
       showToast('Colaborador cadastrado', 'ok');
     }
+
+    // sincronizar dependentes
+    DEPENDENTES = DEPENDENTES.filter(d => d.colaborador_id !== colabId);
+    _depsModal.forEach(d => {
+      const { _sid, ...rest } = d;
+      const existeId = rest.id && rest.id !== undefined ? rest.id : Math.max(0, ...DEPENDENTES.map(x => x.id), 0) + 1;
+      DEPENDENTES.push({ ...rest, id: existeId, colaborador_id: colabId });
+    });
+
+    // sincronizar contatos de emergência
+    CONTATOS_EMERG = CONTATOS_EMERG.filter(c => c.colaborador_id !== colabId);
+    _emergsModal.forEach(c => {
+      const { _sid, ...rest } = c;
+      const existeId = rest.id && rest.id !== undefined ? rest.id : Math.max(0, ...CONTATOS_EMERG.map(x => x.id), 0) + 1;
+      CONTATOS_EMERG.push({ ...rest, id: existeId, colaborador_id: colabId });
+    });
+
     fecharModalColaborador();
     renderColaboradores();
   }
@@ -5408,6 +5754,24 @@ Liderança de equipe ≥3 pessoas"></textarea>
     renderColaboradores();
     showToast('Colaborador excluído');
   }
+
+  /* ════════════════════════════════════════════════
+     DEPENDENTES
+     ════════════════════════════════════════════════ */
+  let DEPENDENTES = [
+    { id:1,  colaborador_id:1,  nome:'Laura Costa',         parentesco:'Filho(a)', nascimento:'2015-03-10', cpf:'',              escola:'EMEF Professora Maria' },
+    { id:2,  colaborador_id:1,  nome:'Bruno Costa',         parentesco:'Filho(a)', nascimento:'2019-07-22', cpf:'',              escola:'CEI Girassol'          },
+    { id:3,  colaborador_id:3,  nome:'Fernanda Ramos',      parentesco:'Cônjuge',  nascimento:'1981-05-14', cpf:'321.654.987-00', escola:''                     },
+    { id:4,  colaborador_id:3,  nome:'Felipe Ramos',        parentesco:'Filho(a)', nascimento:'2013-11-02', cpf:'',              escola:'Escola Estadual Dom Pedro' },
+    { id:5,  colaborador_id:4,  nome:'Isabela Oliveira',    parentesco:'Filho(a)', nascimento:'2010-08-30', cpf:'',              escola:'Colégio Santa Cruz'    },
+    { id:6,  colaborador_id:5,  nome:'Carla Souza',         parentesco:'Cônjuge',  nascimento:'1991-04-19', cpf:'654.321.098-11', escola:''                     },
+    { id:7,  colaborador_id:7,  nome:'Helena Pinto',        parentesco:'Filho(a)', nascimento:'2018-02-05', cpf:'',              escola:'Escola Municipal Bela Vista' },
+    { id:8,  colaborador_id:8,  nome:'Ricardo Silveira',    parentesco:'Cônjuge',  nascimento:'1984-09-12', cpf:'789.456.123-22', escola:''                     },
+    { id:9,  colaborador_id:9,  nome:'Thiago Rocha',        parentesco:'Filho(a)', nascimento:'2020-06-18', cpf:'',              escola:'CEI Sol Nascente'      },
+    { id:10, colaborador_id:11, nome:'Cláudia Ferreira',    parentesco:'Cônjuge',  nascimento:'1977-10-03', cpf:'111.333.555-66', escola:''                     },
+    { id:11, colaborador_id:11, nome:'Anderson Ferreira',   parentesco:'Filho(a)', nascimento:'2008-04-25', cpf:'',              escola:'EMEF José de Anchieta' },
+    { id:12, colaborador_id:12, nome:'Priscila Campos',     parentesco:'Cônjuge',  nascimento:'1988-01-17', cpf:'222.444.666-77', escola:''                     },
+  ];
 
   /* ════════════════════════════════════════════════
      CONTATOS DE EMERGÊNCIA
