@@ -2000,6 +2000,10 @@
         <span class="nav-icon">▦</span>
         <span>Cronograma</span>
       </div>
+      <div class="nav-item" data-page="plano-carreiras">
+        <span class="nav-icon">⤴</span>
+        <span>Plano de Carreiras</span>
+      </div>
     </div>
 
     <div class="sidebar-footer">v0.1 · esqueleto</div>
@@ -3461,6 +3465,90 @@
 
     </section>
 
+    <!-- ───── PLANO DE CARREIRAS ───── -->
+    <section id="page-plano-carreiras" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Plano de Carreiras</h1>
+          <div class="page-subtitle">Trilhas · cargos · planos individuais por colaborador</div>
+        </div>
+      </div>
+
+      <!-- Sub-abas -->
+      <div class="view-tabs">
+        <div class="view-tab active" data-view="pc-estrutura">Trilhas & Cargos</div>
+        <div class="view-tab" data-view="pc-individuais">Planos individuais</div>
+      </div>
+
+      <!-- ══════ ESTRUTURA ══════ -->
+      <div id="view-pc-estrutura" class="view-content active">
+
+        <div class="toolbar">
+          <div class="toolbar-spacer"></div>
+          <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalPcCargo()">+ Novo cargo</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-label">Trilhas</div>
+            <div class="stat-value" id="pc-stat-trilhas">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Cargos cadastrados</div>
+            <div class="stat-value" id="pc-stat-cargos">—</div>
+          </div>
+          <div class="stat stat-success">
+            <div class="stat-label">Colabs vinculados</div>
+            <div class="stat-value" id="pc-stat-vinc">—</div>
+          </div>
+          <div class="stat stat-warn">
+            <div class="stat-label">Colabs sem plano</div>
+            <div class="stat-value" id="pc-stat-sem">—</div>
+          </div>
+        </div>
+
+        <div id="pc-trilhas-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap:14px;"></div>
+      </div>
+
+      <!-- ══════ PLANOS INDIVIDUAIS ══════ -->
+      <div id="view-pc-individuais" class="view-content">
+
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <input type="text" id="pc-search" placeholder="Buscar colaborador…">
+          </div>
+          <select id="pc-filter-trilha">
+            <option value="">Todas as trilhas</option>
+          </select>
+          <select id="pc-filter-status">
+            <option value="">Qualquer status</option>
+            <option value="com_plano">Com plano</option>
+            <option value="sem_plano">Sem plano</option>
+          </select>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th style="width:24%">Colaborador</th>
+                  <th>Setor / Área</th>
+                  <th>Cargo atual</th>
+                  <th>Trilha</th>
+                  <th>Próximo cargo</th>
+                  <th>Progresso</th>
+                  <th style="width:100px; text-align:right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tb-pc-individuais"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
   </main>
 
 </div><!-- /.app-shell -->
@@ -4470,6 +4558,119 @@
   </div>
 </div>
 
+<!-- ════════════ MODAL — CARGO (Plano de Carreiras) ════════════ -->
+<div id="modal-pc-cargo" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="pc-cargo-title">Novo cargo</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalPcCargo()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-pc-cargo" class="form-grid" onsubmit="salvarPcCargo(event)">
+        <input type="hidden" name="id">
+        <div class="form-group">
+          <label>Trilha</label>
+          <input type="text" name="trilha" list="pc-trilhas-datalist" required>
+          <datalist id="pc-trilhas-datalist">
+            <option>Operacional</option>
+            <option>Técnica</option>
+            <option>Gestão</option>
+            <option>Especialista</option>
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label>Nível</label>
+          <select name="nivel" required>
+            <option value="0">Trainee</option>
+            <option value="1">Júnior</option>
+            <option value="2">Pleno</option>
+            <option value="3">Sênior</option>
+            <option value="4">Especialista</option>
+            <option value="5">Coordenador</option>
+            <option value="6">Gerente</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Nome do cargo</label>
+          <input type="text" name="nome" required placeholder="Ex.: Analista de RH Pleno">
+        </div>
+        <div class="form-group">
+          <label>Faixa salarial mín. (R$)</label>
+          <input type="number" name="salario_min" step="0.01" min="0">
+        </div>
+        <div class="form-group">
+          <label>Faixa salarial máx. (R$)</label>
+          <input type="number" name="salario_max" step="0.01" min="0">
+        </div>
+        <div class="form-group full">
+          <label>Requisitos / competências esperadas (uma por linha)</label>
+          <textarea name="competencias" rows="5" placeholder="Ex.:
+Domínio do eSocial
+Excel avançado
+Inglês intermediário
+Liderança de equipe ≥3 pessoas"></textarea>
+        </div>
+        <div class="form-group full">
+          <label>Descrição do cargo</label>
+          <textarea name="descricao"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" type="button" id="btn-pc-cargo-excluir" onclick="excluirPcCargoAtual()" style="margin-right:auto; display:none;">Excluir</button>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalPcCargo()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-pc-cargo">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — PLANO INDIVIDUAL ════════════ -->
+<div id="modal-pc-plano" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="pc-plano-title">Plano individual</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalPcPlano()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-pc-plano" onsubmit="salvarPcPlano(event)" style="display:flex; flex-direction:column; gap:14px;">
+        <input type="hidden" name="colaborador_id">
+        <div class="info-grid" id="pc-plano-resumo"></div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Cargo atual</label>
+            <select name="cargo_atual_id" required></select>
+          </div>
+          <div class="form-group">
+            <label>Cargo-alvo (próximo passo)</label>
+            <select name="cargo_alvo_id">
+              <option value="">— sem alvo definido —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Prazo estimado</label>
+            <input type="date" name="prazo">
+          </div>
+          <div class="form-group">
+            <label>Progresso (%)</label>
+            <input type="number" name="progresso" min="0" max="100" value="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Plano de desenvolvimento</label>
+          <textarea name="plano_acao" rows="4" placeholder="Cursos, mentorias, projetos, certificações…"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" type="button" id="btn-pc-plano-excluir" onclick="excluirPcPlanoAtual()" style="margin-right:auto; display:none;">Remover plano</button>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalPcPlano()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-pc-plano">Salvar plano</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ POPUP ALERTA DE VENCIMENTOS ════════════ -->
 <div id="alert-popup-vencimentos" class="alert-popup">
   <div class="alert-popup-header">
@@ -4645,6 +4846,7 @@
     if (typeof renderFeedback === 'function') renderFeedback();
     if (typeof renderClima === 'function') renderClima();
     if (typeof renderCronograma === 'function') renderCronograma();
+    if (typeof renderPlanoCarreiras === 'function') renderPlanoCarreiras();
   }
 
   if (document.readyState === 'loading') {
@@ -8922,6 +9124,346 @@
 
   document.querySelectorAll('.nav-item[data-page="cronograma"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderCronograma, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     PLANO DE CARREIRAS — trilhas, cargos e planos
+     ════════════════════════════════════════════════ */
+
+  const PC_NIVEL_LABEL = ['Trainee','Júnior','Pleno','Sênior','Especialista','Coordenador','Gerente'];
+
+  // Cargos cadastrados — cada um pertence a uma trilha + nível
+  let PC_CARGOS = [
+    { id:1, trilha:'Operacional',  nivel:0, nome:'Aux. de Produção',          salario_min:1800, salario_max:2200, competencias:'Pontualidade\nDisciplina com EPI\nLeitura e escrita basicas',           descricao:'Apoio em linha de producao.' },
+    { id:2, trilha:'Operacional',  nivel:1, nome:'Op. de Produção Jr',        salario_min:2200, salario_max:2700, competencias:'Operar 1 linha\nIdentificar paradas comuns\nChecklist 5S',                  descricao:'Operacao de uma linha sob supervisao.' },
+    { id:3, trilha:'Operacional',  nivel:2, nome:'Op. de Produção Pl',        salario_min:2700, salario_max:3300, competencias:'Operar todas as linhas\nDiagnostico de falhas simples\nRegistros em planilha',descricao:'Multifuncional na operacao.' },
+    { id:4, trilha:'Operacional',  nivel:3, nome:'Op. de Produção Sr',        salario_min:3300, salario_max:4200, competencias:'Treinar novos\nAjustes de processo\nPropor melhorias',                       descricao:'Referencia tecnica do turno.' },
+    { id:5, trilha:'Técnica',      nivel:2, nome:'Mecânico Industrial Pl',    salario_min:3500, salario_max:4500, competencias:'Hidraulica\nPneumatica\nLeitura de eletrica basica\nNR-10\nNR-12',          descricao:'Manutencao corretiva e preventiva.' },
+    { id:6, trilha:'Técnica',      nivel:3, nome:'Mecânico Industrial Sr',    salario_min:4500, salario_max:6000, competencias:'CLP basico\nDiagnostico avancado\nLideranca de paradas\nProgramacao preventiva',descricao:'Referencia tecnica da manutencao.' },
+    { id:7, trilha:'Gestão',       nivel:5, nome:'Coord. Administrativo',     salario_min:6500, salario_max:8500, competencias:'Liderar equipe ≥3\nGestao orcamentaria\nReporting mensal\nExcel avancado',     descricao:'Coordenacao do administrativo.' },
+    { id:8, trilha:'Gestão',       nivel:6, nome:'Gerente Administrativo',    salario_min:9000, salario_max:14000,competencias:'Gestao 360\nNegociacao\nVisao estrategica\nPlanejamento anual',                descricao:'Gerencia de toda a area administrativa.' },
+    { id:9, trilha:'Especialista', nivel:4, nome:'Médico Veterinário',        salario_min:7000, salario_max:11000,competencias:'Diagnostico clinico\nPrescricao\nSanidade do rebanho\nReproducao bovina',     descricao:'Saude e reproducao do rebanho.' },
+    { id:10,trilha:'Operacional',  nivel:1, nome:'Trabalhador Rural Jr',      salario_min:1800, salario_max:2300, competencias:'Manejo basico\nRotina de cocho\nIdentificacao de reses',                      descricao:'Apoio nas atividades de campo.' },
+  ];
+
+  // Planos individuais — colaborador → cargo atual + cargo alvo + plano
+  let PC_PLANOS = {
+    1:  { cargo_atual_id:7, cargo_alvo_id:8,  prazo:'2027-12-31', progresso:35, plano_acao:'MBA em RH ate dez/2026.\nLiderar projeto de digitalizacao em Q3.' },
+    3:  { cargo_atual_id:6, cargo_alvo_id:null, prazo:null,        progresso:80, plano_acao:'Aprofundar em CLPs (curso Siemens em andamento).' },
+    4:  { cargo_atual_id:7, cargo_alvo_id:8,  prazo:'2026-12-31', progresso:50, plano_acao:'Cursos: Negociacao Avancada (jul/26), Gestao Estrategica (set/26).' },
+    8:  { cargo_atual_id:3, cargo_alvo_id:4,  prazo:'2026-08-31', progresso:60, plano_acao:'Treinamento de melhoria continua + acompanhamento de 2 paradas/mes.' },
+    9:  { cargo_atual_id:2, cargo_alvo_id:3,  prazo:'2026-09-30', progresso:25, plano_acao:'Operar 2 linhas adicionais com supervisor ate set/26.' },
+    12: { cargo_atual_id:9, cargo_alvo_id:null, prazo:null,        progresso:90, plano_acao:'Especializacao em reproducao bovina (mar/27).' },
+  };
+
+  function renderPlanoCarreiras() {
+    renderPcEstrutura();
+    renderPcIndividuais();
+  }
+
+  function renderPcEstrutura() {
+    const grid = $('#pc-trilhas-grid');
+    if (!grid) return;
+
+    // Agrupa cargos por trilha
+    const porTrilha = {};
+    PC_CARGOS.forEach(c => {
+      if (!porTrilha[c.trilha]) porTrilha[c.trilha] = [];
+      porTrilha[c.trilha].push(c);
+    });
+    const trilhas = Object.keys(porTrilha).sort();
+
+    // Stats
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo');
+    const vinc = ativos.filter(c => PC_PLANOS[c.id]).length;
+    $('#pc-stat-trilhas').textContent = trilhas.length;
+    $('#pc-stat-cargos').textContent  = PC_CARGOS.length;
+    $('#pc-stat-vinc').textContent    = vinc;
+    $('#pc-stat-sem').textContent     = ativos.length - vinc;
+
+    // Cards por trilha
+    grid.innerHTML = trilhas.length ? trilhas.map(trilha => {
+      const cargos = porTrilha[trilha].sort((a,b) => a.nivel - b.nivel);
+      const colabsTrilha = ativos.filter(c => {
+        const p = PC_PLANOS[c.id];
+        if (!p) return false;
+        const cargo = PC_CARGOS.find(x => x.id === p.cargo_atual_id);
+        return cargo && cargo.trilha === trilha;
+      });
+      const cargosHtml = cargos.map(cg => {
+        const ocupantes = ativos.filter(c => PC_PLANOS[c.id]?.cargo_atual_id === cg.id).length;
+        const faixa = (cg.salario_min || cg.salario_max)
+          ? `${cg.salario_min ? fmtBRL(cg.salario_min) : '?'} – ${cg.salario_max ? fmtBRL(cg.salario_max) : '?'}`
+          : '—';
+        return `
+          <div style="display:flex; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid var(--border-soft); cursor:pointer;" onclick="abrirModalPcCargo(${cg.id})">
+            <div style="font-family:var(--mono); font-size:.66rem; padding:3px 8px; border-radius:10px; background:var(--bluish-bg); color:var(--phthalo); font-weight:600; flex-shrink:0; min-width:90px; text-align:center;">${PC_NIVEL_LABEL[cg.nivel] || '—'}</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:.88rem; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${h(cg.nome)}</div>
+              <div class="cell-person-sub">${faixa}</div>
+            </div>
+            <span class="badge ${ocupantes > 0 ? 'ok' : 'neutral'}">${ocupantes}</span>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title">${h(trilha)}</div>
+            <span class="widget-badge">${cargos.length} cargos · ${colabsTrilha.length} colabs</span>
+          </div>
+          ${cargosHtml}
+        </div>
+      `;
+    }).join('') : `<div class="empty" style="grid-column:1/-1; background:var(--white); border:1px solid var(--border); border-radius:12px;">Nenhuma trilha cadastrada — clique em "+ Novo cargo"</div>`;
+  }
+
+  function renderPcIndividuais() {
+    const tb = $('#tb-pc-individuais');
+    if (!tb) return;
+
+    // Popula filtro de trilha
+    const filtroTrilha = $('#pc-filter-trilha');
+    if (filtroTrilha && filtroTrilha.options.length <= 1) {
+      [...new Set(PC_CARGOS.map(c => c.trilha))].sort().forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t; opt.textContent = t;
+        filtroTrilha.appendChild(opt);
+      });
+    }
+
+    const q   = ($('#pc-search')?.value || '').trim().toLowerCase();
+    const fT  = $('#pc-filter-trilha')?.value || '';
+    const fSt = $('#pc-filter-status')?.value || '';
+
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo');
+
+    const linhas = ativos.map(c => {
+      const p = PC_PLANOS[c.id];
+      const cargoAtual = p ? PC_CARGOS.find(x => x.id === p.cargo_atual_id) : null;
+      const cargoAlvo  = p?.cargo_alvo_id ? PC_CARGOS.find(x => x.id === p.cargo_alvo_id) : null;
+      return { colab:c, plano:p, cargoAtual, cargoAlvo };
+    });
+
+    const filtradas = linhas.filter(r => {
+      if (fT && r.cargoAtual?.trilha !== fT) return false;
+      if (fSt === 'com_plano' && !r.plano) return false;
+      if (fSt === 'sem_plano' &&  r.plano) return false;
+      if (q && !r.colab.nome.toLowerCase().includes(q)) return false;
+      return true;
+    }).sort((a,b) => {
+      // com plano primeiro, ordenado por progresso desc; sem plano por nome
+      if (a.plano && !b.plano) return -1;
+      if (!a.plano && b.plano) return 1;
+      if (a.plano && b.plano) return (b.plano.progresso || 0) - (a.plano.progresso || 0);
+      return a.colab.nome.localeCompare(b.colab.nome);
+    });
+
+    tb.innerHTML = filtradas.length ? filtradas.map(r => {
+      const c = r.colab;
+      const cargoAtualTxt = r.cargoAtual
+        ? `<div style="font-weight:600">${h(r.cargoAtual.nome)}</div><div class="cell-person-sub">${PC_NIVEL_LABEL[r.cargoAtual.nivel]}</div>`
+        : `<span style="color:var(--text-soft)">—</span>`;
+      const trilhaTxt = r.cargoAtual ? `<span class="badge info">${h(r.cargoAtual.trilha)}</span>` : '—';
+      const alvoTxt = r.cargoAlvo
+        ? `<div>${h(r.cargoAlvo.nome)}</div><div class="cell-person-sub">prazo ${r.plano.prazo ? fmtDate(r.plano.prazo) : '—'}</div>`
+        : (r.plano ? '<span style="color:var(--text-soft)">— sem alvo —</span>' : '<span style="color:var(--text-soft)">—</span>');
+      const progresso = r.plano?.progresso ?? 0;
+      const progressoBar = r.plano
+        ? `<div style="display:flex; align-items:center; gap:8px;">
+             <div style="flex:1; height:6px; background:var(--bluish-bg); border-radius:3px; overflow:hidden; max-width:100px;">
+               <div style="height:100%; width:${progresso}%; background:${progresso >= 80 ? 'var(--success)' : progresso >= 40 ? 'var(--phthalo-light)' : 'var(--warning)'};"></div>
+             </div>
+             <span class="cell-mono" style="font-size:.78rem;">${progresso}%</span>
+           </div>`
+        : '<span class="badge neutral">Sem plano</span>';
+      return `
+        <tr onclick="abrirModalPcPlano(${c.id})">
+          <td>
+            <div class="cell-person">
+              <div class="cell-avatar">${h(iniciais(c.nome))}</div>
+              <div>
+                <div class="cell-person-name">${h(c.nome)}</div>
+                <div class="cell-person-sub">${h(c.cargo)}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div>${h(c.setor)}</div>
+            ${c.area ? `<div class="cell-person-sub">${h(c.area)}</div>` : ''}
+          </td>
+          <td>${cargoAtualTxt}</td>
+          <td>${trilhaTxt}</td>
+          <td>${alvoTxt}</td>
+          <td>${progressoBar}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="${r.plano ? 'Editar plano' : 'Criar plano'}" onclick="abrirModalPcPlano(${c.id})">${r.plano ? '✎' : '+'}</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="7" class="empty">Nenhum colaborador encontrado</td></tr>`;
+  }
+
+  // ── Modal cargo ──
+  let _editandoCargoId = null;
+
+  function abrirModalPcCargo(id = null) {
+    _editandoCargoId = id;
+    const form = $('#form-pc-cargo');
+    form.reset();
+    if (id != null) {
+      const c = PC_CARGOS.find(x => x.id === id);
+      if (c) {
+        $('#pc-cargo-title').textContent = `Editar cargo · ${c.nome}`;
+        for (const [k,v] of Object.entries(c)) {
+          const f = form.elements[k];
+          if (f) f.value = v ?? '';
+        }
+        $('#btn-pc-cargo-excluir').style.display = '';
+      }
+    } else {
+      $('#pc-cargo-title').textContent = 'Novo cargo';
+      $('#btn-pc-cargo-excluir').style.display = 'none';
+    }
+    $('#modal-pc-cargo').classList.add('active');
+  }
+
+  function fecharModalPcCargo() {
+    $('#modal-pc-cargo').classList.remove('active');
+    _editandoCargoId = null;
+  }
+
+  function salvarPcCargo(ev) {
+    ev.preventDefault();
+    const form = $('#form-pc-cargo');
+    const data = Object.fromEntries(new FormData(form));
+    const id = data.id ? parseInt(data.id, 10) : null;
+
+    const payload = {
+      trilha:       data.trilha,
+      nivel:        parseInt(data.nivel, 10) || 0,
+      nome:         data.nome,
+      salario_min:  data.salario_min ? parseFloat(data.salario_min) : null,
+      salario_max:  data.salario_max ? parseFloat(data.salario_max) : null,
+      competencias: data.competencias || '',
+      descricao:    data.descricao || '',
+    };
+
+    if (id != null) {
+      const i = PC_CARGOS.findIndex(x => x.id === id);
+      if (i >= 0) PC_CARGOS[i] = { ...PC_CARGOS[i], ...payload };
+      showToast('Cargo atualizado', 'ok');
+    } else {
+      const newId = Math.max(0, ...PC_CARGOS.map(x => x.id)) + 1;
+      PC_CARGOS.unshift({ id:newId, ...payload });
+      showToast('Cargo cadastrado', 'ok');
+    }
+    fecharModalPcCargo();
+    renderPlanoCarreiras();
+  }
+
+  function excluirPcCargoAtual() {
+    if (_editandoCargoId == null) return;
+    // Verifica se há planos referenciando
+    const emUso = Object.values(PC_PLANOS).some(p => p.cargo_atual_id === _editandoCargoId || p.cargo_alvo_id === _editandoCargoId);
+    if (emUso) {
+      showToast('Existem planos individuais referenciando este cargo', 'err');
+      return;
+    }
+    if (!confirm('Excluir este cargo?')) return;
+    PC_CARGOS = PC_CARGOS.filter(x => x.id !== _editandoCargoId);
+    fecharModalPcCargo();
+    renderPlanoCarreiras();
+    showToast('Cargo excluído');
+  }
+
+  // ── Modal plano individual ──
+  let _editandoPlanoColabId = null;
+
+  function abrirModalPcPlano(colabId) {
+    const c = COLABORADORES.find(x => x.id === colabId);
+    if (!c) return;
+    _editandoPlanoColabId = colabId;
+    const form = $('#form-pc-plano');
+    form.reset();
+    form.elements['colaborador_id'].value = colabId;
+
+    $('#pc-plano-title').textContent = `Plano · ${c.nome}`;
+
+    const sal = SALARIOS[c.id]?.valor;
+    $('#pc-plano-resumo').innerHTML = `
+      <div class="info-item"><div class="info-label">Setor / Área</div><div class="info-value">${h(c.setor)}${c.area ? ` · ${h(c.area)}` : ''}</div></div>
+      <div class="info-item"><div class="info-label">Cargo (cadastro)</div><div class="info-value">${h(c.cargo || '—')}</div></div>
+      <div class="info-item"><div class="info-label">Salário atual</div><div class="info-value mono">${sal ? fmtBRL(sal) : '<span style="color:var(--text-soft)">—</span>'}</div></div>
+      <div class="info-item"><div class="info-label">Tempo de casa</div><div class="info-value mono">${tempoCasa(c.admissao)}</div></div>
+    `;
+
+    // Popula selects de cargo
+    const opcoesAtual = PC_CARGOS
+      .sort((a,b) => a.trilha.localeCompare(b.trilha) || a.nivel - b.nivel)
+      .map(cg => `<option value="${cg.id}">${h(cg.trilha)} · ${PC_NIVEL_LABEL[cg.nivel]} · ${h(cg.nome)}</option>`).join('');
+    form.elements['cargo_atual_id'].innerHTML = '<option value="">— selecione —</option>' + opcoesAtual;
+    form.elements['cargo_alvo_id'].innerHTML  = '<option value="">— sem alvo definido —</option>' + opcoesAtual;
+
+    const p = PC_PLANOS[colabId];
+    if (p) {
+      form.elements['cargo_atual_id'].value = p.cargo_atual_id || '';
+      form.elements['cargo_alvo_id'].value  = p.cargo_alvo_id  || '';
+      form.elements['prazo'].value          = p.prazo || '';
+      form.elements['progresso'].value      = p.progresso ?? 0;
+      form.elements['plano_acao'].value     = p.plano_acao || '';
+      $('#btn-pc-plano-excluir').style.display = '';
+    } else {
+      $('#btn-pc-plano-excluir').style.display = 'none';
+    }
+    $('#modal-pc-plano').classList.add('active');
+  }
+
+  function fecharModalPcPlano() {
+    $('#modal-pc-plano').classList.remove('active');
+    _editandoPlanoColabId = null;
+  }
+
+  function salvarPcPlano(ev) {
+    ev.preventDefault();
+    const form = $('#form-pc-plano');
+    const data = Object.fromEntries(new FormData(form));
+    const colabId = parseInt(data.colaborador_id, 10);
+    if (!colabId) return;
+    if (!data.cargo_atual_id) {
+      showToast('Defina o cargo atual', 'err');
+      return;
+    }
+
+    PC_PLANOS[colabId] = {
+      cargo_atual_id: parseInt(data.cargo_atual_id, 10),
+      cargo_alvo_id:  data.cargo_alvo_id ? parseInt(data.cargo_alvo_id, 10) : null,
+      prazo:          data.prazo || null,
+      progresso:      parseInt(data.progresso, 10) || 0,
+      plano_acao:     data.plano_acao || '',
+    };
+    showToast('Plano salvo', 'ok');
+    fecharModalPcPlano();
+    renderPlanoCarreiras();
+  }
+
+  function excluirPcPlanoAtual() {
+    if (!_editandoPlanoColabId) return;
+    if (!confirm('Remover o plano deste colaborador?')) return;
+    delete PC_PLANOS[_editandoPlanoColabId];
+    fecharModalPcPlano();
+    renderPlanoCarreiras();
+    showToast('Plano removido');
+  }
+
+  document.addEventListener('input',  (e) => { if (e.target.id === 'pc-search') renderPcIndividuais(); });
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'pc-filter-trilha' || e.target.id === 'pc-filter-status') renderPcIndividuais();
+  });
+
+  document.querySelectorAll('.nav-item[data-page="plano-carreiras"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderPlanoCarreiras, 60));
   });
 </script>
 
