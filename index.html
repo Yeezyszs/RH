@@ -1890,6 +1890,67 @@
   #toast.show { transform: translateY(0); opacity: 1; }
   #toast.toast-err { border-left-color: var(--danger); color: var(--danger); }
   #toast.toast-ok  { border-left-color: var(--success); }
+
+  /* ── Contatos de Emergência — cards no drawer ── */
+  .emerg-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .15s;
+  }
+  .emerg-card:last-child { margin-bottom: 0; }
+  .emerg-card:hover { box-shadow: 0 2px 12px rgba(6,26,48,.1); }
+  .emerg-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #EF4444, #DC2626);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 1rem;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+  .emerg-info { flex: 1; min-width: 0; }
+  .emerg-nome {
+    font-weight: 700;
+    font-size: .92rem;
+    color: var(--phthalo-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .emerg-sub {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 3px;
+    flex-wrap: wrap;
+  }
+  .emerg-parentesco {
+    font-family: var(--mono);
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    background: #FEE2E2;
+    color: #991B1B;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .emerg-tel {
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--text-muted);
+  }
+  .emerg-actions { display: flex; gap: 4px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -3581,7 +3642,10 @@
     </div>
 
     <div class="drawer-section" data-dsec="emergencia">
-      <div class="info-grid" id="dcol-emerg"></div>
+      <div id="dcol-emerg-list"></div>
+      <div style="margin-top:14px;">
+        <button class="btn btn-secondary btn-sm" onclick="abrirModalContato()">+ Adicionar contato</button>
+      </div>
     </div>
 
     <div class="drawer-section" data-dsec="docs">
@@ -3603,6 +3667,36 @@
     <button class="btn btn-sm" onclick="editarColaboradorDoDrawer()">Editar</button>
   </div>
 </aside>
+
+<!-- ════════════ MODAL — CONTATO DE EMERGÊNCIA ════════════ -->
+<div id="modal-contato-emerg" class="modal">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title" id="contato-modal-title">Novo contato de emergência</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalContato()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-contato" class="form-grid" onsubmit="salvarContato(event)">
+        <div class="form-group full">
+          <label>Nome completo</label>
+          <input type="text" name="nome" required placeholder="Nome do contato">
+        </div>
+        <div class="form-group">
+          <label>Telefone</label>
+          <input type="tel" name="telefone" placeholder="(00) 00000-0000">
+        </div>
+        <div class="form-group">
+          <label>Grau de parentesco</label>
+          <select name="parentesco" id="contato-select-parentesco" required></select>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalContato()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-contato">Salvar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ════════════ MODAL — NOVO/EDITAR COLABORADOR ════════════ -->
 <div id="modal-colaborador" class="modal">
@@ -5132,12 +5226,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
       <div class="info-item" style="grid-column:1/-1"><div class="info-label">Endereço</div><div class="info-value">${h(c.endereco || '—')}</div></div>
     `;
 
-    $('#dcol-emerg').innerHTML = `
-      <div class="info-item"><div class="info-label">Contato</div><div class="info-value">Maria das Graças (mãe)</div></div>
-      <div class="info-item"><div class="info-label">Telefone</div><div class="info-value mono">(11) 98000-0000</div></div>
-      <div class="info-item"><div class="info-label">Parentesco</div><div class="info-value">Mãe</div></div>
-      <div class="info-item"><div class="info-label">Observações</div><div class="info-value">—</div></div>
-    `;
+    renderContatosEmergencia(_drawerColabId);
 
     $('#dcol-docs').innerHTML = `
       <table class="data" style="margin: -6px 0;">
@@ -5261,6 +5350,111 @@ Liderança de equipe ≥3 pessoas"></textarea>
     COLABORADORES = COLABORADORES.filter(x => x.id !== id);
     renderColaboradores();
     showToast('Colaborador excluído');
+  }
+
+  /* ════════════════════════════════════════════════
+     CONTATOS DE EMERGÊNCIA
+     ════════════════════════════════════════════════ */
+  let CONTATOS_EMERG = [
+    { id:1, colaborador_id:1, nome:'Roberto Costa',      telefone:'(11) 98100-1111', parentesco:'Cônjuge' },
+    { id:2, colaborador_id:2, nome:'Fernanda Mendes',    telefone:'(11) 97200-2222', parentesco:'Mãe'     },
+    { id:3, colaborador_id:3, nome:'Aparecida Ramos',    telefone:'(11) 96300-3333', parentesco:'Mãe'     },
+    { id:4, colaborador_id:3, nome:'Cláudio Ramos',      telefone:'(11) 95400-4444', parentesco:'Pai'     },
+    { id:5, colaborador_id:4, nome:'Marcos Oliveira',    telefone:'(11) 94500-5555', parentesco:'Cônjuge' },
+    { id:6, colaborador_id:5, nome:'Renata Souza',       telefone:'(11) 93600-6666', parentesco:'Irmã'    },
+    { id:7, colaborador_id:6, nome:'Patrícia Lima',      telefone:'(11) 92700-7777', parentesco:'Cônjuge' },
+    { id:8, colaborador_id:7, nome:'Beatriz Pinto',      telefone:'(11) 91800-8888', parentesco:'Mãe'     },
+    { id:9, colaborador_id:8, nome:'Eliane Silveira',    telefone:'(11) 90900-9999', parentesco:'Cônjuge' },
+    { id:10,colaborador_id:9, nome:'Vera Rocha',         telefone:'(11) 98010-0101', parentesco:'Mãe'     },
+    { id:11,colaborador_id:10,nome:'Carlos Araújo',      telefone:'(11) 97020-0202', parentesco:'Pai'     },
+  ];
+
+  const PARENTESCO_OPTS = ['Cônjuge','Mãe','Pai','Filho(a)','Irmã','Irmão','Avó','Avô','Tio(a)','Amigo(a)','Outro'];
+
+  let _editandoContatoId = null;
+
+  function renderContatosEmergencia(colabId) {
+    const el = $('#dcol-emerg-list');
+    if (!el) return;
+    const lista = CONTATOS_EMERG.filter(c => c.colaborador_id === colabId);
+    if (!lista.length) {
+      el.innerHTML = '<div style="color:var(--text-muted);font-size:.88rem;padding:8px 0;">Nenhum contato de emergência cadastrado.</div>';
+      return;
+    }
+    el.innerHTML = lista.map(c => `
+      <div class="emerg-card">
+        <div class="emerg-avatar">${h(c.nome[0] || '?')}</div>
+        <div class="emerg-info">
+          <div class="emerg-nome">${h(c.nome)}</div>
+          <div class="emerg-sub">
+            <span class="emerg-parentesco">${h(c.parentesco)}</span>
+            <span class="emerg-tel">📞 ${h(c.telefone)}</span>
+          </div>
+        </div>
+        <div class="emerg-actions">
+          <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalContato(${c.id})">✎</button>
+          <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirContato(${c.id})">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function abrirModalContato(id = null) {
+    _editandoContatoId = id || null;
+    const form = $('#form-contato');
+    form.reset();
+
+    // preenche select de parentesco
+    const sel = $('#contato-select-parentesco');
+    sel.innerHTML = PARENTESCO_OPTS.map(p => `<option value="${p}">${p}</option>`).join('');
+
+    if (id) {
+      const c = CONTATOS_EMERG.find(x => x.id === id);
+      if (!c) return;
+      $('#contato-modal-title').textContent = 'Editar contato de emergência';
+      form.elements['nome'].value       = c.nome;
+      form.elements['telefone'].value   = c.telefone;
+      sel.value                         = c.parentesco;
+    } else {
+      $('#contato-modal-title').textContent = 'Novo contato de emergência';
+    }
+    $('#modal-contato-emerg').classList.add('active');
+  }
+
+  function fecharModalContato() {
+    $('#modal-contato-emerg').classList.remove('active');
+    _editandoContatoId = null;
+  }
+
+  function salvarContato(e) {
+    e.preventDefault();
+    const form = $('#form-contato');
+    const nome       = form.elements['nome'].value.trim();
+    const telefone   = form.elements['telefone'].value.trim();
+    const parentesco = form.elements['parentesco'].value;
+    if (!nome) { showToast('Informe o nome do contato', 'err'); return; }
+
+    if (_editandoContatoId) {
+      const c = CONTATOS_EMERG.find(x => x.id === _editandoContatoId);
+      if (c) Object.assign(c, { nome, telefone, parentesco });
+      showToast('Contato atualizado', 'ok');
+    } else {
+      CONTATOS_EMERG.push({
+        id: Math.max(0, ...CONTATOS_EMERG.map(x => x.id)) + 1,
+        colaborador_id: _drawerColabId,
+        nome, telefone, parentesco,
+      });
+      showToast('Contato cadastrado', 'ok');
+    }
+    fecharModalContato();
+    renderContatosEmergencia(_drawerColabId);
+  }
+
+  function excluirContato(id) {
+    if (!confirm('Remover este contato de emergência?')) return;
+    CONTATOS_EMERG = CONTATOS_EMERG.filter(x => x.id !== id);
+    renderContatosEmergencia(_drawerColabId);
+    showToast('Contato removido');
   }
 
   function exportColaboradores() {
