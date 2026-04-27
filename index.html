@@ -1971,6 +1971,10 @@
         <span class="nav-icon">⛽</span>
         <span>Vale Combustível</span>
       </div>
+      <div class="nav-item" data-page="vale-alimentacao">
+        <span class="nav-icon">🍽</span>
+        <span>Vale Alimentação</span>
+      </div>
       <div class="nav-item" data-page="ferias">
         <span class="nav-icon">☀</span>
         <span>Férias</span>
@@ -2845,6 +2849,79 @@
         </div>
       </div>
 
+    </section>
+
+    <!-- ───── VALE ALIMENTAÇÃO ───── -->
+    <section id="page-vale-alimentacao" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Vale Alimentação</h1>
+          <div class="page-subtitle">Cadastro de benefício mensal · valor fixo ou por dia útil</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <select id="va-mes" style="min-width:170px;"></select>
+        <div class="toolbar-search">
+          <input type="text" id="va-search" placeholder="Buscar colaborador…">
+        </div>
+        <select id="va-filter-setor">
+          <option value="">Todos os setores</option>
+          <option>Produção</option>
+          <option>Administração</option>
+          <option>Gado</option>
+        </select>
+        <select id="va-filter-tipo">
+          <option value="">Todos os tipos</option>
+          <option value="fixo">Valor fixo mensal</option>
+          <option value="dia_util">Por dia útil</option>
+          <option value="sem">Sem cadastro</option>
+        </select>
+        <div class="toolbar-spacer"></div>
+        <button class="btn" type="button" onclick="abrirModalValeAlimentacao()">⚙ Configurar</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Folha mensal</div>
+          <div class="stat-value" id="va-stat-folha" style="font-size:1.25rem;">—</div>
+        </div>
+        <div class="stat stat-success">
+          <div class="stat-label">Beneficiários ativos</div>
+          <div class="stat-value" id="va-stat-benef">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Valor médio</div>
+          <div class="stat-value" id="va-stat-medio" style="font-size:1.25rem;">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Sem cadastro</div>
+          <div class="stat-value" id="va-stat-sem">—</div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width:26%">Colaborador</th>
+                <th>Setor / Área</th>
+                <th>Tipo</th>
+                <th style="text-align:right">Valor unit.</th>
+                <th style="text-align:right">Dias úteis</th>
+                <th style="text-align:right">Total mês</th>
+                <th>Última alteração</th>
+                <th style="width:100px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-vale-alimentacao"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ───── FÉRIAS ───── -->
@@ -4325,6 +4402,53 @@
   </div>
 </div>
 
+<!-- ════════════ MODAL — CONFIG. VALE ALIMENTAÇÃO (1 colab) ════════════ -->
+<div id="modal-vale-alimentacao" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="va-modal-title">Configurar vale alimentação</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalValeAlimentacao()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-vale-alimentacao" class="form-grid" onsubmit="salvarValeAlimentacao(event)">
+        <input type="hidden" name="colaborador_id">
+        <div class="form-group full">
+          <label>Colaborador</label>
+          <select id="va-form-colab" onchange="preencherValeAlimentacaoExistente()" required></select>
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="tipo" required onchange="alternarValeAlimentacaoTipo()">
+            <option value="fixo">Valor fixo mensal</option>
+            <option value="dia_util">Por dia útil</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label id="va-label-valor">Valor mensal (R$)</label>
+          <input type="number" name="valor" step="0.01" min="0" required>
+        </div>
+        <div class="form-group" id="va-dias-uteis-group" style="display:none;">
+          <label>Dias úteis padrão (mês)</label>
+          <input type="number" name="dias_uteis" min="0" max="31" value="22">
+        </div>
+        <div class="form-group">
+          <label>Data de alteração</label>
+          <input type="date" name="data_alteracao" required>
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea name="observacoes"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" type="button" id="btn-va-remover" onclick="removerValeAlimentacao()" style="margin-right:auto; display:none;">Remover cadastro</button>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalValeAlimentacao()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-vale-alimentacao">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ POPUP ALERTA DE VENCIMENTOS ════════════ -->
 <div id="alert-popup-vencimentos" class="alert-popup">
   <div class="alert-popup-header">
@@ -4493,6 +4617,7 @@
     if (typeof renderEpiCatalogo === 'function') renderEpiCatalogo();
     if (typeof renderEpiKits === 'function') renderEpiKits();
     if (typeof renderVale === 'function') renderVale();
+    if (typeof renderValeAlimentacao === 'function') renderValeAlimentacao();
     if (typeof renderFerias === 'function') renderFerias();
     if (typeof renderSalarios === 'function') renderSalarios();
     if (typeof renderAdvertencias === 'function') renderAdvertencias();
@@ -6758,6 +6883,237 @@
 
   document.querySelectorAll('.nav-item[data-page="vale-combustivel"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderVale, 60));
+  });
+
+  /* ════════════════════════════════════════════════
+     VALE ALIMENTAÇÃO — fixo mensal ou por dia útil
+     ════════════════════════════════════════════════ */
+
+  // VA_BENEFICIOS: cadastro por colaborador. Tipos: 'fixo' ou 'dia_util'.
+  let VA_BENEFICIOS = {
+    1:  { tipo:'fixo',     valor: 600.00, dias_uteis: null, data_alteracao:'2025-11-01', observacoes:'' },
+    2:  { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2026-04-20', observacoes:'Admissão' },
+    3:  { tipo:'dia_util', valor: 28.00,  dias_uteis: 22,   data_alteracao:'2025-08-01', observacoes:'Operacional — proporcional a presença' },
+    4:  { tipo:'fixo',     valor: 700.00, dias_uteis: null, data_alteracao:'2026-01-15', observacoes:'' },
+    5:  { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2025-06-01', observacoes:'' },
+    6:  { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2026-01-01', observacoes:'' },
+    7:  { tipo:'fixo',     valor: 600.00, dias_uteis: null, data_alteracao:'2025-10-01', observacoes:'' },
+    8:  { tipo:'dia_util', valor: 25.00,  dias_uteis: 22,   data_alteracao:'2025-09-01', observacoes:'Por dia trabalhado' },
+    9:  { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2026-02-01', observacoes:'' },
+    11: { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2025-12-01', observacoes:'' },
+    12: { tipo:'fixo',     valor: 700.00, dias_uteis: null, data_alteracao:'2025-09-01', observacoes:'' },
+    13: { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2024-02-14', observacoes:'' },
+    14: { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2025-11-01', observacoes:'' },
+  };
+
+  // Heurística de dias úteis por mês (pt-BR ~22 em média; aceita override).
+  function diasUteisDoMes(chaveMes) {
+    if (!chaveMes) return 22;
+    const [y, m] = chaveMes.split('-').map(Number);
+    const dimM = new Date(y, m, 0).getDate();
+    let count = 0;
+    for (let d = 1; d <= dimM; d++) {
+      const dow = new Date(y, m - 1, d).getDay();
+      if (dow !== 0 && dow !== 6) count++;
+    }
+    return count;
+  }
+
+  function valorMensalVA(beneficio, chaveMes) {
+    if (!beneficio) return 0;
+    if (beneficio.tipo === 'fixo') return parseFloat(beneficio.valor) || 0;
+    // por dia útil
+    const dias = beneficio.dias_uteis || diasUteisDoMes(chaveMes);
+    return (parseFloat(beneficio.valor) || 0) * dias;
+  }
+
+  function renderValeAlimentacao() {
+    const tb = $('#tb-vale-alimentacao');
+    if (!tb) return;
+
+    // Popula seletor de mês (12 meses do ano atual)
+    const selMes = $('#va-mes');
+    if (selMes && selMes.options.length === 0) {
+      const now = new Date();
+      const meses = [];
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        meses.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+      }
+      selMes.innerHTML = meses.map(m => `<option value="${m}">${mesLabel(m)}</option>`).join('');
+    }
+    const mesAtual = selMes?.value || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+
+    const q     = ($('#va-search')?.value || '').trim().toLowerCase();
+    const fSet  = $('#va-filter-setor')?.value || '';
+    const fTipo = $('#va-filter-tipo')?.value  || '';
+
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo');
+
+    const linhas = ativos.map(c => {
+      const b = VA_BENEFICIOS[c.id];
+      return {
+        colab: c,
+        beneficio: b,
+        total: valorMensalVA(b, mesAtual),
+      };
+    });
+
+    const filtradas = linhas.filter(r => {
+      if (fSet && r.colab.setor !== fSet) return false;
+      if (fTipo === 'sem' && r.beneficio) return false;
+      if (fTipo === 'fixo' && r.beneficio?.tipo !== 'fixo') return false;
+      if (fTipo === 'dia_util' && r.beneficio?.tipo !== 'dia_util') return false;
+      if (q && !r.colab.nome.toLowerCase().includes(q)) return false;
+      return true;
+    }).sort((a,b) => b.total - a.total || a.colab.nome.localeCompare(b.colab.nome));
+
+    tb.innerHTML = filtradas.length ? filtradas.map(r => {
+      const c = r.colab;
+      const b = r.beneficio;
+      const dias = b?.tipo === 'dia_util' ? (b.dias_uteis || diasUteisDoMes(mesAtual)) : null;
+      const tipoBadge = !b
+        ? `<span class="badge neutral">Sem cadastro</span>`
+        : b.tipo === 'fixo'
+          ? `<span class="badge info">Fixo mensal</span>`
+          : `<span class="badge warn">Por dia útil</span>`;
+      return `
+        <tr onclick="abrirModalValeAlimentacao(${c.id})">
+          <td>
+            <div class="cell-person">
+              <div class="cell-avatar">${h(iniciais(c.nome))}</div>
+              <div>
+                <div class="cell-person-name">${h(c.nome)}</div>
+                <div class="cell-person-sub">${h(c.cargo)}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div>${h(c.setor)}</div>
+            ${c.area ? `<div class="cell-person-sub">${h(c.area)}</div>` : ''}
+          </td>
+          <td>${tipoBadge}</td>
+          <td class="cell-mono" style="text-align:right">${b ? fmtBRL(b.valor) : '—'}</td>
+          <td class="cell-mono" style="text-align:right">${dias ?? '—'}</td>
+          <td class="cell-mono" style="text-align:right; font-weight:600; color:var(--phthalo-dark)">${b ? fmtBRL(r.total) : '—'}</td>
+          <td class="cell-mono">${b?.data_alteracao ? fmtDate(b.data_alteracao) : '—'}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="${b ? 'Editar' : 'Cadastrar'}" onclick="abrirModalValeAlimentacao(${c.id})">${b ? '✎' : '+'}</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="8" class="empty">Nenhum colaborador encontrado</td></tr>`;
+
+    // Stats (sobre todos os ativos, ignora filtros)
+    const beneficiados = linhas.filter(r => r.beneficio);
+    const folha = beneficiados.reduce((s,r) => s + r.total, 0);
+    $('#va-stat-folha').textContent = fmtBRL(folha);
+    $('#va-stat-benef').textContent = beneficiados.length;
+    $('#va-stat-medio').textContent = fmtBRL(beneficiados.length ? folha / beneficiados.length : 0);
+    $('#va-stat-sem').textContent   = linhas.length - beneficiados.length;
+  }
+
+  // Modal
+  function abrirModalValeAlimentacao(colabId = null) {
+    const form = $('#form-vale-alimentacao');
+    form.reset();
+
+    const sel = $('#va-form-colab');
+    sel.innerHTML = COLABORADORES
+      .filter(c => c.status !== 'inativo')
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .map(c => `<option value="${c.id}">${h(c.nome)} — ${h(c.setor)}</option>`).join('');
+
+    if (colabId != null) {
+      sel.value = colabId;
+    }
+    sel.disabled = colabId != null;
+
+    preencherValeAlimentacaoExistente();
+    $('#modal-vale-alimentacao').classList.add('active');
+  }
+
+  function preencherValeAlimentacaoExistente() {
+    const form = $('#form-vale-alimentacao');
+    const colabId = parseInt($('#va-form-colab').value, 10);
+    form.elements['colaborador_id'].value = colabId;
+
+    const c = COLABORADORES.find(x => x.id === colabId);
+    $('#va-modal-title').textContent = c ? `VA — ${c.nome}` : 'Configurar vale alimentação';
+
+    const b = VA_BENEFICIOS[colabId];
+    const btnRemover = $('#btn-va-remover');
+    if (b) {
+      form.elements['tipo'].value             = b.tipo;
+      form.elements['valor'].value            = b.valor;
+      form.elements['dias_uteis'].value       = b.dias_uteis ?? 22;
+      form.elements['data_alteracao'].value   = b.data_alteracao;
+      form.elements['observacoes'].value      = b.observacoes || '';
+      btnRemover.style.display = '';
+    } else {
+      form.elements['tipo'].value           = 'fixo';
+      form.elements['valor'].value          = '';
+      form.elements['dias_uteis'].value     = 22;
+      form.elements['data_alteracao'].value = new Date().toISOString().slice(0,10);
+      form.elements['observacoes'].value    = '';
+      btnRemover.style.display = 'none';
+    }
+    alternarValeAlimentacaoTipo();
+  }
+
+  function alternarValeAlimentacaoTipo() {
+    const tipo = $('#form-vale-alimentacao').elements['tipo'].value;
+    const grupoDias = $('#va-dias-uteis-group');
+    const lbl = $('#va-label-valor');
+    if (tipo === 'dia_util') {
+      grupoDias.style.display = '';
+      lbl.textContent = 'Valor por dia (R$)';
+    } else {
+      grupoDias.style.display = 'none';
+      lbl.textContent = 'Valor mensal (R$)';
+    }
+  }
+
+  function fecharModalValeAlimentacao() {
+    $('#modal-vale-alimentacao').classList.remove('active');
+  }
+
+  function salvarValeAlimentacao(ev) {
+    ev.preventDefault();
+    const form = $('#form-vale-alimentacao');
+    const data = Object.fromEntries(new FormData(form));
+    const colabId = parseInt(data.colaborador_id, 10);
+    if (!colabId) return;
+
+    VA_BENEFICIOS[colabId] = {
+      tipo:           data.tipo,
+      valor:          parseFloat(data.valor) || 0,
+      dias_uteis:     data.tipo === 'dia_util' ? (parseInt(data.dias_uteis, 10) || null) : null,
+      data_alteracao: data.data_alteracao,
+      observacoes:    data.observacoes || '',
+    };
+    showToast('Vale alimentação atualizado', 'ok');
+    fecharModalValeAlimentacao();
+    renderValeAlimentacao();
+  }
+
+  function removerValeAlimentacao() {
+    const colabId = parseInt($('#form-vale-alimentacao').elements['colaborador_id'].value, 10);
+    if (!colabId) return;
+    if (!confirm('Remover o cadastro de vale alimentação deste colaborador?')) return;
+    delete VA_BENEFICIOS[colabId];
+    fecharModalValeAlimentacao();
+    renderValeAlimentacao();
+    showToast('Cadastro removido');
+  }
+
+  document.addEventListener('input',  (e) => { if (e.target.id === 'va-search') renderValeAlimentacao(); });
+  document.addEventListener('change', (e) => {
+    if (['va-mes','va-filter-setor','va-filter-tipo'].includes(e.target.id)) renderValeAlimentacao();
+  });
+
+  document.querySelectorAll('.nav-item[data-page="vale-alimentacao"]').forEach(el => {
+    el.addEventListener('click', () => setTimeout(renderValeAlimentacao, 60));
   });
 
   /* ════════════════════════════════════════════════
