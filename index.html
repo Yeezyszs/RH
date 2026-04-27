@@ -1268,7 +1268,57 @@
     padding: 14px 18px 18px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 18px;
+  }
+
+  /* Bloco de área (agrupa cargos dentro do setor) */
+  .area-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .area-block:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .area-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 2px;
+  }
+
+  .area-name {
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--phthalo);
+    text-transform: uppercase;
+  }
+  .area-name.sem-area {
+    color: var(--text-soft);
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+  }
+
+  .area-count {
+    font-family: var(--mono);
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--phthalo);
+    background: var(--bluish-bg);
+    padding: 2px 9px;
+    border-radius: 10px;
+  }
+
+  .area-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 6px;
+    border-left: 2px solid var(--bluish-soft);
   }
 
   .cargo-group {
@@ -3739,19 +3789,26 @@
           <label>Área</label>
           <input type="text" name="area" list="areas-datalist" placeholder="Ex.: Ensaques · Manutenção · Sanidade">
           <datalist id="areas-datalist">
+            <!-- Produção -->
             <option>Operação</option>
             <option>Ensaques</option>
             <option>Extração</option>
             <option>Manutenção</option>
             <option>Logística</option>
+            <option>Limpeza</option>
+            <option>Almoxarifado</option>
+            <!-- Administração -->
             <option>Administrativo</option>
             <option>Financeiro</option>
             <option>Comercial</option>
             <option>RH</option>
             <option>TI</option>
+            <option>Qualidade</option>
+            <!-- Gado -->
             <option>Manejo</option>
             <option>Sanidade</option>
             <option>Campo</option>
+            <option>Externo</option>
           </datalist>
         </div>
         <div class="form-group">
@@ -5497,12 +5554,15 @@ Liderança de equipe ≥3 pessoas"></textarea>
       return true;
     });
 
-    // Agrupa por setor → cargo
+    // Agrupa por setor → área → cargo
+    const SEM_AREA = '— sem área definida —';
     const porSetor = {};
     filtrados.forEach(c => {
-      if (!porSetor[c.setor]) porSetor[c.setor] = {};
-      if (!porSetor[c.setor][c.cargo]) porSetor[c.setor][c.cargo] = [];
-      porSetor[c.setor][c.cargo].push(c);
+      const area = c.area || SEM_AREA;
+      if (!porSetor[c.setor])              porSetor[c.setor] = {};
+      if (!porSetor[c.setor][area])        porSetor[c.setor][area] = {};
+      if (!porSetor[c.setor][area][c.cargo]) porSetor[c.setor][area][c.cargo] = [];
+      porSetor[c.setor][area][c.cargo].push(c);
     });
 
     // Stats
@@ -5511,10 +5571,12 @@ Liderança de equipe ≥3 pessoas"></textarea>
     $('#quad-stat-setores').textContent = setoresAtivos.length;
     $('#quad-stat-cargos').textContent  = [...new Set(filtrados.map(c => c.cargo))].length;
 
-    let maior = '—';
-    let maiorN = 0;
+    const totalSetor = (s) => Object.values(porSetor[s]).reduce((acc, areas) =>
+      acc + Object.values(areas).reduce((a,b) => a + b.length, 0), 0);
+
+    let maior = '—', maiorN = 0;
     setoresAtivos.forEach(s => {
-      const n = Object.values(porSetor[s]).reduce((a,b) => a + b.length, 0);
+      const n = totalSetor(s);
       if (n > maiorN) { maiorN = n; maior = `${s} (${n})`; }
     });
     $('#quad-stat-maior').textContent = maior;
@@ -5525,35 +5587,52 @@ Liderança de equipe ≥3 pessoas"></textarea>
     }
 
     // Ordena setores por tamanho (desc)
-    setoresAtivos.sort((a,b) => {
-      const na = Object.values(porSetor[a]).reduce((s,x) => s + x.length, 0);
-      const nb = Object.values(porSetor[b]).reduce((s,x) => s + x.length, 0);
-      return nb - na;
-    });
+    setoresAtivos.sort((a,b) => totalSetor(b) - totalSetor(a));
 
     grid.innerHTML = setoresAtivos.map(setor => {
-      const cargos = porSetor[setor];
-      const total = Object.values(cargos).reduce((a,b) => a + b.length, 0);
-      const cargosOrdenados = Object.keys(cargos).sort();
+      const areas = porSetor[setor];
+      const total = totalSetor(setor);
+      const areasOrdenadas = Object.keys(areas).sort((a,b) => {
+        if (a === SEM_AREA) return 1;
+        if (b === SEM_AREA) return -1;
+        return a.localeCompare(b);
+      });
 
-      const gruposHtml = cargosOrdenados.map(cargo => {
-        const pessoas = cargos[cargo];
-        const pessoasHtml = pessoas
-          .sort((a,b) => a.nome.localeCompare(b.nome))
-          .map(p => `
-            <div class="func-mini" onclick="abrirDrawerColab(${p.id})">
-              <div class="cell-avatar">${h(iniciais(p.nome))}</div>
-              <div class="func-mini-name">${h(p.nome)}</div>
-              <div class="func-mini-status ${h(p.status)}" title="${h(STATUS_LABEL[p.status]?.t || p.status)}"></div>
+      const areasHtml = areasOrdenadas.map(area => {
+        const cargos = areas[area];
+        const cargosOrdenados = Object.keys(cargos).sort();
+        const totalArea = Object.values(cargos).reduce((a,b) => a + b.length, 0);
+
+        const cargosHtml = cargosOrdenados.map(cargo => {
+          const pessoas = cargos[cargo];
+          const pessoasHtml = pessoas
+            .sort((a,b) => a.nome.localeCompare(b.nome))
+            .map(p => `
+              <div class="func-mini" onclick="abrirDrawerColab(${p.id})">
+                <div class="cell-avatar">${h(iniciais(p.nome))}</div>
+                <div class="func-mini-name">${h(p.nome)}</div>
+                <div class="func-mini-status ${h(p.status)}" title="${h(STATUS_LABEL[p.status]?.t || p.status)}"></div>
+              </div>
+            `).join('');
+          return `
+            <div class="cargo-group">
+              <div class="cargo-header">
+                <span>${h(cargo)}</span>
+                <span class="cargo-count">${pessoas.length}</span>
+              </div>
+              <div class="func-list">${pessoasHtml}</div>
             </div>
-          `).join('');
+          `;
+        }).join('');
+
+        const isSemArea = area === SEM_AREA;
         return `
-          <div class="cargo-group">
-            <div class="cargo-header">
-              <span>${h(cargo)}</span>
-              <span class="cargo-count">${pessoas.length}</span>
+          <div class="area-block">
+            <div class="area-header">
+              <span class="area-name${isSemArea ? ' sem-area' : ''}">${h(area)}</span>
+              <span class="area-count">${totalArea}</span>
             </div>
-            <div class="func-list">${pessoasHtml}</div>
+            <div class="area-body">${cargosHtml}</div>
           </div>
         `;
       }).join('');
@@ -5564,11 +5643,11 @@ Liderança de equipe ≥3 pessoas"></textarea>
             <div class="setor-icon">${SETOR_ICON[setor] || '◆'}</div>
             <div class="setor-title-block">
               <div class="setor-name">${h(setor)}</div>
-              <div class="setor-meta">${cargosOrdenados.length} ${cargosOrdenados.length === 1 ? 'cargo' : 'cargos'}</div>
+              <div class="setor-meta">${areasOrdenadas.filter(a => a !== SEM_AREA).length} ${areasOrdenadas.filter(a => a !== SEM_AREA).length === 1 ? 'área' : 'áreas'}</div>
             </div>
             <div class="setor-count">${total}</div>
           </div>
-          <div class="setor-body">${gruposHtml}</div>
+          <div class="setor-body">${areasHtml}</div>
         </div>
       `;
     }).join('');
