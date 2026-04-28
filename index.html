@@ -2375,8 +2375,8 @@
         <select id="col-filter-setor">
           <option value="">Todos os setores</option>
           <option>Produção</option>
-          <option>Administração</option>
-          <option>Gado</option>
+          <option>Administrativo</option>
+          <option>Área Externa</option>
         </select>
         <select id="col-filter-status">
           <option value="">Todos os status</option>
@@ -2500,8 +2500,8 @@
         <select id="rot-filter-setor">
           <option value="">Todos os setores</option>
           <option>Produção</option>
-          <option>Administração</option>
-          <option>Gado</option>
+          <option>Administrativo</option>
+          <option>Área Externa</option>
         </select>
         <select id="rot-filter-sexo">
           <option value="">Ambos os sexos</option>
@@ -2972,8 +2972,8 @@
         <select id="vale-filter-setor">
           <option value="">Todos os setores</option>
           <option>Produção</option>
-          <option>Administração</option>
-          <option>Gado</option>
+          <option>Administrativo</option>
+          <option>Área Externa</option>
         </select>
         <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalCotas()">⚙ Cotas</button>
         <button class="btn" type="button" onclick="abrirModalValeLancamento()">+ Novo lançamento</button>
@@ -3052,8 +3052,8 @@
         <select id="va-filter-setor">
           <option value="">Todos os setores</option>
           <option>Produção</option>
-          <option>Administração</option>
-          <option>Gado</option>
+          <option>Administrativo</option>
+          <option>Área Externa</option>
         </select>
         <select id="va-filter-tipo">
           <option value="">Todos os tipos</option>
@@ -3135,8 +3135,8 @@
         <select id="fer-filter-setor">
           <option value="">Todos os setores</option>
           <option>Produção</option>
-          <option>Administração</option>
-          <option>Gado</option>
+          <option>Administrativo</option>
+          <option>Área Externa</option>
         </select>
         <select id="fer-filter-status">
           <option value="">Qualquer status</option>
@@ -3180,11 +3180,11 @@
           <div class="stat-value" id="fer-stat-prov-prod" style="font-size:1.2rem;">—</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Provisão · Administração</div>
+          <div class="stat-label">Provisão · Administrativo</div>
           <div class="stat-value" id="fer-stat-prov-adm" style="font-size:1.2rem;">—</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Provisão · Gado</div>
+          <div class="stat-label">Provisão · Área Externa</div>
           <div class="stat-value" id="fer-stat-prov-gado" style="font-size:1.2rem;">—</div>
         </div>
       </div>
@@ -3248,8 +3248,8 @@
         <select id="sal-filter-setor">
           <option value="">Todos os setores</option>
           <option>Produção</option>
-          <option>Administração</option>
-          <option>Gado</option>
+          <option>Administrativo</option>
+          <option>Área Externa</option>
         </select>
         <select id="sal-filter-faixa">
           <option value="">Todas as faixas</option>
@@ -3462,8 +3462,8 @@
           <select id="fb-filter-setor">
             <option value="">Todos os setores</option>
             <option>Produção</option>
-            <option>Administração</option>
-            <option>Gado</option>
+            <option>Administrativo</option>
+            <option>Área Externa</option>
           </select>
           <button class="btn" type="button" onclick="abrirModalFeedback()">+ Registrar feedback</button>
         </div>
@@ -3872,19 +3872,24 @@
             <select name="setor">
               <option value="">—</option>
               <option>Produção</option>
-              <option>Administração</option>
-              <option>Gado</option>
+              <option>Administrativo</option>
+              <option>Área Externa</option>
             </select>
           </div>
           <div class="form-group">
             <label>Área</label>
-            <input type="text" name="area" list="areas-datalist" placeholder="Ex.: Ensaques · Manutenção">
+            <input type="text" name="area" list="areas-datalist" placeholder="Ex.: Ensaques · Manutenção · Gado">
             <datalist id="areas-datalist">
-              <option>Operação</option><option>Ensaques</option><option>Extração</option>
-              <option>Manutenção</option><option>Logística</option><option>Limpeza</option>
-              <option>Almoxarifado</option><option>Administrativo</option><option>Financeiro</option>
-              <option>Comercial</option><option>RH</option><option>TI</option><option>Qualidade</option>
-              <option>Manejo</option><option>Sanidade</option><option>Campo</option><option>Externo</option>
+              <!-- Produção -->
+              <option>Manutenção</option><option>Limpeza</option><option>Almoxarifado</option>
+              <option>Qualidade</option><option>Ensaques</option><option>Logística (carregamento)</option>
+              <option>Extração</option><option>Forno e Caldeira</option>
+              <!-- Administrativo -->
+              <option>Financeiro</option><option>RH</option><option>Diretoria</option>
+              <option>Controladoria</option><option>Comercial</option><option>Compras</option>
+              <option>PCP</option>
+              <!-- Área Externa -->
+              <option>Gado</option><option>Manutenção do pátio</option>
             </datalist>
           </div>
           <div class="form-group">
@@ -5320,20 +5325,20 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
   // Mock. Substituir por fetch do Supabase na integração.
   let COLABORADORES = [
-    { id:1, nome:'Ana Paula Costa',        matricula:'001234', cargo:'Analista RH',           setor:'Administração', area:'Administrativo', sexo:'F', escolaridade:'Superior',    admissao:'2021-03-15', status:'ferias',  nascimento:'1988-07-12', cpf:'123.456.789-00', telefone:'(11) 98765-4321', email:'ana.costa@empresa.com',        endereco:'Rua das Flores, 120 — São Paulo/SP' },
-    { id:2, nome:'Carlos Eduardo Mendes',  matricula:'001235', cargo:'Op. Produção',          setor:'Produção',      area:'Operação',       sexo:'M', escolaridade:'Médio',       admissao:'2026-04-20', status:'ativo',   nascimento:'1995-02-08', cpf:'234.567.890-11', telefone:'(11) 99123-4567', email:'carlos.mendes@empresa.com',    endereco:'Av. Paulista, 2000 — São Paulo/SP' },
-    { id:3, nome:'José Silva Ramos',       matricula:'000412', cargo:'Mecânico Industrial',   setor:'Produção',      area:'Manutenção',     sexo:'M', escolaridade:'Técnico',     admissao:'2018-08-02', status:'ativo',   nascimento:'1979-11-30', cpf:'345.678.901-22', telefone:'(11) 98888-1111', email:'jose.silva@empresa.com',       endereco:'Rua do Porto, 15 — São Paulo/SP' },
-    { id:4, nome:'Maria Santos Oliveira',  matricula:'000765', cargo:'Coord. Administrativo', setor:'Administração', area:'Administrativo', sexo:'F', escolaridade:'Superior',    admissao:'2019-11-18', status:'ativo',   nascimento:'1985-04-22', cpf:'456.789.012-33', telefone:'(11) 97777-2222', email:'maria.santos@empresa.com',     endereco:'Rua XV de Novembro, 200 — São Paulo/SP' },
-    { id:5, nome:'Pedro Henrique Souza',   matricula:'001001', cargo:'Motorista',             setor:'Produção',      area:'Logística',      sexo:'M', escolaridade:'Médio',       admissao:'2020-06-05', status:'afastado',nascimento:'1990-09-15', cpf:'567.890.123-44', telefone:'(11) 96666-3333', email:'pedro.souza@empresa.com',      endereco:'Rua das Palmeiras, 88 — São Paulo/SP' },
-    { id:6, nome:'Rafael Fernandes Lima',  matricula:'001102', cargo:'Motorista',             setor:'Produção',      area:'Logística',      sexo:'M', escolaridade:'Médio',       admissao:'2022-01-12', status:'ativo',   nascimento:'1992-04-27', cpf:'678.901.234-55', telefone:'(11) 95555-4444', email:'rafael.lima@empresa.com',      endereco:'Av. Brasil, 450 — São Paulo/SP' },
-    { id:7, nome:'Marcela Pinto Oliveira', matricula:'001023', cargo:'Analista Financeiro',   setor:'Administração', area:'Financeiro',     sexo:'F', escolaridade:'Superior',    admissao:'2020-02-10', status:'ativo',   nascimento:'1993-04-25', cpf:'789.012.345-66', telefone:'(11) 94444-5555', email:'marcela.pinto@empresa.com',    endereco:'Rua do Sol, 77 — São Paulo/SP' },
-    { id:8, nome:'João Silveira Matos',    matricula:'000567', cargo:'Op. Máquina',           setor:'Produção',      area:'Ensaques',       sexo:'M', escolaridade:'Fundamental', admissao:'2017-05-20', status:'ativo',   nascimento:'1982-04-23', cpf:'890.123.456-77', telefone:'(11) 93333-6666', email:'joao.silveira@empresa.com',    endereco:'Rua Lagoa Azul, 33 — São Paulo/SP' },
-    { id:9, nome:'Paulo Rocha Almeida',    matricula:'001188', cargo:'Op. Produção',          setor:'Produção',      area:'Ensaques',       sexo:'M', escolaridade:'Médio',       admissao:'2023-07-14', status:'ativo',   nascimento:'1994-06-11', cpf:'901.234.567-88', telefone:'(11) 92222-7777', email:'paulo.rocha@empresa.com',      endereco:'Rua Verde, 900 — São Paulo/SP' },
-    { id:10,nome:'Luiz Araújo Pereira',    matricula:'000890', cargo:'Vendedor',              setor:'Administração', area:'Comercial',      sexo:'M', escolaridade:'Médio',       admissao:'2019-09-03', status:'inativo', nascimento:'1987-12-01', cpf:'012.345.678-99', telefone:'(11) 91111-8888', email:'luiz.araujo@empresa.com',      endereco:'Rua Amarela, 450 — São Paulo/SP' },
-    { id:11,nome:'Antônio Ferreira Lopes', matricula:'002001', cargo:'Trabalhador rural',     setor:'Gado',          area:'Manejo',         sexo:'M', escolaridade:'Fundamental', admissao:'2016-04-11', status:'ativo',   nascimento:'1975-03-18', cpf:'111.222.333-44', telefone:'(11) 90000-1000', email:'antonio.ferreira@empresa.com', endereco:'Sítio Boa Vista, s/n — Zona Rural' },
-    { id:12,nome:'Roberto Campos Alves',   matricula:'002002', cargo:'Médico Veterinário',    setor:'Gado',          area:'Sanidade',       sexo:'M', escolaridade:'Superior',    admissao:'2022-09-05', status:'ativo',   nascimento:'1986-05-09', cpf:'222.333.444-55', telefone:'(11) 90000-2000', email:'roberto.campos@empresa.com',   endereco:'Rua do Campo, 12 — Zona Rural' },
-    { id:13,nome:'Cristina Moura Dias',    matricula:'002003', cargo:'Aux. Veterinária',      setor:'Gado',          area:'Sanidade',       sexo:'F', escolaridade:'Técnico',     admissao:'2024-02-14', status:'ativo',   nascimento:'1996-08-22', cpf:'333.444.555-66', telefone:'(11) 90000-3000', email:'cristina.moura@empresa.com',   endereco:'Estrada Rural km 3 — Zona Rural' },
-    { id:14,nome:'Edivaldo Pereira Souza', matricula:'002004', cargo:'Tratorista',            setor:'Gado',          area:'Campo',          sexo:'M', escolaridade:'Fundamental', admissao:'2020-11-22', status:'ativo',   nascimento:'1980-01-30', cpf:'444.555.666-77', telefone:'(11) 90000-4000', email:'edivaldo.pereira@empresa.com', endereco:'Sítio Boa Vista, s/n — Zona Rural' },
+    { id:1, nome:'Ana Paula Costa',        matricula:'001234', cargo:'Analista RH',           setor:'Administrativo', area:'RH',                       sexo:'F', escolaridade:'Superior',    admissao:'2021-03-15', status:'ferias',  nascimento:'1988-07-12', cpf:'123.456.789-00', telefone:'(11) 98765-4321', email:'ana.costa@empresa.com',        endereco:'Rua das Flores, 120 — São Paulo/SP' },
+    { id:2, nome:'Carlos Eduardo Mendes',  matricula:'001235', cargo:'Op. Produção',          setor:'Produção',       area:'Ensaques',                 sexo:'M', escolaridade:'Médio',       admissao:'2026-04-20', status:'ativo',   nascimento:'1995-02-08', cpf:'234.567.890-11', telefone:'(11) 99123-4567', email:'carlos.mendes@empresa.com',    endereco:'Av. Paulista, 2000 — São Paulo/SP' },
+    { id:3, nome:'José Silva Ramos',       matricula:'000412', cargo:'Mecânico Industrial',   setor:'Produção',       area:'Manutenção',               sexo:'M', escolaridade:'Técnico',     admissao:'2018-08-02', status:'ativo',   nascimento:'1979-11-30', cpf:'345.678.901-22', telefone:'(11) 98888-1111', email:'jose.silva@empresa.com',       endereco:'Rua do Porto, 15 — São Paulo/SP' },
+    { id:4, nome:'Maria Santos Oliveira',  matricula:'000765', cargo:'Coord. Administrativo', setor:'Administrativo', area:'Diretoria',                sexo:'F', escolaridade:'Superior',    admissao:'2019-11-18', status:'ativo',   nascimento:'1985-04-22', cpf:'456.789.012-33', telefone:'(11) 97777-2222', email:'maria.santos@empresa.com',     endereco:'Rua XV de Novembro, 200 — São Paulo/SP' },
+    { id:5, nome:'Pedro Henrique Souza',   matricula:'001001', cargo:'Motorista',             setor:'Produção',       area:'Logística (carregamento)', sexo:'M', escolaridade:'Médio',       admissao:'2020-06-05', status:'afastado',nascimento:'1990-09-15', cpf:'567.890.123-44', telefone:'(11) 96666-3333', email:'pedro.souza@empresa.com',      endereco:'Rua das Palmeiras, 88 — São Paulo/SP' },
+    { id:6, nome:'Rafael Fernandes Lima',  matricula:'001102', cargo:'Motorista',             setor:'Produção',       area:'Logística (carregamento)', sexo:'M', escolaridade:'Médio',       admissao:'2022-01-12', status:'ativo',   nascimento:'1992-04-27', cpf:'678.901.234-55', telefone:'(11) 95555-4444', email:'rafael.lima@empresa.com',      endereco:'Av. Brasil, 450 — São Paulo/SP' },
+    { id:7, nome:'Marcela Pinto Oliveira', matricula:'001023', cargo:'Analista Financeiro',   setor:'Administrativo', area:'Financeiro',               sexo:'F', escolaridade:'Superior',    admissao:'2020-02-10', status:'ativo',   nascimento:'1993-04-25', cpf:'789.012.345-66', telefone:'(11) 94444-5555', email:'marcela.pinto@empresa.com',    endereco:'Rua do Sol, 77 — São Paulo/SP' },
+    { id:8, nome:'João Silveira Matos',    matricula:'000567', cargo:'Op. Máquina',           setor:'Produção',       area:'Ensaques',                 sexo:'M', escolaridade:'Fundamental', admissao:'2017-05-20', status:'ativo',   nascimento:'1982-04-23', cpf:'890.123.456-77', telefone:'(11) 93333-6666', email:'joao.silveira@empresa.com',    endereco:'Rua Lagoa Azul, 33 — São Paulo/SP' },
+    { id:9, nome:'Paulo Rocha Almeida',    matricula:'001188', cargo:'Op. Produção',          setor:'Produção',       area:'Ensaques',                 sexo:'M', escolaridade:'Médio',       admissao:'2023-07-14', status:'ativo',   nascimento:'1994-06-11', cpf:'901.234.567-88', telefone:'(11) 92222-7777', email:'paulo.rocha@empresa.com',      endereco:'Rua Verde, 900 — São Paulo/SP' },
+    { id:10,nome:'Luiz Araújo Pereira',    matricula:'000890', cargo:'Vendedor',              setor:'Administrativo', area:'Comercial',                sexo:'M', escolaridade:'Médio',       admissao:'2019-09-03', status:'inativo', nascimento:'1987-12-01', cpf:'012.345.678-99', telefone:'(11) 91111-8888', email:'luiz.araujo@empresa.com',      endereco:'Rua Amarela, 450 — São Paulo/SP' },
+    { id:11,nome:'Antônio Ferreira Lopes', matricula:'002001', cargo:'Trabalhador rural',     setor:'Área Externa',   area:'Gado',                     sexo:'M', escolaridade:'Fundamental', admissao:'2016-04-11', status:'ativo',   nascimento:'1975-03-18', cpf:'111.222.333-44', telefone:'(11) 90000-1000', email:'antonio.ferreira@empresa.com', endereco:'Sítio Boa Vista, s/n — Zona Rural' },
+    { id:12,nome:'Roberto Campos Alves',   matricula:'002002', cargo:'Médico Veterinário',    setor:'Área Externa',   area:'Gado',                     sexo:'M', escolaridade:'Superior',    admissao:'2022-09-05', status:'ativo',   nascimento:'1986-05-09', cpf:'222.333.444-55', telefone:'(11) 90000-2000', email:'roberto.campos@empresa.com',   endereco:'Rua do Campo, 12 — Zona Rural' },
+    { id:13,nome:'Cristina Moura Dias',    matricula:'002003', cargo:'Aux. Veterinária',      setor:'Área Externa',   area:'Gado',                     sexo:'F', escolaridade:'Técnico',     admissao:'2024-02-14', status:'ativo',   nascimento:'1996-08-22', cpf:'333.444.555-66', telefone:'(11) 90000-3000', email:'cristina.moura@empresa.com',   endereco:'Estrada Rural km 3 — Zona Rural' },
+    { id:14,nome:'Edivaldo Pereira Souza', matricula:'002004', cargo:'Tratorista',            setor:'Área Externa',   area:'Manutenção do pátio',      sexo:'M', escolaridade:'Fundamental', admissao:'2020-11-22', status:'ativo',   nascimento:'1980-01-30', cpf:'444.555.666-77', telefone:'(11) 90000-4000', email:'edivaldo.pereira@empresa.com', endereco:'Sítio Boa Vista, s/n — Zona Rural' },
   ];
 
   const STATUS_LABEL = {
@@ -5898,9 +5903,9 @@ Liderança de equipe ≥3 pessoas"></textarea>
      ════════════════════════════════════════════════ */
 
   const SETOR_ICON = {
-    'Produção':      '⚙',
-    'Administração': '📋',
-    'Gado':          '🐄',
+    'Produção':       '⚙',
+    'Administrativo': '📋',
+    'Área Externa':   '🌾',
   };
 
   function renderQuadro() {
@@ -6061,10 +6066,10 @@ Liderança de equipe ≥3 pessoas"></textarea>
     ],
     movimentacoesRecentes: [
       { tipo:'admissao',    nome:'Carlos Eduardo Mendes', cargo:'Op. Produção',    setor:'Produção',       data:'2026-04-20', motivo:'—' },
-      { tipo:'desligamento',nome:'Luiz Araújo Pereira',   cargo:'Vendedor',        setor:'Administração',      data:'2026-04-17', motivo:'Pedido do colaborador' },
+      { tipo:'desligamento',nome:'Luiz Araújo Pereira',   cargo:'Vendedor',        setor:'Administrativo',      data:'2026-04-17', motivo:'Pedido do colaborador' },
       { tipo:'admissao',    nome:'Fernanda Batista',      cargo:'Aux. Logística',  setor:'Produção',      data:'2026-04-12', motivo:'—' },
       { tipo:'desligamento',nome:'Roberto Cunha',         cargo:'Op. Produção',    setor:'Produção',       data:'2026-04-08', motivo:'Sem justa causa' },
-      { tipo:'admissao',    nome:'Amanda Teixeira',       cargo:'Analista Admin.', setor:'Administração', data:'2026-04-03', motivo:'—' },
+      { tipo:'admissao',    nome:'Amanda Teixeira',       cargo:'Analista Admin.', setor:'Administrativo', data:'2026-04-03', motivo:'—' },
       { tipo:'desligamento',nome:'Sérgio Nunes',          cargo:'Motorista',       setor:'Produção',      data:'2026-03-28', motivo:'Término de contrato' },
     ],
   };
@@ -6275,17 +6280,17 @@ Liderança de equipe ≥3 pessoas"></textarea>
      ════════════════════════════════════════════════ */
 
   let DESLIGAMENTOS = [
-    { id:1, colaborador_id:10, nome:'Luiz Araújo Pereira', cargo:'Vendedor',     setor:'Administração',      admissao:'2019-09-03', data:'2026-04-17', ultimo_dia:'2026-04-17', motivo:'Pedido do colaborador', tipo:'voluntario',   aviso:'trabalhado', observacoes:'Nova oportunidade em outra empresa.',
+    { id:1, colaborador_id:10, nome:'Luiz Araújo Pereira', cargo:'Vendedor',     setor:'Administrativo',      admissao:'2019-09-03', data:'2026-04-17', ultimo_dia:'2026-04-17', motivo:'Pedido do colaborador', tipo:'voluntario',   aviso:'trabalhado', observacoes:'Nova oportunidade em outra empresa.',
       entrevista: { realizada:true, data:'2026-04-18', responsavel:'Ana Paula Costa', satisfacao:4, clima:4, lideranca:5, recomendaria:true,  motivo_livre:'Proposta salarial melhor no concorrente.', feedback:'Ambiente positivo, lideranças acessíveis. Faltou plano de carreira claro.' } },
     { id:2, colaborador_id:null, nome:'Roberto Cunha',      cargo:'Op. Produção', setor:'Produção',       admissao:'2023-02-14', data:'2026-04-08', ultimo_dia:'2026-04-08', motivo:'Sem justa causa',       tipo:'involuntario', aviso:'indenizado', observacoes:'Redução de quadro no setor.',
       entrevista: { realizada:true, data:'2026-04-08', responsavel:'Maria Santos', satisfacao:3, clima:3, lideranca:4, recomendaria:true, motivo_livre:'Desligamento por parte da empresa.', feedback:'Equipe muito unida; escala pesada em épocas de pico.' } },
     { id:3, colaborador_id:null, nome:'Sérgio Nunes',       cargo:'Motorista',    setor:'Produção',      admissao:'2022-03-28', data:'2026-03-28', ultimo_dia:'2026-03-28', motivo:'Término de contrato',   tipo:'involuntario', aviso:'dispensado', observacoes:'Contrato de experiência não renovado.',
       entrevista: { realizada:false } },
-    { id:4, colaborador_id:null, nome:'Fernanda Monteiro',  cargo:'Aux. Administrativo', setor:'Administração', admissao:'2021-06-10', data:'2026-03-15', ultimo_dia:'2026-03-15', motivo:'Pedido do colaborador', tipo:'voluntario', aviso:'trabalhado', observacoes:'Mudança de cidade.',
+    { id:4, colaborador_id:null, nome:'Fernanda Monteiro',  cargo:'Aux. Administrativo', setor:'Administrativo', admissao:'2021-06-10', data:'2026-03-15', ultimo_dia:'2026-03-15', motivo:'Pedido do colaborador', tipo:'voluntario', aviso:'trabalhado', observacoes:'Mudança de cidade.',
       entrevista: { realizada:true, data:'2026-03-16', responsavel:'Ana Paula Costa', satisfacao:5, clima:5, lideranca:5, recomendaria:true, motivo_livre:'Mudança de cidade por razões pessoais.', feedback:'Saí satisfeita, recomendo fortemente.' } },
     { id:5, colaborador_id:null, nome:'Jean Carlos Faria',  cargo:'Op. Produção', setor:'Produção',       admissao:'2024-07-22', data:'2026-02-28', ultimo_dia:'2026-02-28', motivo:'Justa causa',           tipo:'involuntario', aviso:'dispensado', observacoes:'Faltas reiteradas sem justificativa.',
       entrevista: { realizada:false } },
-    { id:6, colaborador_id:null, nome:'Helena Ribeiro',     cargo:'Analista Fiscal', setor:'Administração', admissao:'2017-11-04', data:'2026-02-10', ultimo_dia:'2026-02-10', motivo:'Aposentadoria',        tipo:'voluntario',   aviso:'dispensado', observacoes:'Aposentadoria por idade.',
+    { id:6, colaborador_id:null, nome:'Helena Ribeiro',     cargo:'Analista Fiscal', setor:'Administrativo', admissao:'2017-11-04', data:'2026-02-10', ultimo_dia:'2026-02-10', motivo:'Aposentadoria',        tipo:'voluntario',   aviso:'dispensado', observacoes:'Aposentadoria por idade.',
       entrevista: { realizada:true, data:'2026-02-10', responsavel:'Diretoria', satisfacao:5, clima:5, lideranca:5, recomendaria:true, motivo_livre:'Aposentadoria após longa trajetória.', feedback:'Empresa me acolheu por 8 anos. Gratidão.' } },
     { id:7, colaborador_id:null, nome:'Diego Matos',        cargo:'Mecânico',     setor:'Produção',     admissao:'2023-11-05', data:'2026-01-22', ultimo_dia:'2026-01-22', motivo:'Acordo mútuo',          tipo:'voluntario',   aviso:'indenizado', observacoes:'Acordo por incompatibilidade com a função.',
       entrevista: { realizada:true, data:'2026-01-22', responsavel:'Maria Santos', satisfacao:3, clima:4, lideranca:3, recomendaria:false, motivo_livre:'Função não era o que eu esperava.', feedback:'Faltou clareza nas atribuições no momento da contratação.' } },
@@ -7216,16 +7221,16 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
   // --- Kits por setor ---
   let EPI_KITS = {
-    'Produção':      [1, 2, 3, 4],   // Botina, Luva, Óculos, Protetor auricular
-    'Administração': [],
-    'Gado':          [1, 3, 7],      // Botina, Óculos, Cinto paraquedista (seed inicial)
+    'Produção':       [1, 2, 3, 4],   // Botina, Luva, Óculos, Protetor auricular
+    'Administrativo': [],
+    'Área Externa':   [1, 3, 7],      // Botina, Óculos, Cinto paraquedista (seed inicial)
   };
 
   function renderEpiKits() {
     const grid = $('#epi-kits-grid');
     if (!grid) return;
 
-    const setores = ['Produção', 'Administração', 'Gado'];
+    const setores = ['Produção', 'Administrativo', 'Área Externa'];
     const ativos = COLABORADORES.filter(c => c.status !== 'inativo');
 
     // Calcula pendências por colab
@@ -8213,8 +8218,8 @@ Liderança de equipe ≥3 pessoas"></textarea>
       .reduce((s,r) => s + r.provisao, 0);
     $('#fer-stat-prov-total').textContent = fmtBRL(provBy(null));
     $('#fer-stat-prov-prod').textContent  = fmtBRL(provBy('Produção'));
-    $('#fer-stat-prov-adm').textContent   = fmtBRL(provBy('Administração'));
-    $('#fer-stat-prov-gado').textContent  = fmtBRL(provBy('Gado'));
+    $('#fer-stat-prov-adm').textContent   = fmtBRL(provBy('Administrativo'));
+    $('#fer-stat-prov-gado').textContent  = fmtBRL(provBy('Área Externa'));
 
     renderFeriasTimeline(linhas);
   }
