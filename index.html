@@ -3085,6 +3085,17 @@
         </div>
       </div>
 
+      <!-- Gráfico evolução -->
+      <div class="widget" style="margin-bottom:14px;">
+        <div class="widget-header">
+          <div class="widget-title">Evolução mensal</div>
+          <span class="widget-badge">fixo vs. dia útil — folha total</span>
+        </div>
+        <div class="chart-container" style="height:200px;">
+          <canvas id="chart-vale-alimentacao-evolucao"></canvas>
+        </div>
+      </div>
+
       <!-- Tabela -->
       <div class="table-card">
         <div class="table-wrapper">
@@ -7871,6 +7882,66 @@ Liderança de equipe ≥3 pessoas"></textarea>
     $('#va-stat-benef').textContent = beneficiados.length;
     $('#va-stat-medio').textContent = fmtBRL(beneficiados.length ? folha / beneficiados.length : 0);
     $('#va-stat-sem').textContent   = linhas.length - beneficiados.length;
+
+    renderValeAlimentacaoEvolucao();
+  }
+
+  // Gráfico de evolução: últimos 6 meses, barras empilhadas (fixo + dia_util)
+  let _chartVaEvo;
+
+  function renderValeAlimentacaoEvolucao() {
+    const ctx = $('#chart-vale-alimentacao-evolucao');
+    if (!ctx) return;
+
+    // Pega os últimos 6 meses do seletor (ou do mês atual)
+    const selMes = $('#va-mes');
+    const baseMes = selMes?.value || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+    const [y, m] = baseMes.split('-').map(Number);
+    const meses = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(y, m - 1 - i, 1);
+      meses.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    }
+
+    const totaisFixo = [];
+    const totaisDU   = [];
+    meses.forEach(chave => {
+      let fx = 0, du = 0;
+      Object.values(VA_BENEFICIOS).forEach(b => {
+        if (b.tipo === 'fixo') {
+          fx += parseFloat(b.valor) || 0;
+        } else if (b.tipo === 'dia_util') {
+          const dias = b.dias_uteis || diasUteisDoMes(chave);
+          du += (parseFloat(b.valor) || 0) * dias;
+        }
+      });
+      totaisFixo.push(fx);
+      totaisDU.push(du);
+    });
+
+    _chartVaEvo?.destroy();
+    _chartVaEvo = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: meses.map(mesLabel),
+        datasets: [
+          { label: 'Fixo mensal',  data: totaisFixo, backgroundColor: CHART_COLORS.phthaloLight, stack:'g', borderRadius: 3 },
+          { label: 'Por dia útil', data: totaisDU,   backgroundColor: CHART_COLORS.phthaloBright, stack:'g', borderRadius: 3 },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } },
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false } },
+          y: { stacked: true, beginAtZero: true, grid: { color: CHART_COLORS.grid }, ticks: { callback: v => 'R$ ' + v } },
+        },
+      },
+    });
   }
 
   // Modal
