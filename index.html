@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -10178,6 +10179,12 @@ Liderança de equipe ≥3 pessoas"></textarea>
   document.querySelectorAll('.nav-item[data-page="plano-carreiras"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderPlanoCarreiras, 60));
   });
+</script>
+
+<script src="supabase.js"></script>
+<script>
+  // Inicializa Supabase após o DOM e os mocks estarem prontos
+  document.addEventListener('DOMContentLoaded', () => inicializarSupabase());
 </script>
 
 </body>
