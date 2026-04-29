@@ -10423,9 +10423,12 @@ Liderança de equipe ≥3 pessoas"></textarea>
       // Login bem-sucedido
       showToast('Login realizado com sucesso!', 'ok');
 
-      // Aguarda um pouco e recarrega
-      await new Promise(r => setTimeout(r, 500));
-      window.location.reload();
+      // Esconde login e mostra app imediatamente (sem recarregar)
+      document.getElementById('login-screen').classList.remove('active');
+      document.getElementById('app').style.display = '';
+
+      // Carrega dados do Supabase
+      await inicializarSupabase();
     } catch (err) {
       // Mostra erro
       errorEl.textContent = err.message || 'Erro ao fazer login. Verifique suas credenciais.';
@@ -10443,19 +10446,26 @@ Liderança de equipe ≥3 pessoas"></textarea>
     try {
       await Auth.logout();
       showToast('Logout realizado com sucesso!', 'ok');
-      await new Promise(r => setTimeout(r, 500));
-      window.location.reload();
+
+      // Mostra login e esconde app
+      document.getElementById('login-screen').classList.add('active');
+      document.getElementById('app').style.display = 'none';
+
+      // Limpa formulário
+      document.getElementById('login-form').reset();
     } catch (err) {
       showToast('Erro ao fazer logout: ' + err.message, 'err');
     }
   }
 
-  // Listener para mudanças de sessão (login/logout em outra aba)
+  // Listener para detectar logout em outra aba/janela
+  let autenticadoAntes = false;
   Auth.onMudanca(async (sessao) => {
-    if (!sessao) {
-      // Sessão foi encerrada
-      window.location.reload();
+    if (autenticadoAntes && !sessao) {
+      // Sessão foi encerrada em outra aba
+      fazerLogout();
     }
+    autenticadoAntes = !!sessao;
   });
 
   // Inicializa ao carregar
