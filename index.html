@@ -2070,9 +2070,206 @@
     background: var(--bluish-card); border-radius: 6px;
     border-left: 3px solid var(--info);
   }
+
+  /* ════════════════════════════════════════════════
+     TELA DE LOGIN
+     ════════════════════════════════════════════════ */
+  #login-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, var(--phthalo-dark) 0%, var(--phthalo) 100%);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  #login-screen.active {
+    display: flex;
+  }
+
+  .login-container {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .login-header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .login-logo {
+    width: 64px;
+    height: 64px;
+    background: var(--phthalo);
+    color: var(--white);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 auto 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .login-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .login-subtitle {
+    font-size: 13px;
+    color: var(--text-soft);
+  }
+
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .login-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .login-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  .login-input {
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 14px;
+    transition: all .15s;
+    background: var(--white);
+    color: var(--text);
+  }
+
+  .login-input:focus {
+    outline: none;
+    border-color: var(--phthalo-bright);
+    box-shadow: 0 0 0 2px rgba(74, 159, 214, .1);
+    background: var(--white);
+  }
+
+  .login-input::placeholder {
+    color: var(--text-soft);
+  }
+
+  .login-button {
+    padding: 12px 16px;
+    background: var(--phthalo);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    margin-top: 8px;
+  }
+
+  .login-button:hover {
+    background: var(--phthalo-mid);
+    box-shadow: var(--shadow);
+  }
+
+  .login-button:active {
+    background: var(--phthalo-dark);
+  }
+
+  .login-button.loading {
+    opacity: .7;
+    cursor: not-allowed;
+  }
+
+  .login-error {
+    padding: 10px 12px;
+    background: rgba(239, 68, 68, .1);
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    color: var(--danger);
+    font-size: 12px;
+    display: none;
+  }
+
+  .login-error.show {
+    display: block;
+  }
+
+  .login-footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-soft);
+    margin-top: 24px;
+    line-height: 1.6;
+  }
+
 </style>
 </head>
 <body>
+
+<!-- ════════════ TELA DE LOGIN ════════════ -->
+<div id="login-screen">
+  <div class="login-container">
+    <div class="login-header">
+      <div class="login-logo">RH</div>
+      <h1 class="login-title">Entrar no Sistema</h1>
+      <p class="login-subtitle">Gestão de Recursos Humanos</p>
+    </div>
+
+    <form id="login-form" class="login-form" onsubmit="handleLogin(event)">
+      <div id="login-error" class="login-error"></div>
+
+      <div class="login-field">
+        <label class="login-label">Email</label>
+        <input
+          type="email"
+          id="login-email"
+          class="login-input"
+          placeholder="seu@email.com"
+          required
+        />
+      </div>
+
+      <div class="login-field">
+        <label class="login-label">Senha</label>
+        <input
+          type="password"
+          id="login-password"
+          class="login-input"
+          placeholder="••••••••"
+          required
+        />
+      </div>
+
+      <button type="submit" class="login-button" id="login-btn">
+        Entrar
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p>Solicite suas credenciais ao administrador do sistema.</p>
+    </div>
+  </div>
+</div>
 
 <!-- ════════════ APP ════════════ -->
 <div id="app">
@@ -2090,7 +2287,7 @@
   </div>
 
   <div class="topbar-right">
-    <div class="user-chip">
+    <div class="user-chip" onclick="fazerLogout()" title="Clique para fazer logout" style="cursor:pointer; opacity:.8; transition:.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.8'">
       <div class="avatar">A</div>
       <div>
         <div class="user-name">Admin</div>
@@ -10183,8 +10380,86 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <script src="supabase.js"></script>
 <script>
-  // Inicializa Supabase após o DOM e os mocks estarem prontos
-  document.addEventListener('DOMContentLoaded', () => inicializarSupabase());
+  // ════════════════════════════════════════════════
+  // AUTENTICAÇÃO E LOGIN
+  // ════════════════════════════════════════════════
+
+  // Verifica sessão ao carregar a página
+  async function verificarSessao() {
+    const sessao = await Auth.sessaoAtual();
+    if (sessao) {
+      // Usuário logado: esconde tela de login e mostra app
+      document.getElementById('login-screen').classList.remove('active');
+      document.getElementById('app').style.display = '';
+      await inicializarSupabase();
+    } else {
+      // Sem sessão: mostra tela de login
+      document.getElementById('login-screen').classList.add('active');
+      document.getElementById('app').style.display = 'none';
+    }
+  }
+
+  // Trata submissão do formulário de login
+  async function handleLogin(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('login-email').value.trim();
+    const senha = document.getElementById('login-password').value;
+    const btn = document.getElementById('login-btn');
+    const errorEl = document.getElementById('login-error');
+
+    // Limpa erro anterior
+    errorEl.classList.remove('show');
+    errorEl.textContent = '';
+
+    // Desabilita botão
+    btn.classList.add('loading');
+    btn.disabled = true;
+    btn.textContent = 'Entrando...';
+
+    try {
+      await Auth.login(email, senha);
+
+      // Login bem-sucedido
+      showToast('Login realizado com sucesso!', 'ok');
+
+      // Aguarda um pouco e recarrega
+      await new Promise(r => setTimeout(r, 500));
+      window.location.reload();
+    } catch (err) {
+      // Mostra erro
+      errorEl.textContent = err.message || 'Erro ao fazer login. Verifique suas credenciais.';
+      errorEl.classList.add('show');
+
+      // Re-habilita botão
+      btn.classList.remove('loading');
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+    }
+  }
+
+  // Logout
+  async function fazerLogout() {
+    try {
+      await Auth.logout();
+      showToast('Logout realizado com sucesso!', 'ok');
+      await new Promise(r => setTimeout(r, 500));
+      window.location.reload();
+    } catch (err) {
+      showToast('Erro ao fazer logout: ' + err.message, 'err');
+    }
+  }
+
+  // Listener para mudanças de sessão (login/logout em outra aba)
+  Auth.onMudanca(async (sessao) => {
+    if (!sessao) {
+      // Sessão foi encerrada
+      window.location.reload();
+    }
+  });
+
+  // Inicializa ao carregar
+  document.addEventListener('DOMContentLoaded', verificarSessao);
 </script>
 
 </body>
