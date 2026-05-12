@@ -894,6 +894,68 @@
   }
 
   /* ════════════════════════════════════════════════
+     PAGINAÇÃO
+     ════════════════════════════════════════════════ */
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-soft);
+    background: var(--bluish-bg);
+    border-radius: 0 0 10px 10px;
+    font-size: .82rem;
+    gap: 8px;
+  }
+
+  .pagination-info {
+    font-family: var(--mono);
+    font-size: .73rem;
+    color: var(--text-muted);
+  }
+
+  .pagination-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--white);
+    color: var(--text);
+    font-size: .78rem;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+
+  .pagination-btn:hover:not(:disabled) {
+    background: var(--phthalo-light);
+    border-color: var(--phthalo-bright);
+    color: var(--phthalo-dark);
+  }
+
+  .pagination-btn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
+
+  .pagination-btn.current {
+    background: var(--phthalo);
+    border-color: var(--phthalo);
+    color: var(--white);
+    font-weight: 600;
+    pointer-events: none;
+  }
+
+  /* ════════════════════════════════════════════════
      BADGES / STATUS PILLS
      ════════════════════════════════════════════════ */
   .badge {
@@ -2572,9 +2634,6 @@
         </div>
         <select id="col-filter-setor">
           <option value="">Todos os setores</option>
-          <option>Produção</option>
-          <option>Administrativo</option>
-          <option>Área Externa</option>
         </select>
         <select id="col-filter-status">
           <option value="">Todos os status</option>
@@ -2623,6 +2682,10 @@
             </thead>
             <tbody id="tb-colaboradores"></tbody>
           </table>
+        </div>
+        <div class="pagination-bar" id="col-pagination-bar" style="display:none">
+          <div class="pagination-info" id="col-pagination-info"></div>
+          <div class="pagination-controls" id="col-pagination-controls"></div>
         </div>
       </div>
 
@@ -5521,7 +5584,12 @@ Liderança de equipe ≥3 pessoas"></textarea>
      COLABORADORES — mock + render + drawer + modal
      ════════════════════════════════════════════════ */
 
-  // Mock. Substituir por fetch do Supabase na integração.
+  let _colabPage  = 1;
+  const _COLAB_LIMIT = 50;
+  let _colabTotal = 0;
+  let _colabTotalPages = 1;
+
+  // Mock. Substituído por dados do Supabase quando há sessão ativa.
   let COLABORADORES = [
     { id:1, nome:'Ana Paula Costa',        matricula:'001234', cargo:'Analista RH',           setor:'Administrativo', area:'RH',                       sexo:'F', escolaridade:'Superior',    admissao:'2021-03-15', status:'ferias',  nascimento:'1988-07-12', cpf:'123.456.789-00', telefone:'(11) 98765-4321', email:'ana.costa@empresa.com',        endereco:'Rua das Flores, 120 — São Paulo/SP' },
     { id:2, nome:'Carlos Eduardo Mendes',  matricula:'001235', cargo:'Op. Produção',          setor:'Produção',       area:'Ensaques',                 sexo:'M', escolaridade:'Médio',       admissao:'2026-04-20', status:'ativo',   nascimento:'1995-02-08', cpf:'234.567.890-11', telefone:'(11) 99123-4567', email:'carlos.mendes@empresa.com',    endereco:'Av. Paulista, 2000 — São Paulo/SP' },
@@ -5577,12 +5645,8 @@ Liderança de equipe ≥3 pessoas"></textarea>
   // Helper de seleção
   function $(sel) { return document.querySelector(sel); }
 
-  function renderColaboradores() {
-    const tbody = $('#tb-colaboradores');
-    if (!tbody) return;
-
-    const lista = colaboradoresFiltrados();
-    tbody.innerHTML = lista.length ? lista.map(c => {
+  function _colabLinhas(lista) {
+    return lista.map(c => {
       const st = STATUS_LABEL[c.status] || STATUS_LABEL.ativo;
       return `
         <tr onclick="abrirDrawerColab(${c.id})">
@@ -5608,27 +5672,115 @@ Liderança de equipe ≥3 pessoas"></textarea>
           </td>
         </tr>
       `;
-    }).join('') : `<tr><td colspan="6" class="empty">Nenhum colaborador encontrado</td></tr>`;
+    }).join('');
+  }
 
-    // Stats
-    const total     = c => COLABORADORES.filter(x => x.status === c).length;
-    $('#stat-ativos').textContent     = total('ativo');
-    $('#stat-ferias').textContent     = total('ferias');
-    $('#stat-afastados').textContent  = total('afastado');
+  function _colabStats(lista) {
+    const count = s => lista.filter(x => x.status === s).length;
+    $('#stat-ativos').textContent    = count('ativo');
+    $('#stat-ferias').textContent    = count('ferias');
+    $('#stat-afastados').textContent = count('afastado');
     const now = new Date();
-    $('#stat-admitidos').textContent = COLABORADORES.filter(x => {
+    $('#stat-admitidos').textContent = lista.filter(x => {
       if (!x.admissao) return false;
       const d = new Date(x.admissao + 'T00:00:00');
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length;
   }
 
-  // Busca / filtros
+  function _renderPaginacaoColab(page, totalPages, total) {
+    const bar      = $('#col-pagination-bar');
+    const info     = $('#col-pagination-info');
+    const controls = $('#col-pagination-controls');
+    if (!bar) return;
+
+    if (totalPages <= 1) { bar.style.display = 'none'; return; }
+
+    bar.style.display = 'flex';
+    info.textContent  = `${total} colaborador${total !== 1 ? 'es' : ''}`;
+
+    const btns = [];
+    btns.push(`<button class="pagination-btn" onclick="colabIrPagina(${page - 1})" ${page <= 1 ? 'disabled' : ''}>← Ant.</button>`);
+
+    const inicio = Math.max(1, page - 2);
+    const fim    = Math.min(totalPages, page + 2);
+    if (inicio > 1) btns.push(`<button class="pagination-btn" onclick="colabIrPagina(1)">1</button>`);
+    if (inicio > 2) btns.push(`<span class="pagination-info">…</span>`);
+    for (let p = inicio; p <= fim; p++) {
+      btns.push(`<button class="pagination-btn${p === page ? ' current' : ''}" onclick="colabIrPagina(${p})">${p}</button>`);
+    }
+    if (fim < totalPages - 1) btns.push(`<span class="pagination-info">…</span>`);
+    if (fim < totalPages) btns.push(`<button class="pagination-btn" onclick="colabIrPagina(${totalPages})">${totalPages}</button>`);
+
+    btns.push(`<button class="pagination-btn" onclick="colabIrPagina(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>Próx. →</button>`);
+    controls.innerHTML = btns.join('');
+  }
+
+  async function renderColaboradores() {
+    const tbody = $('#tb-colaboradores');
+    if (!tbody) return;
+
+    const busca  = ($('#col-search')?.value  || '').trim();
+    const status = $('#col-filter-status')?.value || '';
+    const setor  = $('#col-filter-setor')?.value  || '';
+
+    const temSessao = typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+
+    if (temSessao) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty" style="color:var(--text-muted)">Carregando…</td></tr>`;
+      try {
+        const res = await Colaboradores.listar({ page: _colabPage, limit: _COLAB_LIMIT, busca, status, setor });
+        _colabTotal      = res.total;
+        _colabTotalPages = res.totalPages;
+
+        tbody.innerHTML = res.data.length
+          ? _colabLinhas(res.data)
+          : `<tr><td colspan="6" class="empty">Nenhum colaborador encontrado</td></tr>`;
+
+        _colabStats(res.data);
+        _renderPaginacaoColab(res.page, res.totalPages, res.total);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty">Erro ao carregar: ${h(err.message)}</td></tr>`;
+      }
+    } else {
+      // Fallback mock — filtragem client-side
+      const lista = colaboradoresFiltrados();
+      tbody.innerHTML = lista.length
+        ? _colabLinhas(lista)
+        : `<tr><td colspan="6" class="empty">Nenhum colaborador encontrado</td></tr>`;
+      _colabStats(COLABORADORES);
+      const bar = $('#col-pagination-bar');
+      if (bar) bar.style.display = 'none';
+    }
+  }
+
+  function colabIrPagina(p) {
+    if (p < 1 || p > _colabTotalPages) return;
+    _colabPage = p;
+    renderColaboradores();
+  }
+
+  async function popularFiltroSetores() {
+    const sel = $('#col-filter-setor');
+    if (!sel) return;
+    try {
+      const temSessao = typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+      if (!temSessao) return;
+      const deps = await Departamentos.listar();
+      sel.innerHTML = `<option value="">Todos os setores</option>` +
+        deps.map(d => `<option value="${d.id}">${h(d.nome)}</option>`).join('');
+    } catch (_) {}
+  }
+
+  // Busca / filtros — reset de página ao mudar critério
   document.addEventListener('input', (e) => {
-    if (e.target.id === 'col-search') renderColaboradores();
+    if (e.target.id === 'col-search') { _colabPage = 1; renderColaboradores(); }
   });
   document.addEventListener('change', (e) => {
-    if (e.target.id === 'col-filter-setor' || e.target.id === 'col-filter-status') renderColaboradores();
+    if (e.target.id === 'col-filter-setor' || e.target.id === 'col-filter-status') {
+      _colabPage = 1;
+      renderColaboradores();
+    }
   });
 
   /* ── DRAWER ── */

@@ -724,12 +724,13 @@ async function inicializarSupabase() {
       }
     }
 
-    if (typeof renderColaboradores === 'function') renderColaboradores();
-    if (typeof renderDesligamentos === 'function') renderDesligamentos();
-    if (typeof renderAdvertencias  === 'function') renderAdvertencias();
-    if (typeof renderFerias        === 'function') renderFerias();
-    if (typeof renderCalendario    === 'function') renderCalendario();
-    if (typeof renderDashboard     === 'function') renderDashboard();
+    if (typeof popularFiltroSetores  === 'function') await popularFiltroSetores();
+    if (typeof renderColaboradores   === 'function') renderColaboradores();
+    if (typeof renderDesligamentos   === 'function') renderDesligamentos();
+    if (typeof renderAdvertencias    === 'function') renderAdvertencias();
+    if (typeof renderFerias          === 'function') renderFerias();
+    if (typeof renderCalendario      === 'function') renderCalendario();
+    if (typeof renderDashboard       === 'function') renderDashboard();
 
     console.info('[RH] Dados carregados com sucesso.');
   } catch (err) {
