@@ -14,7 +14,7 @@ src/
 ├── modules/
 │   ├── colaboradores.js    ✅ Criado (exemplo de estrutura)
 │   ├── advertencias.js     ✅ Criado
-│   ├── ferias.js           ⏳ Pendente
+│   ├── ferias.js           ✅ Criado
 │   ├── desligamentos.js    ⏳ Pendente
 │   ├── eventos.js          ⏳ Pendente
 │   ├── docs.js             ⏳ Pendente
@@ -80,3 +80,4 @@ src/
 2. `2ba916c` — Criar módulo ColaboradoresModule
 3. `77c6009` — Criar MODULARIZATION_PLAN.md com roadmap detalhado
 4. `2aa898c` — Criar módulo AdvertenciasModule com charts e drawer
+5. `c81ced8` — Criar módulo FeriasModule com timeline e cálculos CLT
