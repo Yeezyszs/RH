@@ -1,0 +1,22 @@
+{
+  "name": "rh",
+  "version": "1.0.0",
+  "description": "Aplicação web single-page (SPA) com banco de dados real via **Supabase (PostgreSQL)**, autenticação de usuários e políticas de segurança por perfil de acesso.",
+  "main": "supabase.js",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:39643/git/Yeezyszs/RH"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vitest": "^2.1.9"
+  }
+}
