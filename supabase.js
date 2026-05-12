@@ -9,19 +9,94 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ============================================================================
+// TIMEOUT — evita UI congelada em requisições lentas
+// ============================================================================
+
+async function withTimeout(promise, ms = 6000) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error('Requisição expirou. Verifique sua conexão.')),
+      ms
+    );
+  });
+  try {
+    const result = await Promise.race([promise, timeout]);
+    clearTimeout(timer);
+    return result;
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+}
+
+// ============================================================================
+// RETRY — tenta novamente com exponential backoff
+// ============================================================================
+
+async function withRetry(fn, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isLast = attempt === maxRetries - 1;
+      if (isLast) throw err;
+      const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+      console.warn(`[RH] Tentativa ${attempt + 1} falhou. Retentando em ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+}
+
+// ============================================================================
+// CACHE LOCAL — 5 minutos por padrão
+// ============================================================================
+
+const Cache = {
+  _store: new Map(),
+  TTL: 5 * 60 * 1000,
+
+  get(key) {
+    const entry = this._store.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.time > this.TTL) {
+      this._store.delete(key);
+      return null;
+    }
+    return entry.data;
+  },
+
+  set(key, data) {
+    this._store.set(key, { data, time: Date.now() });
+  },
+
+  invalidate(key) {
+    if (key) {
+      this._store.delete(key);
+    } else {
+      this._store.clear();
+    }
+  },
+};
+
+// ============================================================================
 // AUTH
 // ============================================================================
 
 const Auth = {
   async login(email, senha) {
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+    const { data, error } = await withTimeout(
+      sb.auth.signInWithPassword({ email, password: senha })
+    );
     if (error) throw error;
+    Cache.invalidate();
     return data;
   },
 
   async logout() {
     const { error } = await sb.auth.signOut();
     if (error) throw error;
+    Cache.invalidate();
   },
 
   async sessaoAtual() {
@@ -35,42 +110,42 @@ const Auth = {
 };
 
 // ============================================================================
-// HELPERS
+// HELPERS — mappers (banco → UI)
 // ============================================================================
 
 function mapColaborador(row) {
   return {
-    id:           row.id,
-    nome:         row.nome,
-    matricula:    row.cpf?.replace(/\D/g, '').slice(-6) || String(row.id).padStart(6, '0'),
-    cargo:        row.cargos?.nome        || row.cargo  || '—',
-    setor:        row.departamentos?.nome || row.setor  || '—',
-    area:         row.area                || '',
-    sexo:         row.genero === 'Masculino' ? 'M' : row.genero === 'Feminino' ? 'F' : 'O',
-    escolaridade: row.escolaridade        || '',
-    admissao:     row.data_admissao       || '',
-    status:       row.status              || 'ativo',
-    nascimento:   row.data_nascimento     || '',
-    cpf:          row.cpf                 || '',
-    telefone:     row.celular || row.telefone || '',
-    email:        row.email               || '',
-    endereco:     [row.endereco, row.cidade, row.estado].filter(Boolean).join(' — '),
+    id:            row.id,
+    nome:          row.nome,
+    matricula:     row.cpf?.replace(/\D/g, '').slice(-6) || String(row.id).padStart(6, '0'),
+    cargo:         row.cargos?.nome        || row.cargo  || '—',
+    setor:         row.departamentos?.nome || row.setor  || '—',
+    area:          row.area                || '',
+    sexo:          row.genero === 'Masculino' ? 'M' : row.genero === 'Feminino' ? 'F' : 'O',
+    escolaridade:  row.escolaridade        || '',
+    admissao:      row.data_admissao       || '',
+    status:        row.status              || 'ativo',
+    nascimento:    row.data_nascimento     || '',
+    cpf:           row.cpf                 || '',
+    telefone:      row.celular || row.telefone || '',
+    email:         row.email               || '',
+    endereco:      [row.endereco, row.cidade, row.estado].filter(Boolean).join(' — '),
     departamento_id: row.departamento_id,
-    cargo_id:     row.cargo_id,
-    salario:      row.salario,
+    cargo_id:      row.cargo_id,
+    salario:       row.salario,
     tipo_contrato: row.tipo_contrato,
   };
 }
 
 function mapAdvertencia(row) {
   return {
-    id:         row.id,
-    colab_id:   row.colaborador_id,
-    data:       row.data_advertencia,
-    tipo:       row.tipo,
-    motivo:     row.motivo,
-    descricao:  row.descricao || '',
-    status:     row.resposta_colaborador ? 'respondida' : 'pendente',
+    id:        row.id,
+    colab_id:  row.colaborador_id,
+    data:      row.data_advertencia,
+    tipo:      row.tipo,
+    motivo:    row.motivo,
+    descricao: row.descricao || '',
+    status:    row.resposta_colaborador ? 'respondida' : 'pendente',
   };
 }
 
@@ -101,68 +176,102 @@ function mapDesligamento(row) {
 
 function mapEvento(row) {
   return {
-    id:           row.id,
-    titulo:       row.titulo,
-    data:         row.data_inicio?.split('T')[0],
-    hora_inicio:  row.data_inicio?.split('T')[1]?.slice(0,5) || '',
-    hora_fim:     row.data_termino?.split('T')[1]?.slice(0,5) || '',
-    local:        row.local || '',
-    tipo:         row.tipo || 'evento',
-    descricao:    row.descricao || '',
+    id:          row.id,
+    titulo:      row.titulo,
+    data:        row.data_inicio?.split('T')[0],
+    hora_inicio: row.data_inicio?.split('T')[1]?.slice(0, 5) || '',
+    hora_fim:    row.data_termino?.split('T')[1]?.slice(0, 5) || '',
+    local:       row.local || '',
+    tipo:        row.tipo || 'evento',
+    descricao:   row.descricao || '',
   };
 }
 
 // ============================================================================
-// COLABORADORES
+// COLABORADORES — com paginação, cache e timeout
 // ============================================================================
 
 const Colaboradores = {
-  async listar() {
-    const { data, error } = await sb
-      .from('colaboradores')
-      .select('*, cargos(nome), departamentos(nome)')
-      .order('nome');
-    if (error) throw error;
-    return data.map(mapColaborador);
+  async listar({ page = 1, limit = 100, busca = '', status = '', setor = '' } = {}) {
+    const cacheKey = `colaboradores_${page}_${limit}_${busca}_${status}_${setor}`;
+    const cached = Cache.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await withRetry(() =>
+      withTimeout((async () => {
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        let query = sb
+          .from('colaboradores')
+          .select('*, cargos(nome), departamentos(nome)', { count: 'exact' })
+          .range(from, to)
+          .order('nome');
+
+        if (busca)  query = query.ilike('nome', `%${busca}%`);
+        if (status) query = query.eq('status', status);
+        if (setor)  query = query.eq('departamento_id', setor);
+
+        const { data, error, count } = await query;
+        if (error) throw error;
+
+        return {
+          data:       data.map(mapColaborador),
+          total:      count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        };
+      })()
+    ));
+
+    Cache.set(cacheKey, result);
+    return result;
   },
 
   async buscar(id) {
-    const { data, error } = await sb
-      .from('colaboradores')
-      .select('*, cargos(nome), departamentos(nome)')
-      .eq('id', id)
-      .single();
+    const cacheKey = `colaborador_${id}`;
+    const cached = Cache.get(cacheKey);
+    if (cached) return cached;
+
+    const { data, error } = await withTimeout(
+      sb.from('colaboradores')
+        .select('*, cargos(nome), departamentos(nome)')
+        .eq('id', id)
+        .single()
+    );
     if (error) throw error;
-    return mapColaborador(data);
+
+    const result = mapColaborador(data);
+    Cache.set(cacheKey, result);
+    return result;
   },
 
   async criar(payload) {
-    const { data, error } = await sb
-      .from('colaboradores')
-      .insert(payload)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      sb.from('colaboradores').insert(payload).select().single()
+    );
     if (error) throw error;
+    Cache.invalidate();
     return mapColaborador(data);
   },
 
   async atualizar(id, payload) {
-    const { data, error } = await sb
-      .from('colaboradores')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      sb.from('colaboradores').update(payload).eq('id', id).select().single()
+    );
     if (error) throw error;
+    Cache.invalidate(`colaborador_${id}`);
+    Cache.invalidate();
     return mapColaborador(data);
   },
 
   async excluir(id) {
-    const { error } = await sb
-      .from('colaboradores')
-      .delete()
-      .eq('id', id);
+    const { error } = await withTimeout(
+      sb.from('colaboradores').delete().eq('id', id)
+    );
     if (error) throw error;
+    Cache.invalidate();
   },
 };
 
@@ -172,12 +281,14 @@ const Colaboradores = {
 
 const Departamentos = {
   async listar() {
-    const { data, error } = await sb
-      .from('departamentos')
-      .select('*')
-      .eq('ativo', true)
-      .order('nome');
+    const cached = Cache.get('departamentos');
+    if (cached) return cached;
+
+    const { data, error } = await withTimeout(
+      sb.from('departamentos').select('*').eq('ativo', true).order('nome')
+    );
     if (error) throw error;
+    Cache.set('departamentos', data);
     return data;
   },
 };
@@ -188,12 +299,14 @@ const Departamentos = {
 
 const Cargos = {
   async listar() {
-    const { data, error } = await sb
-      .from('cargos')
-      .select('*')
-      .eq('ativo', true)
-      .order('nome');
+    const cached = Cache.get('cargos');
+    if (cached) return cached;
+
+    const { data, error } = await withTimeout(
+      sb.from('cargos').select('*').eq('ativo', true).order('nome')
+    );
     if (error) throw error;
+    Cache.set('cargos', data);
     return data;
   },
 };
@@ -203,27 +316,38 @@ const Cargos = {
 // ============================================================================
 
 const Advertencias = {
-  async listar() {
-    const { data, error } = await sb
-      .from('advertencias')
-      .select('*')
-      .order('data_advertencia', { ascending: false });
+  async listar({ page = 1, limit = 50 } = {}) {
+    const from = (page - 1) * limit;
+    const to   = from + limit - 1;
+
+    const { data, error, count } = await withTimeout(
+      sb.from('advertencias')
+        .select('*', { count: 'exact' })
+        .range(from, to)
+        .order('data_advertencia', { ascending: false })
+    );
     if (error) throw error;
-    return data.map(mapAdvertencia);
+
+    return {
+      data:       data.map(mapAdvertencia),
+      total:      count,
+      page,
+      totalPages: Math.ceil(count / limit),
+    };
   },
 
   async criar(payload) {
-    const { data, error } = await sb
-      .from('advertencias')
-      .insert(payload)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      sb.from('advertencias').insert(payload).select().single()
+    );
     if (error) throw error;
     return mapAdvertencia(data);
   },
 
   async excluir(id) {
-    const { error } = await sb.from('advertencias').delete().eq('id', id);
+    const { error } = await withTimeout(
+      sb.from('advertencias').delete().eq('id', id)
+    );
     if (error) throw error;
   },
 };
@@ -233,38 +357,46 @@ const Advertencias = {
 // ============================================================================
 
 const Ferias = {
-  async listar() {
-    const { data, error } = await sb
-      .from('ferias')
-      .select('*')
-      .order('data_inicio', { ascending: false });
+  async listar({ page = 1, limit = 50 } = {}) {
+    const from = (page - 1) * limit;
+    const to   = from + limit - 1;
+
+    const { data, error, count } = await withTimeout(
+      sb.from('ferias')
+        .select('*', { count: 'exact' })
+        .range(from, to)
+        .order('data_inicio', { ascending: false })
+    );
     if (error) throw error;
-    return data.map(mapFerias);
+
+    return {
+      data:       data.map(mapFerias),
+      total:      count,
+      page,
+      totalPages: Math.ceil(count / limit),
+    };
   },
 
   async criar(payload) {
-    const { data, error } = await sb
-      .from('ferias')
-      .insert(payload)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      sb.from('ferias').insert(payload).select().single()
+    );
     if (error) throw error;
     return mapFerias(data);
   },
 
   async atualizar(id, payload) {
-    const { data, error } = await sb
-      .from('ferias')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      sb.from('ferias').update(payload).eq('id', id).select().single()
+    );
     if (error) throw error;
     return mapFerias(data);
   },
 
   async excluir(id) {
-    const { error } = await sb.from('ferias').delete().eq('id', id);
+    const { error } = await withTimeout(
+      sb.from('ferias').delete().eq('id', id)
+    );
     if (error) throw error;
   },
 };
@@ -274,21 +406,30 @@ const Ferias = {
 // ============================================================================
 
 const Desligamentos = {
-  async listar() {
-    const { data, error } = await sb
-      .from('desligamentos')
-      .select('*')
-      .order('data_desligamento', { ascending: false });
+  async listar({ page = 1, limit = 50 } = {}) {
+    const from = (page - 1) * limit;
+    const to   = from + limit - 1;
+
+    const { data, error, count } = await withTimeout(
+      sb.from('desligamentos')
+        .select('*', { count: 'exact' })
+        .range(from, to)
+        .order('data_desligamento', { ascending: false })
+    );
     if (error) throw error;
-    return data.map(mapDesligamento);
+
+    return {
+      data:       data.map(mapDesligamento),
+      total:      count,
+      page,
+      totalPages: Math.ceil(count / limit),
+    };
   },
 
   async criar(payload) {
-    const { data, error } = await sb
-      .from('desligamentos')
-      .insert(payload)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      sb.from('desligamentos').insert(payload).select().single()
+    );
     if (error) throw error;
     return mapDesligamento(data);
   },
@@ -300,34 +441,41 @@ const Desligamentos = {
 
 const Vencimentos = {
   async listar() {
-    const [docs, asos] = await Promise.all([
-      sb.from('documentos').select('*, colaboradores(nome)').order('data_vencimento'),
-      sb.from('asos').select('*, colaboradores(nome)').order('data_vencimento'),
-    ]);
+    const cached = Cache.get('vencimentos');
+    if (cached) return cached;
+
+    const [docs, asos] = await withTimeout(
+      Promise.all([
+        sb.from('documentos').select('*, colaboradores(nome)').order('data_vencimento'),
+        sb.from('asos').select('*, colaboradores(nome)').order('data_vencimento'),
+      ])
+    );
     if (docs.error) throw docs.error;
     if (asos.error) throw asos.error;
 
     const hoje = new Date();
-
     const mapDoc = (row, categoria) => {
-      const venc  = new Date(row.data_vencimento);
-      const diff  = Math.ceil((venc - hoje) / 86400000);
+      const venc = new Date(row.data_vencimento);
+      const diff = Math.ceil((venc - hoje) / 86400000);
       return {
-        id:        row.id,
-        colab_id:  row.colaborador_id,
-        colab:     row.colaboradores?.nome || '—',
+        id:            row.id,
+        colab_id:      row.colaborador_id,
+        colab:         row.colaboradores?.nome || '—',
         categoria,
-        tipo:      row.tipo || categoria,
-        vencimento: row.data_vencimento,
-        status:    diff < 0 ? 'vencido' : diff <= 30 ? 'a_vencer' : 'ok',
+        tipo:          row.tipo || categoria,
+        vencimento:    row.data_vencimento,
+        status:        diff < 0 ? 'vencido' : diff <= 30 ? 'a_vencer' : 'ok',
         diasRestantes: diff,
       };
     };
 
-    return [
+    const result = [
       ...docs.data.map(r => mapDoc(r, 'Documento')),
       ...asos.data.map(r => mapDoc(r, 'ASO')),
     ];
+
+    Cache.set('vencimentos', result);
+    return result;
   },
 };
 
@@ -337,20 +485,19 @@ const Vencimentos = {
 
 const Epis = {
   async listar() {
-    const { data, error } = await sb
-      .from('epis')
-      .select('*, colaboradores(nome)')
-      .order('data_entrega', { ascending: false });
+    const { data, error } = await withTimeout(
+      sb.from('epis')
+        .select('*, colaboradores(nome)')
+        .order('data_entrega', { ascending: false })
+    );
     if (error) throw error;
     return data;
   },
 
   async criar(payload) {
-    const { data, error } = await sb
-      .from('epis')
-      .insert(payload)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      sb.from('epis').insert(payload).select().single()
+    );
     if (error) throw error;
     return data;
   },
@@ -362,38 +509,37 @@ const Epis = {
 
 const Cronograma = {
   async listar() {
-    const { data, error } = await sb
-      .from('cronograma')
-      .select('*')
-      .order('data_inicio');
+    const { data, error } = await withTimeout(
+      sb.from('cronograma').select('*').order('data_inicio')
+    );
     if (error) throw error;
     return data.map(mapEvento);
   },
 
   async criar(payload) {
-    const { data, error } = await sb
-      .from('cronograma')
-      .insert(payload)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      sb.from('cronograma').insert(payload).select().single()
+    );
     if (error) throw error;
+    Cache.invalidate('cronograma');
     return mapEvento(data);
   },
 
   async atualizar(id, payload) {
-    const { data, error } = await sb
-      .from('cronograma')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      sb.from('cronograma').update(payload).eq('id', id).select().single()
+    );
     if (error) throw error;
+    Cache.invalidate('cronograma');
     return mapEvento(data);
   },
 
   async excluir(id) {
-    const { error } = await sb.from('cronograma').delete().eq('id', id);
+    const { error } = await withTimeout(
+      sb.from('cronograma').delete().eq('id', id)
+    );
     if (error) throw error;
+    Cache.invalidate('cronograma');
   },
 };
 
@@ -403,10 +549,12 @@ const Cronograma = {
 
 const ValeCombustivel = {
   async listar(mes, ano) {
-    let query = sb.from('vale_combustivel').select('*, colaboradores(nome, departamentos(nome))');
+    let query = sb
+      .from('vale_combustivel')
+      .select('*, colaboradores(nome, departamentos(nome))');
     if (mes) query = query.eq('mes', mes);
     if (ano) query = query.eq('ano', ano);
-    const { data, error } = await query;
+    const { data, error } = await withTimeout(query);
     if (error) throw error;
     return data;
   },
@@ -418,10 +566,12 @@ const ValeCombustivel = {
 
 const ValeAlimentacao = {
   async listar(mes, ano) {
-    let query = sb.from('vale_alimentacao').select('*, colaboradores(nome, departamentos(nome))');
+    let query = sb
+      .from('vale_alimentacao')
+      .select('*, colaboradores(nome, departamentos(nome))');
     if (mes) query = query.eq('mes', mes);
     if (ano) query = query.eq('ano', ano);
-    const { data, error } = await query;
+    const { data, error } = await withTimeout(query);
     if (error) throw error;
     return data;
   },
@@ -433,10 +583,12 @@ const ValeAlimentacao = {
 
 const Salarios = {
   async listar(mes, ano) {
-    let query = sb.from('salarios').select('*, colaboradores(nome, departamentos(nome), cargos(nome))');
+    let query = sb
+      .from('salarios')
+      .select('*, colaboradores(nome, departamentos(nome), cargos(nome))');
     if (mes) query = query.eq('mes', mes);
     if (ano) query = query.eq('ano', ano);
-    const { data, error } = await query;
+    const { data, error } = await withTimeout(query);
     if (error) throw error;
     return data;
   },
@@ -447,20 +599,26 @@ const Salarios = {
 // ============================================================================
 
 const FeedbackClima = {
-  async listarFeedbacks() {
-    const { data, error } = await sb
-      .from('feedbacks')
-      .select('*, colaboradores(nome)')
-      .order('data_feedback', { ascending: false });
+  async listarFeedbacks({ page = 1, limit = 50 } = {}) {
+    const from = (page - 1) * limit;
+    const to   = from + limit - 1;
+
+    const { data, error } = await withTimeout(
+      sb.from('feedbacks')
+        .select('*, colaboradores(nome)')
+        .range(from, to)
+        .order('data_feedback', { ascending: false })
+    );
     if (error) throw error;
     return data;
   },
 
   async listarPesquisas() {
-    const { data, error } = await sb
-      .from('pesquisas_clima')
-      .select('*')
-      .order('data_inicio', { ascending: false });
+    const { data, error } = await withTimeout(
+      sb.from('pesquisas_clima')
+        .select('*')
+        .order('data_inicio', { ascending: false })
+    );
     if (error) throw error;
     return data;
   },
@@ -472,11 +630,14 @@ const FeedbackClima = {
 
 const Dashboard = {
   async kpis() {
-    const { data, error } = await sb
-      .from('dashboard_kpis')
-      .select('*')
-      .single();
+    const cached = Cache.get('dashboard_kpis');
+    if (cached) return cached;
+
+    const { data, error } = await withTimeout(
+      sb.from('dashboard_kpis').select('*').single()
+    );
     if (error) throw error;
+    Cache.set('dashboard_kpis', data);
     return data;
   },
 
@@ -484,12 +645,16 @@ const Dashboard = {
     const hoje = new Date();
     const mes  = hoje.getMonth() + 1;
     const dia  = hoje.getDate();
-    const { data, error } = await sb
-      .from('colaboradores')
-      .select('id, nome, data_nascimento, departamentos(nome)')
-      .eq('status', 'ativo');
+
+    const { data, error } = await withTimeout(
+      sb.from('colaboradores')
+        .select('id, nome, data_nascimento, departamentos(nome)')
+        .eq('status', 'ativo')
+    );
     if (error) throw error;
+
     return data.filter(c => {
+      if (!c.data_nascimento) return false;
       const d = new Date(c.data_nascimento);
       return d.getMonth() + 1 === mes && d.getDate() === dia;
     });
@@ -497,69 +662,90 @@ const Dashboard = {
 };
 
 // ============================================================================
-// INICIALIZAÇÃO — carrega dados do Supabase e sobrescreve mocks
+// INICIALIZAÇÃO — carrega dados e sobrescreve mocks
 // ============================================================================
 
 async function inicializarSupabase() {
   try {
     const sessao = await Auth.sessaoAtual();
     if (!sessao) {
-      console.info('[Supabase] Sem sessão ativa — usando dados mock.');
+      console.info('[RH] Sem sessão ativa — usando dados mock.');
       return;
     }
 
-    console.info('[Supabase] Sessão ativa, carregando dados...');
+    console.info('[RH] Sessão ativa, carregando dados...');
 
-    const [colaboradores, advertencias, ferias, desligamentos, eventos] = await Promise.allSettled([
-      Colaboradores.listar(),
-      Advertencias.listar(),
-      Ferias.listar(),
-      Desligamentos.listar(),
-      Cronograma.listar(),
-    ]);
+    const [colaboradores, advertencias, ferias, desligamentos, eventos] =
+      await Promise.allSettled([
+        Colaboradores.listar(),
+        Advertencias.listar(),
+        Ferias.listar(),
+        Desligamentos.listar(),
+        Cronograma.listar(),
+      ]);
 
-    if (colaboradores.status === 'fulfilled' && colaboradores.value.length > 0) {
-      COLABORADORES = colaboradores.value;
-      console.info(`[Supabase] ${COLABORADORES.length} colaboradores carregados.`);
+    if (colaboradores.status === 'fulfilled') {
+      const lista = colaboradores.value?.data ?? colaboradores.value;
+      if (lista?.length > 0) {
+        COLABORADORES = lista;
+        console.info(`[RH] ${COLABORADORES.length} colaboradores carregados.`);
+      }
     }
 
-    if (advertencias.status === 'fulfilled' && advertencias.value.length > 0) {
-      ADVERTENCIAS = advertencias.value;
-      console.info(`[Supabase] ${ADVERTENCIAS.length} advertências carregadas.`);
+    if (advertencias.status === 'fulfilled') {
+      const lista = advertencias.value?.data ?? advertencias.value;
+      if (lista?.length > 0) {
+        ADVERTENCIAS = lista;
+        console.info(`[RH] ${ADVERTENCIAS.length} advertências carregadas.`);
+      }
     }
 
-    if (ferias.status === 'fulfilled' && ferias.value.length > 0) {
-      FERIAS = ferias.value;
-      console.info(`[Supabase] ${FERIAS.length} registros de férias carregados.`);
+    if (ferias.status === 'fulfilled') {
+      const lista = ferias.value?.data ?? ferias.value;
+      if (lista?.length > 0) {
+        FERIAS = lista;
+        console.info(`[RH] ${FERIAS.length} férias carregadas.`);
+      }
     }
 
-    if (desligamentos.status === 'fulfilled' && desligamentos.value.length > 0) {
-      DESLIGAMENTOS = desligamentos.value;
-      console.info(`[Supabase] ${DESLIGAMENTOS.length} desligamentos carregados.`);
+    if (desligamentos.status === 'fulfilled') {
+      const lista = desligamentos.value?.data ?? desligamentos.value;
+      if (lista?.length > 0) {
+        DESLIGAMENTOS = lista;
+        console.info(`[RH] ${DESLIGAMENTOS.length} desligamentos carregados.`);
+      }
     }
 
-    if (eventos.status === 'fulfilled' && eventos.value.length > 0) {
-      EVENTOS = eventos.value;
-      console.info(`[Supabase] ${EVENTOS.length} eventos carregados.`);
+    if (eventos.status === 'fulfilled') {
+      const lista = eventos.value?.data ?? eventos.value;
+      if (lista?.length > 0) {
+        EVENTOS = lista;
+        console.info(`[RH] ${EVENTOS.length} eventos carregados.`);
+      }
     }
 
-    // Re-renderizar módulos após carregar dados reais
-    if (typeof renderColaboradores  === 'function') renderColaboradores();
-    if (typeof renderDesligamentos  === 'function') renderDesligamentos();
-    if (typeof renderAdvertencias   === 'function') renderAdvertencias();
-    if (typeof renderFerias         === 'function') renderFerias();
-    if (typeof renderCalendario     === 'function') renderCalendario();
-    if (typeof renderDashboard      === 'function') renderDashboard();
+    if (typeof renderColaboradores === 'function') renderColaboradores();
+    if (typeof renderDesligamentos === 'function') renderDesligamentos();
+    if (typeof renderAdvertencias  === 'function') renderAdvertencias();
+    if (typeof renderFerias        === 'function') renderFerias();
+    if (typeof renderCalendario    === 'function') renderCalendario();
+    if (typeof renderDashboard     === 'function') renderDashboard();
 
-    console.info('[Supabase] Dados carregados com sucesso.');
+    console.info('[RH] Dados carregados com sucesso.');
   } catch (err) {
-    console.warn('[Supabase] Erro ao carregar dados, usando mock:', err.message);
+    console.warn('[RH] Erro ao carregar dados, usando mock:', err.message);
   }
 }
 
-// Expor no escopo global para uso no HTML
-window.sb          = sb;
-window.Auth        = Auth;
+// ============================================================================
+// ESCOPO GLOBAL
+// ============================================================================
+
+window.sb              = sb;
+window.Cache           = Cache;
+window.withTimeout     = withTimeout;
+window.withRetry       = withRetry;
+window.Auth            = Auth;
 window.Colaboradores   = Colaboradores;
 window.Departamentos   = Departamentos;
 window.Cargos          = Cargos;
