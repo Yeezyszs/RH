@@ -23,7 +23,7 @@ describe('Cache', () => {
   });
 
   it('retorna null após TTL expirado', () => {
-    const cache = makeCache(100);
+    const cache = makeCache(100); // TTL de 100ms
     cache.set('temp', 'valor');
     vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 200);
     expect(cache.get('temp')).toBeNull();

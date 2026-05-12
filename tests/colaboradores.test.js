@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { makeCache, mapColaborador } from './helpers.js';
+import { makeCache, mapColaborador, withTimeout } from './helpers.js';
 
 // ── Fábrica de mock do cliente Supabase ─────────────────────────────────────
 

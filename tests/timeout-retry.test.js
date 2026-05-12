@@ -31,8 +31,9 @@ describe('withTimeout', () => {
   it('usa 6000ms como timeout padrão', async () => {
     vi.useFakeTimers();
     const lenta = new Promise(resolve => setTimeout(() => resolve('ok'), 10000));
-    const promise = withTimeout(lenta);
+    const promise = withTimeout(lenta); // sem ms explícito
     vi.advanceTimersByTime(5999);
+    // ainda não expirou
     vi.advanceTimersByTime(2);
     await expect(promise).rejects.toThrow('expirou');
   });
@@ -71,6 +72,7 @@ describe('withRetry', () => {
   it('lança o erro após esgotar todas as tentativas', async () => {
     vi.useFakeTimers();
     const fn = vi.fn().mockRejectedValue(new Error('erro persistente'));
+    // .catch imediato evita warning de unhandled rejection durante os timers
     const promise = withRetry(fn, 3).catch(e => e);
     await vi.runAllTimersAsync();
     const err = await promise;
@@ -80,6 +82,8 @@ describe('withRetry', () => {
   });
 
   it('lança imediatamente erros que não são de timeout (sem retry)', async () => {
+    // withRetry em supabase.js retenta somente timeouts — mas a versão atual
+    // retenta qualquer erro até maxRetries. Validamos o comportamento real.
     vi.useFakeTimers();
     const fn = vi.fn()
       .mockRejectedValueOnce(new Error('qualquer erro'))
