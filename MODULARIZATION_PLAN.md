@@ -12,8 +12,8 @@
 ```
 src/
 ├── modules/
-│   ├── colaboradores.js    ✅ Criado (ejemplo de estrutura)
-│   ├── advertencias.js     ⏳ Pendente
+│   ├── colaboradores.js    ✅ Criado (exemplo de estrutura)
+│   ├── advertencias.js     ✅ Criado
 │   ├── ferias.js           ⏳ Pendente
 │   ├── desligamentos.js    ⏳ Pendente
 │   ├── eventos.js          ⏳ Pendente
@@ -78,4 +78,5 @@ src/
 
 1. `718c5ba` — Extrair CSS do index.html para src/styles/main.css
 2. `2ba916c` — Criar módulo ColaboradoresModule
-3. `77c6009` — Documentar plano de modularização
+3. `77c6009` — Criar MODULARIZATION_PLAN.md com roadmap detalhado
+4. `2aa898c` — Criar módulo AdvertenciasModule com charts e drawer
