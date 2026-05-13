@@ -215,10 +215,20 @@ export class VencimentosModule {
       observacoes:     data.observacoes || '',
     };
 
+    const frontendItem = {
+      colaborador_id: payload.colaborador_id,
+      categoria:      payload.categoria,
+      item:           payload.tipo,
+      emissao:        payload.data_emissao || null,
+      vencimento:     payload.data_vencimento,
+      observacoes:    payload.observacoes || '',
+    };
+
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
       try {
-        await this.Vencimentos.criar({ ...payload, categoria: data.categoria });
+        const saved = await this.Vencimentos.criar(payload);
+        this.VENCIMENTOS.unshift({ ...frontendItem, id: saved.id, _tabela: saved._tabela });
       } catch (err) {
         alert('Erro ao salvar: ' + err.message);
         return;
@@ -226,10 +236,10 @@ export class VencimentosModule {
     } else {
       if (id != null) {
         const i = this.VENCIMENTOS.findIndex(x => x.id === id);
-        if (i >= 0) this.VENCIMENTOS[i] = { ...this.VENCIMENTOS[i], ...payload };
+        if (i >= 0) this.VENCIMENTOS[i] = { ...this.VENCIMENTOS[i], ...frontendItem };
       } else {
         const newId = Math.max(0, ...this.VENCIMENTOS.map(x => x.id)) + 1;
-        this.VENCIMENTOS.unshift({ id: newId, ...payload });
+        this.VENCIMENTOS.unshift({ id: newId, ...frontendItem });
       }
     }
     this.fecharModalVencimento();
