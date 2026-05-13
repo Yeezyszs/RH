@@ -2464,8 +2464,8 @@
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-label">Headcount ativo</div>
-          <div class="kpi-value">142</div>
-          <div class="kpi-trend up">↑ 3 vs. mês anterior</div>
+          <div class="kpi-value" id="dash-kpi-headcount">142</div>
+          <div class="kpi-trend up" id="dash-kpi-headcount-trend">↑ 3 vs. mês anterior</div>
         </div>
         <div class="kpi-card kpi-warn">
           <div class="kpi-label">Rotatividade 30d</div>
@@ -2474,13 +2474,13 @@
         </div>
         <div class="kpi-card kpi-success">
           <div class="kpi-label">Aniversariantes do mês</div>
-          <div class="kpi-value">9</div>
-          <div class="kpi-trend">3 nesta semana</div>
+          <div class="kpi-value" id="dash-kpi-aniv">9</div>
+          <div class="kpi-trend" id="dash-kpi-aniv-trend">3 nesta semana</div>
         </div>
         <div class="kpi-card kpi-danger">
           <div class="kpi-label">Vencimentos críticos</div>
-          <div class="kpi-value">7</div>
-          <div class="kpi-trend down">2 já vencidos</div>
+          <div class="kpi-value" id="dash-kpi-venc">7</div>
+          <div class="kpi-trend down" id="dash-kpi-venc-trend">2 já vencidos</div>
         </div>
       </div>
 
@@ -2490,9 +2490,9 @@
         <div class="widget">
           <div class="widget-header">
             <div class="widget-title">Atenção hoje</div>
-            <span class="widget-badge danger">7 itens</span>
+            <span class="widget-badge danger" id="dash-alerts-badge">7 itens</span>
           </div>
-          <ul class="alert-list">
+          <ul class="alert-list" id="dash-alerts-list">
             <li class="alert-item">
               <span class="alert-dot danger"></span>
               <span class="alert-text"><strong>ASO de José Silva</strong> venceu há 3 dias</span>
@@ -2524,9 +2524,9 @@
         <div class="widget">
           <div class="widget-header">
             <div class="widget-title">Aniversariantes da semana</div>
-            <span class="widget-badge success">3</span>
+            <span class="widget-badge success" id="dash-bday-badge">3</span>
           </div>
-          <ul class="bday-list">
+          <ul class="bday-list" id="dash-bday-list">
             <li class="bday-item">
               <div class="bday-avatar">JS</div>
               <div class="bday-name">
@@ -2572,7 +2572,7 @@
         <div class="widget">
           <div class="widget-header">
             <div class="widget-title">Headcount por setor</div>
-            <span class="widget-badge">142 total</span>
+            <span class="widget-badge" id="dash-headcount-badge">142 total</span>
           </div>
           <div class="chart-container">
             <canvas id="chart-headcount"></canvas>
@@ -5423,9 +5423,104 @@ Liderança de equipe ≥3 pessoas"></textarea>
     }
   }
 
+  function renderDashboard() {
+    const ativos = COLABORADORES.filter(c => c.status !== 'inativo');
+    const headcount = ativos.length;
+
+    const hoje = new Date();
+    const mes = hoje.getMonth() + 1;
+    const diaSemanaFim = new Date(hoje);
+    diaSemanaFim.setDate(hoje.getDate() + 6);
+
+    const anivMes = ativos.filter(c => {
+      if (!c.nascimento) return false;
+      const d = new Date(c.nascimento + 'T00:00:00');
+      return (d.getMonth() + 1) === mes;
+    });
+
+    const anivSemana = anivMes.filter(c => {
+      const d = new Date(c.nascimento + 'T00:00:00');
+      const dEsteAno = new Date(hoje.getFullYear(), d.getMonth(), d.getDate());
+      return dEsteAno >= hoje && dEsteAno <= diaSemanaFim;
+    });
+
+    const diasAteVenc = (iso) => {
+      const v = new Date(iso + 'T00:00:00');
+      const h2 = new Date(); h2.setHours(0,0,0,0);
+      return Math.round((v - h2) / 86400000);
+    };
+    const vencCriticos = VENCIMENTOS.filter(v => diasAteVenc(v.vencimento) <= 7);
+    const vencVencidos  = vencCriticos.filter(v => diasAteVenc(v.vencimento) < 0);
+
+    const el = (id) => document.getElementById(id);
+
+    if (el('dash-kpi-headcount')) el('dash-kpi-headcount').textContent = headcount;
+    if (el('dash-headcount-badge')) el('dash-headcount-badge').textContent = `${headcount} total`;
+    if (el('dash-kpi-headcount-trend')) {
+      el('dash-kpi-headcount-trend').textContent = `${headcount} colaboradores ativos`;
+      el('dash-kpi-headcount-trend').className = 'kpi-trend';
+    }
+
+    if (el('dash-kpi-aniv')) el('dash-kpi-aniv').textContent = anivMes.length;
+    if (el('dash-kpi-aniv-trend')) {
+      el('dash-kpi-aniv-trend').textContent = anivSemana.length
+        ? `${anivSemana.length} nesta semana`
+        : 'nenhum nesta semana';
+    }
+
+    if (el('dash-kpi-venc')) el('dash-kpi-venc').textContent = vencCriticos.length;
+    if (el('dash-kpi-venc-trend')) {
+      el('dash-kpi-venc-trend').textContent = `${vencVencidos.length} já vencido${vencVencidos.length !== 1 ? 's' : ''}`;
+    }
+
+    // Alertas — vencimentos críticos e vencidos
+    const alertsList = el('dash-alerts-list');
+    const alertsBadge = el('dash-alerts-badge');
+    if (alertsList && vencCriticos.length > 0) {
+      const alertas = [...vencCriticos]
+        .sort((a, b) => diasAteVenc(a.vencimento) - diasAteVenc(b.vencimento))
+        .slice(0, 6)
+        .map(v => {
+          const c = COLABORADORES.find(x => x.id === v.colaborador_id);
+          const dias = diasAteVenc(v.vencimento);
+          const cls = dias < 0 ? 'danger' : dias <= 7 ? 'warn' : 'info';
+          const dataFmt = v.vencimento ? v.vencimento.slice(5).replace('-', '/') : '—';
+          const msg = dias < 0
+            ? `<strong>${h(v.item)}</strong>${c ? ` de ${h(c.nome)}` : ''} venceu há ${Math.abs(dias)} dia${Math.abs(dias) !== 1 ? 's' : ''}`
+            : `<strong>${h(v.item)}</strong>${c ? ` de ${h(c.nome)}` : ''} vence em ${dias} dia${dias !== 1 ? 's' : ''}`;
+          return `<li class="alert-item"><span class="alert-dot ${cls}"></span><span class="alert-text">${msg}</span><span class="alert-meta">${dataFmt}</span></li>`;
+        }).join('');
+      alertsList.innerHTML = alertas;
+      if (alertsBadge) alertsBadge.textContent = `${vencCriticos.length} iten${vencCriticos.length !== 1 ? 's' : ''}`;
+    }
+
+    // Aniversariantes da semana
+    const bdayList  = el('dash-bday-list');
+    const bdayBadge = el('dash-bday-badge');
+    if (bdayList) {
+      if (anivSemana.length > 0) {
+        bdayList.innerHTML = anivSemana.map(c => {
+          const d = new Date(c.nascimento + 'T00:00:00');
+          const dFmt = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+          return `
+            <li class="bday-item">
+              <div class="bday-avatar">${h(iniciais(c.nome))}</div>
+              <div class="bday-name">${h(c.nome)}<div class="bday-role">${h(c.setor)} · ${h(c.cargo)}</div></div>
+              <div class="bday-date">${dFmt}</div>
+            </li>`;
+        }).join('');
+      } else {
+        bdayList.innerHTML = `<li style="padding:12px; color:var(--text-soft); font-size:.85rem">Nenhum aniversariante nesta semana</li>`;
+      }
+      if (bdayBadge) bdayBadge.textContent = anivSemana.length;
+    }
+
+    renderDashboardCharts();
+  }
+
   // Renderiza todos os módulos ao carregar a página.
   function renderAll() {
-    renderDashboardCharts();
+    renderDashboard();
     renderColaboradores();
     renderQuadro();
     renderRotatividade();
@@ -10561,7 +10656,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
     _editandoPlanoColabId = null;
   }
 
-  function salvarPcPlano(ev) {
+  async function salvarPcPlano(ev) {
     ev.preventDefault();
     const form = $('#form-pc-plano');
     const data = Object.fromEntries(new FormData(form));
@@ -10572,21 +10667,43 @@ Liderança de equipe ≥3 pessoas"></textarea>
       return;
     }
 
-    PC_PLANOS[colabId] = {
+    const payload = {
       cargo_atual_id: parseInt(data.cargo_atual_id, 10),
       cargo_alvo_id:  data.cargo_alvo_id ? parseInt(data.cargo_alvo_id, 10) : null,
       prazo:          data.prazo || null,
       progresso:      parseInt(data.progresso, 10) || 0,
       plano_acao:     data.plano_acao || '',
     };
+
+    const temSessao = window.Auth && await window.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        const saved = await window.PlanoCarreiras.upsertPlano(colabId, payload);
+        PC_PLANOS[colabId] = { ...payload, _dbId: saved.id };
+      } catch (err) {
+        showToast('Erro ao salvar: ' + err.message, 'err');
+        return;
+      }
+    } else {
+      PC_PLANOS[colabId] = payload;
+    }
     showToast('Plano salvo', 'ok');
     fecharModalPcPlano();
     renderPlanoCarreiras();
   }
 
-  function excluirPcPlanoAtual() {
+  async function excluirPcPlanoAtual() {
     if (!_editandoPlanoColabId) return;
     if (!confirm('Remover o plano deste colaborador?')) return;
+    const temSessao = window.Auth && await window.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await window.PlanoCarreiras.excluirPlano(_editandoPlanoColabId);
+      } catch (err) {
+        showToast('Erro ao excluir: ' + err.message, 'err');
+        return;
+      }
+    }
     delete PC_PLANOS[_editandoPlanoColabId];
     fecharModalPcPlano();
     renderPlanoCarreiras();
@@ -10629,6 +10746,8 @@ Liderança de equipe ≥3 pessoas"></textarea>
   window.ADV_TIPO_BADGE   = ADV_TIPO_BADGE;
   window.ADV_STATUS_BADGE = ADV_STATUS_BADGE;
   window.STATUS_LABEL     = STATUS_LABEL;
+  window.PC_PLANOS        = PC_PLANOS;
+  window.PC_CARGOS        = PC_CARGOS;
 </script>
 
 <script src="supabase.js"></script>

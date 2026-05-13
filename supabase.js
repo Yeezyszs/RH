@@ -738,6 +738,65 @@ const Dashboard = {
 };
 
 // ============================================================================
+// PLANO DE CARREIRAS
+// ============================================================================
+
+const PlanoCarreiras = {
+  async listarTrilhas() {
+    const { data, error } = await withTimeout(
+      sb.from('trilhas_carreira').select('*').order('nome')
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  async listarPlanos() {
+    const { data, error } = await withTimeout(
+      sb.from('plano_carreiras_colaborador')
+        .select('*')
+        .order('colaborador_id')
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  async upsertPlano(colabId, payload) {
+    const row = {
+      colaborador_id:          colabId,
+      trilha_id:               payload.trilha_id || null,
+      cargo_atual_id:          payload.cargo_atual_id || null,
+      cargo_alvo_id:           payload.cargo_alvo_id  || null,
+      data_inicio:             payload.data_inicio || new Date().toISOString().slice(0, 10),
+      data_previsao_conclusao: payload.prazo || null,
+      progresso_percentual:    payload.progresso ?? 0,
+      plano_acao:              payload.plano_acao || null,
+      observacoes:             payload.observacoes || null,
+    };
+    const { data, error } = await withTimeout(
+      sb.from('plano_carreiras_colaborador')
+        .upsert(row, { onConflict: 'colaborador_id' })
+        .select()
+        .single()
+    );
+    if (error) throw error;
+    Cache.invalidate();
+    return data;
+  },
+
+  async excluirPlano(colabId) {
+    const { error } = await withTimeout(
+      sb.from('plano_carreiras_colaborador')
+        .delete()
+        .eq('colaborador_id', colabId)
+    );
+    if (error) throw error;
+    Cache.invalidate();
+  },
+};
+
+window.PlanoCarreiras = PlanoCarreiras;
+
+// ============================================================================
 // INICIALIZAÇÃO — carrega dados e sobrescreve mocks
 // ============================================================================
 
@@ -751,13 +810,14 @@ async function inicializarSupabase() {
 
     console.info('[RH] Sessão ativa, carregando dados...');
 
-    const [colaboradores, advertencias, ferias, desligamentos, eventos] =
+    const [colaboradores, advertencias, ferias, desligamentos, eventos, pcPlanos] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
         Ferias.listar(),
         Desligamentos.listar(),
         Cronograma.listar(),
+        PlanoCarreiras.listarPlanos(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -800,6 +860,23 @@ async function inicializarSupabase() {
       }
     }
 
+    if (pcPlanos.status === 'fulfilled') {
+      const lista = pcPlanos.value ?? [];
+      if (lista.length > 0 && window.PC_PLANOS) {
+        lista.forEach(p => {
+          window.PC_PLANOS[p.colaborador_id] = {
+            _dbId:          p.id,
+            cargo_atual_id: p.cargo_atual_id || null,
+            cargo_alvo_id:  p.cargo_alvo_id  || null,
+            prazo:          p.data_previsao_conclusao || null,
+            progresso:      p.progresso_percentual ?? 0,
+            plano_acao:     p.plano_acao || p.observacoes || '',
+          };
+        });
+        console.info(`[RH] ${lista.length} planos de carreira carregados.`);
+      }
+    }
+
     if (typeof renderColaboradores  === 'function') renderColaboradores();
     if (typeof renderDesligamentos  === 'function') renderDesligamentos();
     if (typeof renderAdvertencias   === 'function') renderAdvertencias();
@@ -808,8 +885,10 @@ async function inicializarSupabase() {
     if (typeof renderVencimentos    === 'function') renderVencimentos();
     if (typeof renderEpi            === 'function') renderEpi();
     if (typeof renderRotatividade   === 'function') renderRotatividade();
-    if (typeof renderSalarios       === 'function') renderSalarios();
-    if (typeof renderDashboard      === 'function') renderDashboard();
+    if (typeof renderSalarios         === 'function') renderSalarios();
+    if (typeof renderQuadro           === 'function') renderQuadro();
+    if (typeof renderPlanoCarreiras   === 'function') renderPlanoCarreiras();
+    if (typeof renderDashboard        === 'function') renderDashboard();
 
     console.info('[RH] Dados carregados com sucesso.');
     setupRealTimeListeners();
