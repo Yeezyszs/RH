@@ -8769,6 +8769,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
   function excluirFerias(id) {
     if (!confirm('Excluir este período?')) return;
     FERIAS = FERIAS.filter(x => x.id !== id);
+    window.FERIAS = FERIAS;
     renderFeriasModal();
     renderFerias();
     showToast('Período excluído');
@@ -10528,6 +10529,34 @@ Liderança de equipe ≥3 pessoas"></textarea>
   document.querySelectorAll('.nav-item[data-page="plano-carreiras"]').forEach(el => {
     el.addEventListener('click', () => setTimeout(renderPlanoCarreiras, 60));
   });
+
+  // ─── Expor para src/app.js (ES6 modules) ─────────────────────────────────
+  window.h              = h;
+  window.iniciais       = iniciais;
+  window.fmtDate        = fmtDate;
+  window.fmtBRL         = fmtBRL;
+  window.addDays        = addDays;
+  window.tempoCasa      = tempoCasa;
+  window.diasAte        = diasAte;
+  window.faixaIdx       = faixaIdx;
+
+  window.COLABORADORES    = COLABORADORES;
+  window.ADVERTENCIAS     = ADVERTENCIAS;
+  window.FERIAS           = FERIAS;
+  window.DESLIGAMENTOS    = DESLIGAMENTOS;
+  window.EVENTOS          = EVENTOS;
+  window.VENCIMENTOS      = VENCIMENTOS;
+  window.EPI_CATALOGO     = EPI_CATALOGO;
+  window.EPI_ENTREGAS     = EPI_ENTREGAS;
+  window.EPI_KITS         = EPI_KITS;
+  window.SALARIOS         = SALARIOS;
+  window.FAIXAS           = FAIXAS;
+  window.ROT_MOCK         = ROT_MOCK;
+  window.SETOR_ICON       = SETOR_ICON;
+  window.CHART_COLORS     = CHART_COLORS;
+  window.ADV_TIPO_BADGE   = ADV_TIPO_BADGE;
+  window.ADV_STATUS_BADGE = ADV_STATUS_BADGE;
+  window.STATUS_LABEL     = STATUS_LABEL;
 </script>
 
 <script src="supabase.js"></script>
@@ -10623,6 +10652,8 @@ Liderança de equipe ≥3 pessoas"></textarea>
   // Inicializa ao carregar
   document.addEventListener('DOMContentLoaded', verificarSessao);
 </script>
+
+<script type="module" src="src/app.js"></script>
 
 </body>
 </html>
