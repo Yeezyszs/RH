@@ -18,9 +18,9 @@ src/
 │   ├── desligamentos.js    ✅ Criado
 │   ├── cronograma.js       ✅ Criado (calendário + feriados BR)
 │   ├── vencimentos.js      ✅ Criado (ASO / docs / treinamentos)
-│   ├── epi.js              ⏳ Pendente
-│   ├── valesCombustivel.js ⏳ Pendente
-│   └── relatorios.js       ⏳ Pendente (rotatividade)
+│   ├── epi.js              ✅ Criado (catálogo + entregas + kits)
+│   ├── rotatividade.js     ✅ Criado (turnover + charts + KPIs)
+│   └── salarios.js         ✅ Criado (tabela restrita + charts)
 │
 ├── ui/
 │   ├── table.js            ⏳ Pendente
@@ -41,9 +41,9 @@ src/
 4. **Desligamentos** ✅
 5. **Cronograma** ✅ (calendário + feriados BR)
 6. **Vencimentos** ✅ (ASO / docs / treinamentos)
-7. **EPI** ⏳ — catálogo + entregas
-8. **Rotatividade** ⏳ — gráficos de turnover
-9. **Salários** ⏳ — tabela restrita + charts
+7. **EPI** ✅ — catálogo + entregas + kits por setor
+8. **Rotatividade** ✅ — gráficos de turnover + KPIs
+9. **Salários** ✅ — tabela restrita + charts
 
 ### Fase 2: Componentes Reutilizáveis
 - `table.js` — renderização genérica de tabelas
@@ -87,3 +87,5 @@ src/
 4. `2aa898c` — Criar AdvertenciasModule (charts + drawer)
 5. `c81ced8` — Criar FeriasModule (timeline + cálculos CLT)
 6. `526289d` — Criar DesligamentosModule, CronogramaModule, VencimentosModule
+7. `d7283c5` — Recriar AdvertenciasModule (perdido em reset)
+8. `8b4f137` — Criar EpiModule, RotatividadeModule, SalariosModule
