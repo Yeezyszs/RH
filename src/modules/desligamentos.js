@@ -9,6 +9,8 @@ export class DesligamentosModule {
     this.fmtDate = deps.fmtDate;
     this.DESLIGAMENTOS = deps.DESLIGAMENTOS;
     this.COLABORADORES = deps.COLABORADORES;
+    this.Auth = deps.Auth;
+    this.Desligamentos = deps.Desligamentos;
 
     this.state = {
       drawerDeslId: null,
@@ -216,39 +218,60 @@ export class DesligamentosModule {
     this.$('#modal-desligamento').classList.remove('active');
   }
 
-  salvarDesligamento(ev) {
+  async salvarDesligamento(ev) {
     ev.preventDefault();
     const form = this.$('#form-desligamento');
     const data = Object.fromEntries(new FormData(form));
     const c = this.COLABORADORES.find(x => x.id === parseInt(data.colaborador_id, 10));
     if (!c) return;
 
-    const newId = Math.max(0, ...this.DESLIGAMENTOS.map(x => x.id)) + 1;
-    this.DESLIGAMENTOS.unshift({
-      id: newId,
-      colaborador_id: c.id,
-      nome: c.nome,
-      cargo: c.cargo,
-      setor: c.setor,
-      admissao: c.admissao,
-      data: data.data,
-      ultimo_dia: data.ultimo_dia || data.data,
-      motivo: data.motivo,
-      tipo: data.tipo,
-      aviso: data.aviso,
-      observacoes: data.observacoes || '',
-      entrevista: { realizada: false },
-    });
+    const payload = {
+      colaborador_id:  c.id,
+      data_desligamento: data.data,
+      ultimo_dia:      data.ultimo_dia || data.data,
+      motivo:          data.motivo,
+      tipo:            data.tipo,
+      aviso_previo:    data.aviso === 'sim',
+      observacoes:     data.observacoes || '',
+    };
 
-    c.status = 'inativo';
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Desligamentos.criar(payload);
+        await window.Colaboradores?.atualizar(c.id, { status: 'inativo' }).catch(() => null);
+      } catch (err) {
+        alert('Erro ao salvar: ' + err.message);
+        return;
+      }
+    } else {
+      const newId = Math.max(0, ...this.DESLIGAMENTOS.map(x => x.id)) + 1;
+      this.DESLIGAMENTOS.unshift({
+        id: newId, ...payload,
+        nome: c.nome, cargo: c.cargo, setor: c.setor, admissao: c.admissao,
+        entrevista: { realizada: false },
+      });
+      c.status = 'inativo';
+    }
+
     this.fecharModalDesligamento();
-    this.render();
+    await this.render();
   }
 
-  excluirDesligamento(id) {
+  async excluirDesligamento(id) {
     if (!confirm('Excluir este registro de desligamento?')) return;
-    this.DESLIGAMENTOS = this.DESLIGAMENTOS.filter(x => x.id !== id);
-    this.render();
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Desligamentos.excluir(id);
+      } catch (err) {
+        alert('Erro ao excluir: ' + err.message);
+        return;
+      }
+    } else {
+      this.DESLIGAMENTOS = this.DESLIGAMENTOS.filter(x => x.id !== id);
+    }
+    await this.render();
   }
 
   abrirModalEntrevista(deslId) {

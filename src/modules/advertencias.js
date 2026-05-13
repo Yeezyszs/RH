@@ -12,6 +12,8 @@ export class AdvertenciasModule {
     this.ADV_TIPO_BADGE = deps.ADV_TIPO_BADGE;
     this.ADV_STATUS_BADGE = deps.ADV_STATUS_BADGE;
     this.CHART_COLORS = deps.CHART_COLORS;
+    this.Auth = deps.Auth;
+    this.Advertencias = deps.Advertencias;
 
     this.ADV_COLOR = {
       verbal:    '#F59E0B',
@@ -437,7 +439,7 @@ export class AdvertenciasModule {
     this.$('#modal-advertencia').classList.remove('active');
   }
 
-  salvar(ev) {
+  async salvar(ev) {
     ev.preventDefault();
     const form = this.$('#form-advertencia');
     const data = Object.fromEntries(new FormData(form));
@@ -445,32 +447,55 @@ export class AdvertenciasModule {
 
     const payload = {
       colaborador_id: parseInt(data.colaborador_id, 10),
-      data:           data.data,
-      tipo:           data.tipo,
-      categoria:      data.categoria,
-      descricao:      data.descricao,
-      gestor:         data.gestor,
-      testemunhas:    data.testemunhas || '',
-      status:         data.status,
-      assinada_em:    data.status === 'assinada' ? new Date().toISOString().slice(0, 10) : null,
-      dias_suspensao: data.tipo === 'suspensao' ? parseInt(data.dias_suspensao, 10) || 1 : null,
+      data_advertencia: data.data,
+      tipo:             data.tipo,
+      motivo:           data.descricao,
+      descricao:        data.descricao,
+      gestor:           data.gestor,
+      testemunhas:      data.testemunhas || '',
+      resposta_colaborador: data.status === 'respondida' ? data.descricao : null,
+      dias_suspensao:   data.tipo === 'suspensao' ? parseInt(data.dias_suspensao, 10) || 1 : null,
     };
 
-    if (id != null) {
-      const i = this.ADVERTENCIAS.findIndex(x => x.id === id);
-      if (i >= 0) this.ADVERTENCIAS[i] = { ...this.ADVERTENCIAS[i], ...payload };
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        if (id != null) {
+          await this.Advertencias.atualizar(id, payload);
+        } else {
+          await this.Advertencias.criar(payload);
+        }
+      } catch (err) {
+        alert('Erro ao salvar: ' + err.message);
+        return;
+      }
     } else {
-      const newId = Math.max(0, ...this.ADVERTENCIAS.map(x => x.id)) + 1;
-      this.ADVERTENCIAS.unshift({ id: newId, ...payload });
+      if (id != null) {
+        const i = this.ADVERTENCIAS.findIndex(x => x.id === id);
+        if (i >= 0) this.ADVERTENCIAS[i] = { ...this.ADVERTENCIAS[i], ...payload };
+      } else {
+        const newId = Math.max(0, ...this.ADVERTENCIAS.map(x => x.id)) + 1;
+        this.ADVERTENCIAS.unshift({ id: newId, ...payload });
+      }
     }
     this.fecharModal();
-    this.render();
+    await this.render();
   }
 
-  excluir(id) {
+  async excluir(id) {
     if (!confirm('Excluir esta advertência?')) return;
-    this.ADVERTENCIAS = this.ADVERTENCIAS.filter(x => x.id !== id);
-    this.render();
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Advertencias.excluir(id);
+      } catch (err) {
+        alert('Erro ao excluir: ' + err.message);
+        return;
+      }
+    } else {
+      this.ADVERTENCIAS = this.ADVERTENCIAS.filter(x => x.id !== id);
+    }
+    await this.render();
   }
 }
 
