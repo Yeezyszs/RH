@@ -12,13 +12,15 @@
 ```
 src/
 ├── modules/
-│   ├── colaboradores.js    ✅ Criado (exemplo de estrutura)
+│   ├── colaboradores.js    ✅ Criado
 │   ├── advertencias.js     ✅ Criado
 │   ├── ferias.js           ✅ Criado
-│   ├── desligamentos.js    ⏳ Pendente
-│   ├── eventos.js          ⏳ Pendente
-│   ├── docs.js             ⏳ Pendente
-│   └── relatorios.js       ⏳ Pendente
+│   ├── desligamentos.js    ✅ Criado
+│   ├── cronograma.js       ✅ Criado (calendário + feriados BR)
+│   ├── vencimentos.js      ✅ Criado (ASO / docs / treinamentos)
+│   ├── epi.js              ⏳ Pendente
+│   ├── valesCombustivel.js ⏳ Pendente
+│   └── relatorios.js       ⏳ Pendente (rotatividade)
 │
 ├── ui/
 │   ├── table.js            ⏳ Pendente
@@ -32,13 +34,16 @@ src/
 
 ## 📋 Próximos Passos
 
-### Fase 1: Modularizar Seções (Priority)
-1. **Advertências** — lógica similar a colaboradores
-2. **Férias** — com timeline/cronograma
-3. **Desligamentos** — entrevista de saída + cálculos
-4. **Eventos** — calendário + filtros por tipo
-5. **Docs** — gerenciador de documentos
-6. **Relatórios** — gráficos e exportação
+### Fase 1: Modularizar Seções
+1. **Colaboradores** ✅
+2. **Advertências** ✅
+3. **Férias** ✅
+4. **Desligamentos** ✅
+5. **Cronograma** ✅ (calendário + feriados BR)
+6. **Vencimentos** ✅ (ASO / docs / treinamentos)
+7. **EPI** ⏳ — catálogo + entregas
+8. **Rotatividade** ⏳ — gráficos de turnover
+9. **Salários** ⏳ — tabela restrita + charts
 
 ### Fase 2: Componentes Reutilizáveis
 - `table.js` — renderização genérica de tabelas
@@ -77,7 +82,8 @@ src/
 ## 💾 Commits Já Feitos
 
 1. `718c5ba` — Extrair CSS do index.html para src/styles/main.css
-2. `2ba916c` — Criar módulo ColaboradoresModule
-3. `77c6009` — Criar MODULARIZATION_PLAN.md com roadmap detalhado
-4. `2aa898c` — Criar módulo AdvertenciasModule com charts e drawer
-5. `c81ced8` — Criar módulo FeriasModule com timeline e cálculos CLT
+2. `2ba916c` — Criar ColaboradoresModule
+3. `77c6009` — Criar MODULARIZATION_PLAN.md com roadmap
+4. `2aa898c` — Criar AdvertenciasModule (charts + drawer)
+5. `c81ced8` — Criar FeriasModule (timeline + cálculos CLT)
+6. `526289d` — Criar DesligamentosModule, CronogramaModule, VencimentosModule
