@@ -466,33 +466,27 @@ const Vencimentos = {
 
     const [docs, asos] = await withTimeout(
       Promise.all([
-        sb.from('documentos').select('*, colaboradores(nome)').order('data_vencimento'),
-        sb.from('asos').select('*, colaboradores(nome)').order('data_vencimento'),
+        sb.from('documentos').select('id, colaborador_id, tipo, data_emissao, data_vencimento, observacoes').order('data_vencimento'),
+        sb.from('asos').select('id, colaborador_id, data_emissao, data_vencimento, observacoes').order('data_vencimento'),
       ])
     );
     if (docs.error) throw docs.error;
     if (asos.error) throw asos.error;
 
-    const hoje = new Date();
-    const mapDoc = (row, categoria) => {
-      const venc = new Date(row.data_vencimento);
-      const diff = Math.ceil((venc - hoje) / 86400000);
-      return {
-        id:            row.id,
-        colab_id:      row.colaborador_id,
-        colab:         row.colaboradores?.nome || '—',
-        categoria,
-        tipo:          row.tipo || categoria,
-        vencimento:    row.data_vencimento,
-        status:        diff < 0 ? 'vencido' : diff <= 30 ? 'a_vencer' : 'ok',
-        diasRestantes: diff,
-        _tabela:       categoria === 'ASO' ? 'asos' : 'documentos',
-      };
-    };
+    const mapRow = (row, categoria) => ({
+      id:            row.id,
+      colaborador_id: row.colaborador_id,
+      categoria,
+      item:          categoria === 'ASO' ? 'ASO Periódico' : (row.tipo || 'Documento'),
+      emissao:       row.data_emissao   || null,
+      vencimento:    row.data_vencimento,
+      observacoes:   row.observacoes    || '',
+      _tabela:       categoria === 'ASO' ? 'asos' : 'documentos',
+    });
 
     const result = [
-      ...docs.data.map(r => mapDoc(r, 'Documento')),
-      ...asos.data.map(r => mapDoc(r, 'ASO')),
+      ...docs.data.map(r => mapRow(r, 'Documento')),
+      ...asos.data.map(r => mapRow(r, 'ASO')),
     ];
 
     Cache.set('vencimentos', result);
@@ -501,13 +495,19 @@ const Vencimentos = {
 
   async criar(payload) {
     const tabela = payload.categoria === 'ASO' ? 'asos' : 'documentos';
-    const { categoria, ...rest } = payload;
+    const base = {
+      colaborador_id:  payload.colaborador_id,
+      data_emissao:    payload.data_emissao || null,
+      data_vencimento: payload.data_vencimento,
+      observacoes:     payload.observacoes || null,
+    };
+    const row = tabela === 'documentos' ? { ...base, tipo: payload.tipo || payload.item } : base;
     const { data, error } = await withTimeout(
-      sb.from(tabela).insert(rest).select().single()
+      sb.from(tabela).insert(row).select().single()
     );
     if (error) throw error;
     Cache.invalidate('vencimentos');
-    return data;
+    return { ...row, id: data.id, _tabela: tabela };
   },
 
   async excluir(id, tabela = 'documentos') {
@@ -640,20 +640,26 @@ const ValeAlimentacao = {
 // ============================================================================
 
 const Salarios = {
-  async listar(mes, ano) {
-    let query = sb
-      .from('salarios')
-      .select('*, colaboradores(nome, departamentos(nome), cargos(nome))');
-    if (mes) query = query.eq('mes', mes);
-    if (ano) query = query.eq('ano', ano);
-    const { data, error } = await withTimeout(query);
+  async listar() {
+    const cached = Cache.get('salarios');
+    if (cached) return cached;
+    const { data, error } = await withTimeout(
+      sb.from('salario_atual').select('id, colaborador_id, valor, data_alteracao, observacoes').order('colaborador_id')
+    );
     if (error) throw error;
+    Cache.set('salarios', data);
     return data;
   },
 
   async criar(payload) {
+    const row = {
+      colaborador_id: payload.colaborador_id,
+      valor:          payload.valor          ?? 0,
+      data_alteracao: payload.data_alteracao || new Date().toISOString().slice(0, 10),
+      observacoes:    payload.observacoes    || null,
+    };
     const { data, error } = await withTimeout(
-      sb.from('salarios').insert(payload).select().single()
+      sb.from('salario_atual').insert(row).select().single()
     );
     if (error) throw error;
     Cache.invalidate('salarios');
@@ -661,8 +667,13 @@ const Salarios = {
   },
 
   async atualizar(id, payload) {
+    const row = {
+      valor:          payload.valor          ?? 0,
+      data_alteracao: payload.data_alteracao || new Date().toISOString().slice(0, 10),
+      observacoes:    payload.observacoes    || null,
+    };
     const { data, error } = await withTimeout(
-      sb.from('salarios').update(payload).eq('id', id).select().single()
+      sb.from('salario_atual').update(row).eq('id', id).select().single()
     );
     if (error) throw error;
     Cache.invalidate('salarios');
@@ -810,7 +821,8 @@ async function inicializarSupabase() {
 
     console.info('[RH] Sessão ativa, carregando dados...');
 
-    const [colaboradores, advertencias, ferias, desligamentos, eventos, pcPlanos] =
+    const [colaboradores, advertencias, ferias, desligamentos, eventos, pcPlanos,
+           vencimentos, epis, salarios] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -818,6 +830,9 @@ async function inicializarSupabase() {
         Desligamentos.listar(),
         Cronograma.listar(),
         PlanoCarreiras.listarPlanos(),
+        Vencimentos.listar(),
+        Epis.listar(),
+        Salarios.listar(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -874,6 +889,37 @@ async function inicializarSupabase() {
           };
         });
         console.info(`[RH] ${lista.length} planos de carreira carregados.`);
+      }
+    }
+
+    if (vencimentos.status === 'fulfilled') {
+      const lista = vencimentos.value ?? [];
+      if (lista.length > 0) {
+        VENCIMENTOS = lista;
+        console.info(`[RH] ${VENCIMENTOS.length} vencimentos carregados.`);
+      }
+    }
+
+    if (epis.status === 'fulfilled') {
+      const lista = epis.value ?? [];
+      if (lista.length > 0) {
+        EPI_ENTREGAS = lista;
+        console.info(`[RH] ${EPI_ENTREGAS.length} EPIs carregados.`);
+      }
+    }
+
+    if (salarios.status === 'fulfilled') {
+      const lista = salarios.value ?? [];
+      if (lista.length > 0) {
+        lista.forEach(s => {
+          SALARIOS[s.colaborador_id] = {
+            id:             s.id,
+            valor:          s.valor,
+            data_alteracao: s.data_alteracao,
+            observacoes:    s.observacoes || '',
+          };
+        });
+        console.info(`[RH] ${lista.length} salários carregados.`);
       }
     }
 
@@ -979,6 +1025,38 @@ async function setupRealTimeListeners() {
       if (typeof renderEpi === 'function') renderEpi();
     }
 
+    if (table === 'salario_atual') {
+      const colabId = novoReg?.colaborador_id ?? regAnterior?.colaborador_id;
+      if (eventType === 'INSERT' || eventType === 'UPDATE') {
+        SALARIOS[colabId] = { id: novoReg.id, valor: novoReg.valor, data_alteracao: novoReg.data_alteracao, observacoes: novoReg.observacoes || '' };
+      } else if (eventType === 'DELETE') {
+        delete SALARIOS[colabId];
+      }
+      if (typeof renderSalarios === 'function') renderSalarios();
+    }
+
+    if (table === 'documentos' || table === 'asos') {
+      const mapVenc = (row) => ({
+        id:            row.id,
+        colaborador_id: row.colaborador_id,
+        categoria:     table === 'asos' ? 'ASO' : 'Documento',
+        item:          table === 'asos' ? 'ASO Periódico' : (row.tipo || 'Documento'),
+        emissao:       row.data_emissao   || null,
+        vencimento:    row.data_vencimento,
+        observacoes:   row.observacoes    || '',
+        _tabela:       table,
+      });
+      if (eventType === 'INSERT') {
+        VENCIMENTOS.unshift(mapVenc(novoReg));
+      } else if (eventType === 'UPDATE') {
+        const i = VENCIMENTOS.findIndex(x => x.id === id && x._tabela === table);
+        if (i >= 0) VENCIMENTOS[i] = mapVenc(novoReg);
+      } else if (eventType === 'DELETE') {
+        VENCIMENTOS = VENCIMENTOS.filter(x => !(x.id === id && x._tabela === table));
+      }
+      if (typeof renderVencimentos === 'function') renderVencimentos();
+    }
+
     console.debug(`[RH] Real-time: ${eventType} em ${table} (id: ${id})`);
   };
 
@@ -1015,6 +1093,24 @@ async function setupRealTimeListeners() {
   sb.on(
     'postgres_changes',
     { event: '*', schema: 'public', table: 'epis' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'salario_atual' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'documentos' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'asos' },
     handler
   ).subscribe();
 
