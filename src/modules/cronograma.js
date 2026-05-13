@@ -7,6 +7,8 @@ export class CronogramaModule {
     this.h = deps.h;
     this.addDays = deps.addDays;
     this.EVENTOS = deps.EVENTOS;
+    this.Auth = deps.Auth;
+    this.Cronograma = deps.Cronograma;
 
     this.state = {
       calMes: (() => {
@@ -189,40 +191,65 @@ export class CronogramaModule {
     this.state.editandoEventoId = null;
   }
 
-  salvarEvento(ev) {
+  async salvarEvento(ev) {
     ev.preventDefault();
     const form = this.$('#form-evento');
     const data = Object.fromEntries(new FormData(form));
     const id = data.id ? parseInt(data.id, 10) : null;
 
     const payload = {
-      titulo: data.titulo,
-      tipo: data.tipo,
-      status: data.status,
-      data: data.data,
-      hora_inicio: data.hora_inicio || '',
-      hora_fim: data.hora_fim || '',
-      local: data.local || '',
-      participantes: data.participantes || '',
-      descricao: data.descricao || '',
+      titulo:       data.titulo,
+      tipo:         data.tipo,
+      status:       data.status,
+      data_inicio:  data.data,
+      hora_inicio:  data.hora_inicio || null,
+      hora_fim:     data.hora_fim || null,
+      local:        data.local || '',
+      participantes:data.participantes || '',
+      descricao:    data.descricao || '',
     };
 
-    if (id != null) {
-      const i = this.EVENTOS.findIndex(x => x.id === id);
-      if (i >= 0) this.EVENTOS[i] = { ...this.EVENTOS[i], ...payload };
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        if (id != null) {
+          await this.Cronograma.atualizar(id, payload);
+        } else {
+          await this.Cronograma.criar(payload);
+        }
+      } catch (err) {
+        alert('Erro ao salvar: ' + err.message);
+        return;
+      }
     } else {
-      const newId = Math.max(0, ...this.EVENTOS.map(x => x.id)) + 1;
-      this.EVENTOS.unshift({ id: newId, ...payload });
+      if (id != null) {
+        const i = this.EVENTOS.findIndex(x => x.id === id);
+        if (i >= 0) this.EVENTOS[i] = { ...this.EVENTOS[i], ...payload };
+      } else {
+        const newId = Math.max(0, ...this.EVENTOS.map(x => x.id)) + 1;
+        this.EVENTOS.unshift({ id: newId, ...payload });
+      }
     }
 
     this.fecharModalEvento();
     this.render();
   }
 
-  excluirEventoAtual() {
+  async excluirEventoAtual() {
     if (this.state.editandoEventoId == null) return;
     if (!confirm('Excluir este evento?')) return;
-    this.EVENTOS = this.EVENTOS.filter(x => x.id !== this.state.editandoEventoId);
+    const id = this.state.editandoEventoId;
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Cronograma.excluir(id);
+      } catch (err) {
+        alert('Erro ao excluir: ' + err.message);
+        return;
+      }
+    } else {
+      this.EVENTOS = this.EVENTOS.filter(x => x.id !== id);
+    }
     this.fecharModalEvento();
     this.render();
   }

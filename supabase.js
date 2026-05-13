@@ -341,6 +341,16 @@ const Advertencias = {
       sb.from('advertencias').insert(payload).select().single()
     );
     if (error) throw error;
+    Cache.invalidate('advertencias');
+    return mapAdvertencia(data);
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('advertencias').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('advertencias');
     return mapAdvertencia(data);
   },
 
@@ -349,6 +359,7 @@ const Advertencias = {
       sb.from('advertencias').delete().eq('id', id)
     );
     if (error) throw error;
+    Cache.invalidate('advertencias');
   },
 };
 
@@ -431,7 +442,16 @@ const Desligamentos = {
       sb.from('desligamentos').insert(payload).select().single()
     );
     if (error) throw error;
+    Cache.invalidate();
     return mapDesligamento(data);
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('desligamentos').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate();
   },
 };
 
@@ -466,6 +486,7 @@ const Vencimentos = {
         vencimento:    row.data_vencimento,
         status:        diff < 0 ? 'vencido' : diff <= 30 ? 'a_vencer' : 'ok',
         diasRestantes: diff,
+        _tabela:       categoria === 'ASO' ? 'asos' : 'documentos',
       };
     };
 
@@ -476,6 +497,25 @@ const Vencimentos = {
 
     Cache.set('vencimentos', result);
     return result;
+  },
+
+  async criar(payload) {
+    const tabela = payload.categoria === 'ASO' ? 'asos' : 'documentos';
+    const { categoria, ...rest } = payload;
+    const { data, error } = await withTimeout(
+      sb.from(tabela).insert(rest).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('vencimentos');
+    return data;
+  },
+
+  async excluir(id, tabela = 'documentos') {
+    const { error } = await withTimeout(
+      sb.from(tabela).delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('vencimentos');
   },
 };
 
@@ -499,7 +539,25 @@ const Epis = {
       sb.from('epis').insert(payload).select().single()
     );
     if (error) throw error;
+    Cache.invalidate('epis');
     return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('epis').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('epis');
+    return data;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('epis').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('epis');
   },
 };
 
@@ -590,6 +648,24 @@ const Salarios = {
     if (ano) query = query.eq('ano', ano);
     const { data, error } = await withTimeout(query);
     if (error) throw error;
+    return data;
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('salarios').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('salarios');
+    return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('salarios').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('salarios');
     return data;
   },
 };

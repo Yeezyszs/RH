@@ -13,6 +13,8 @@ export class SalariosModule {
     this.SALARIOS = deps.SALARIOS;
     this.FAIXAS = deps.FAIXAS;
     this.CHART_COLORS = deps.CHART_COLORS;
+    this.Auth = deps.Auth;
+    this.Salarios = deps.Salarios;
 
     this._chartSalSetor = null;
     this._chartSalFaixa = null;
@@ -226,16 +228,39 @@ export class SalariosModule {
     this.$('#modal-salario').classList.remove('active');
   }
 
-  salvar(ev) {
+  async salvar(ev) {
     ev.preventDefault();
     const form = this.$('#form-salario');
     const data = Object.fromEntries(new FormData(form));
-    const id = parseInt(data.colaborador_id, 10);
-    this.SALARIOS[id] = {
+    const colabId = parseInt(data.colaborador_id, 10);
+
+    const payload = {
+      colaborador_id: colabId,
       valor:          parseFloat(data.valor) || 0,
       data_alteracao: data.data_alteracao,
       observacoes:    data.observacoes || '',
     };
+
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        const existente = this.SALARIOS[colabId];
+        if (existente?.id) {
+          await this.Salarios.atualizar(existente.id, payload);
+        } else {
+          await this.Salarios.criar(payload);
+        }
+      } catch (err) {
+        alert('Erro ao salvar: ' + err.message);
+        return;
+      }
+    } else {
+      this.SALARIOS[colabId] = {
+        valor:          payload.valor,
+        data_alteracao: payload.data_alteracao,
+        observacoes:    payload.observacoes,
+      };
+    }
     this.fecharModal();
     this.render();
   }

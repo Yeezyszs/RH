@@ -6056,7 +6056,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
   }
 
   /* ─── salvar ─── */
-  function salvarColaborador(e) {
+  async function salvarColaborador(e) {
     e.preventDefault();
     const form = document.getElementById('form-colaborador');
     const data = Object.fromEntries(new FormData(form));
@@ -6075,33 +6075,65 @@ Liderança de equipe ≥3 pessoas"></textarea>
       return;
     }
 
+    const payload = {
+      nome:            data.nome,
+      data_admissao:   data.admissao,
+      data_nascimento: data.nascimento || null,
+      cpf:             data.cpf || null,
+      email:           data.email || null,
+      celular:         data.celular || null,
+      genero:          data.sexo === 'M' ? 'Masculino' : data.sexo === 'F' ? 'Feminino' : 'Outro',
+      status:          data.status || 'ativo',
+      cargo_id:        data.cargo_id ? parseInt(data.cargo_id, 10) : null,
+      departamento_id: data.departamento_id ? parseInt(data.departamento_id, 10) : null,
+    };
+
+    const temSessao = typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
     let colabId;
-    if (_editandoColabId != null) {
-      const i = COLABORADORES.findIndex(x => x.id === _editandoColabId);
-      if (i >= 0) COLABORADORES[i] = { ...COLABORADORES[i], ...data };
-      colabId = _editandoColabId;
-      showToast('Colaborador atualizado', 'ok');
+
+    if (temSessao) {
+      try {
+        if (_editandoColabId != null) {
+          await Colaboradores.atualizar(_editandoColabId, payload);
+          colabId = _editandoColabId;
+          showToast('Colaborador atualizado', 'ok');
+        } else {
+          const novo = await Colaboradores.criar(payload);
+          colabId = novo.id;
+          showToast('Colaborador cadastrado', 'ok');
+        }
+      } catch (err) {
+        showToast('Erro ao salvar: ' + err.message, 'err');
+        return;
+      }
     } else {
-      colabId = Math.max(0, ...COLABORADORES.map(x => x.id)) + 1;
-      COLABORADORES.unshift({ id: colabId, ...data });
-      showToast('Colaborador cadastrado', 'ok');
+      if (_editandoColabId != null) {
+        const i = COLABORADORES.findIndex(x => x.id === _editandoColabId);
+        if (i >= 0) COLABORADORES[i] = { ...COLABORADORES[i], ...data };
+        colabId = _editandoColabId;
+        showToast('Colaborador atualizado', 'ok');
+      } else {
+        colabId = Math.max(0, ...COLABORADORES.map(x => x.id)) + 1;
+        COLABORADORES.unshift({ id: colabId, ...data });
+        showToast('Colaborador cadastrado', 'ok');
+      }
     }
 
-    // sincronizar dependentes
-    DEPENDENTES = DEPENDENTES.filter(d => d.colaborador_id !== colabId);
-    _depsModal.forEach(d => {
-      const { _sid, ...rest } = d;
-      const existeId = rest.id && rest.id !== undefined ? rest.id : Math.max(0, ...DEPENDENTES.map(x => x.id), 0) + 1;
-      DEPENDENTES.push({ ...rest, id: existeId, colaborador_id: colabId });
-    });
-
-    // sincronizar contatos de emergência
-    CONTATOS_EMERG = CONTATOS_EMERG.filter(c => c.colaborador_id !== colabId);
-    _emergsModal.forEach(c => {
-      const { _sid, ...rest } = c;
-      const existeId = rest.id && rest.id !== undefined ? rest.id : Math.max(0, ...CONTATOS_EMERG.map(x => x.id), 0) + 1;
-      CONTATOS_EMERG.push({ ...rest, id: existeId, colaborador_id: colabId });
-    });
+    // sincronizar dependentes (mock apenas)
+    if (!temSessao) {
+      DEPENDENTES = DEPENDENTES.filter(d => d.colaborador_id !== colabId);
+      _depsModal.forEach(d => {
+        const { _sid, ...rest } = d;
+        const existeId = rest.id || Math.max(0, ...DEPENDENTES.map(x => x.id), 0) + 1;
+        DEPENDENTES.push({ ...rest, id: existeId, colaborador_id: colabId });
+      });
+      CONTATOS_EMERG = CONTATOS_EMERG.filter(c => c.colaborador_id !== colabId);
+      _emergsModal.forEach(c => {
+        const { _sid, ...rest } = c;
+        const existeId = rest.id || Math.max(0, ...CONTATOS_EMERG.map(x => x.id), 0) + 1;
+        CONTATOS_EMERG.push({ ...rest, id: existeId, colaborador_id: colabId });
+      });
+    }
 
     fecharModalColaborador();
     renderColaboradores();
@@ -6114,11 +6146,22 @@ Liderança de equipe ≥3 pessoas"></textarea>
     }
   }
 
-  function excluirColaborador(id) {
+  async function excluirColaborador(id) {
     if (!confirm('Excluir este colaborador?')) return;
-    COLABORADORES = COLABORADORES.filter(x => x.id !== id);
+    const temSessao = typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await Colaboradores.excluir(id);
+        showToast('Colaborador excluído');
+      } catch (err) {
+        showToast('Erro ao excluir: ' + err.message, 'err');
+        return;
+      }
+    } else {
+      COLABORADORES = COLABORADORES.filter(x => x.id !== id);
+      showToast('Colaborador excluído');
+    }
     renderColaboradores();
-    showToast('Colaborador excluído');
   }
 
   /* ════════════════════════════════════════════════
@@ -8720,7 +8763,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
     }
   }
 
-  function salvarFeriasPeriodo(ev) {
+  async function salvarFeriasPeriodo(ev) {
     ev.preventDefault();
     const f = $('#form-ferias-periodo');
     const data = Object.fromEntries(new FormData(f));
@@ -8740,39 +8783,68 @@ Liderança de equipe ≥3 pessoas"></textarea>
       if (!confirm(`Este período somado aos já existentes (${existentes}d) ultrapassa 30 dias. Confirmar mesmo assim?`)) return;
     }
 
-    const newId = Math.max(0, ...FERIAS.map(x => x.id)) + 1;
-    FERIAS.push({
-      id: newId,
+    const payload = {
       colaborador_id: colabId,
-      inicio: data.inicio,
-      fim:    data.fim,
-      dias,
-      abono,
-      observacoes: data.observacoes || '',
-      status: data.inicio > new Date().toISOString().slice(0,10) ? 'planejada' : 'em_curso',
-    });
+      data_inicio:    data.inicio,
+      data_termino:   data.fim,
+      dias_usados:    dias,
+      dias_saldo:     30 - dias,
+      abono_pecuniario: abono > 0,
+      aprovado:       true,
+      observacoes:    data.observacoes || '',
+    };
 
-    // Atualiza status do colaborador se em férias hoje
-    const c = COLABORADORES.find(x => x.id === colabId);
-    const hoje = new Date().toISOString().slice(0,10);
-    if (c && data.inicio <= hoje && data.fim >= hoje && c.status === 'ativo') {
-      c.status = 'ferias';
+    const temSessao = typeof Ferias !== 'undefined' && typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await Ferias.criar(payload);
+        const hoje = new Date().toISOString().slice(0,10);
+        if (data.inicio <= hoje && data.fim >= hoje) {
+          await Colaboradores.atualizar(colabId, { status: 'ferias' }).catch(() => null);
+        }
+        showToast('Período agendado', 'ok');
+      } catch (err) {
+        showToast('Erro ao agendar: ' + err.message, 'err');
+        return;
+      }
+    } else {
+      const newId = Math.max(0, ...FERIAS.map(x => x.id)) + 1;
+      FERIAS.push({
+        id: newId, colaborador_id: colabId,
+        inicio: data.inicio, fim: data.fim, dias, abono,
+        observacoes: data.observacoes || '',
+        status: data.inicio > new Date().toISOString().slice(0,10) ? 'planejada' : 'em_curso',
+      });
+      const c = COLABORADORES.find(x => x.id === colabId);
+      const hoje = new Date().toISOString().slice(0,10);
+      if (c && data.inicio <= hoje && data.fim >= hoje && c.status === 'ativo') c.status = 'ferias';
+      showToast('Período agendado', 'ok');
     }
 
     f.reset();
     renderFeriasModal();
     renderFerias();
     renderColaboradores();
-    showToast('Período agendado', 'ok');
   }
 
-  function excluirFerias(id) {
+  async function excluirFerias(id) {
     if (!confirm('Excluir este período?')) return;
-    FERIAS = FERIAS.filter(x => x.id !== id);
-    window.FERIAS = FERIAS;
+    const temSessao = typeof Ferias !== 'undefined' && typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await Ferias.excluir(id);
+        showToast('Período excluído');
+      } catch (err) {
+        showToast('Erro ao excluir: ' + err.message, 'err');
+        return;
+      }
+    } else {
+      FERIAS = FERIAS.filter(x => x.id !== id);
+      window.FERIAS = FERIAS;
+      showToast('Período excluído');
+    }
     renderFeriasModal();
     renderFerias();
-    showToast('Período excluído');
   }
 
   function fecharModalFerias() {

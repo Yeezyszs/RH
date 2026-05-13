@@ -13,6 +13,8 @@ export class EpiModule {
     this.EPI_KITS = deps.EPI_KITS;
     this.COLABORADORES = deps.COLABORADORES;
     this.SETOR_ICON = deps.SETOR_ICON;
+    this.Auth = deps.Auth;
+    this.Epis = deps.Epis;
 
     this._kitEditando = null;
 
@@ -326,7 +328,7 @@ export class EpiModule {
     this.$('#modal-epi-entrega').classList.remove('active');
   }
 
-  salvarEntrega(ev) {
+  async salvarEntrega(ev) {
     ev.preventDefault();
     const form = this.$('#form-epi-entrega');
     const data = Object.fromEntries(new FormData(form));
@@ -342,30 +344,64 @@ export class EpiModule {
       observacoes:    data.observacoes || '',
     };
 
-    if (id != null) {
-      const i = this.EPI_ENTREGAS.findIndex(x => x.id === id);
-      if (i >= 0) this.EPI_ENTREGAS[i] = { ...this.EPI_ENTREGAS[i], ...payload };
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        if (id != null) {
+          await this.Epis.atualizar(id, payload);
+        } else {
+          await this.Epis.criar(payload);
+        }
+      } catch (err) {
+        alert('Erro ao salvar: ' + err.message);
+        return;
+      }
     } else {
-      const newId = Math.max(0, ...this.EPI_ENTREGAS.map(x => x.id)) + 1;
-      this.EPI_ENTREGAS.unshift({ id: newId, devolvido: false, ...payload });
+      if (id != null) {
+        const i = this.EPI_ENTREGAS.findIndex(x => x.id === id);
+        if (i >= 0) this.EPI_ENTREGAS[i] = { ...this.EPI_ENTREGAS[i], ...payload };
+      } else {
+        const newId = Math.max(0, ...this.EPI_ENTREGAS.map(x => x.id)) + 1;
+        this.EPI_ENTREGAS.unshift({ id: newId, devolvido: false, ...payload });
+      }
     }
     this.fecharModalEntrega();
     this.render();
     this.renderKits();
   }
 
-  devolver(id) {
+  async devolver(id) {
     const e = this.EPI_ENTREGAS.find(x => x.id === id);
     if (!e) return;
     if (!confirm('Registrar devolução deste EPI?')) return;
-    e.devolvido = true;
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Epis.atualizar(id, { devolvido: true, data_devolucao: new Date().toISOString().slice(0,10) });
+      } catch (err) {
+        alert('Erro ao registrar devolução: ' + err.message);
+        return;
+      }
+    } else {
+      e.devolvido = true;
+    }
     this.render();
     this.renderKits();
   }
 
-  excluirEntrega(id) {
+  async excluirEntrega(id) {
     if (!confirm('Excluir este registro de entrega?')) return;
-    this.EPI_ENTREGAS = this.EPI_ENTREGAS.filter(x => x.id !== id);
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Epis.excluir(id);
+      } catch (err) {
+        alert('Erro ao excluir: ' + err.message);
+        return;
+      }
+    } else {
+      this.EPI_ENTREGAS = this.EPI_ENTREGAS.filter(x => x.id !== id);
+    }
     this.render();
     this.renderKits();
   }

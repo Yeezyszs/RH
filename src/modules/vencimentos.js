@@ -10,6 +10,8 @@ export class VencimentosModule {
     this.VENCIMENTOS = deps.VENCIMENTOS;
     this.COLABORADORES = deps.COLABORADORES;
     this.CHART_COLORS = deps.CHART_COLORS;
+    this.Auth = deps.Auth;
+    this.Vencimentos = deps.Vencimentos;
 
     this.VENC_CAT_BADGE = {
       'ASO': { cls: 'info', t: 'ASO' },
@@ -198,27 +200,37 @@ export class VencimentosModule {
     this.$('#modal-vencimento').classList.remove('active');
   }
 
-  salvarVencimento(ev) {
+  async salvarVencimento(ev) {
     ev.preventDefault();
     const form = this.$('#form-vencimento');
     const data = Object.fromEntries(new FormData(form));
     const id = data.id ? parseInt(data.id, 10) : null;
 
     const payload = {
-      colaborador_id: parseInt(data.colaborador_id, 10),
-      categoria: data.categoria,
-      item: data.item,
-      emissao: data.emissao,
-      vencimento: data.vencimento,
-      observacoes: data.observacoes || '',
+      colaborador_id:  parseInt(data.colaborador_id, 10),
+      categoria:       data.categoria,
+      tipo:            data.item,
+      data_emissao:    data.emissao || null,
+      data_vencimento: data.vencimento,
+      observacoes:     data.observacoes || '',
     };
 
-    if (id != null) {
-      const i = this.VENCIMENTOS.findIndex(x => x.id === id);
-      if (i >= 0) this.VENCIMENTOS[i] = { ...this.VENCIMENTOS[i], ...payload };
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Vencimentos.criar({ ...payload, categoria: data.categoria });
+      } catch (err) {
+        alert('Erro ao salvar: ' + err.message);
+        return;
+      }
     } else {
-      const newId = Math.max(0, ...this.VENCIMENTOS.map(x => x.id)) + 1;
-      this.VENCIMENTOS.unshift({ id: newId, ...payload });
+      if (id != null) {
+        const i = this.VENCIMENTOS.findIndex(x => x.id === id);
+        if (i >= 0) this.VENCIMENTOS[i] = { ...this.VENCIMENTOS[i], ...payload };
+      } else {
+        const newId = Math.max(0, ...this.VENCIMENTOS.map(x => x.id)) + 1;
+        this.VENCIMENTOS.unshift({ id: newId, ...payload });
+      }
     }
     this.fecharModalVencimento();
     this.render();
@@ -245,9 +257,21 @@ export class VencimentosModule {
     this.$('#modal-venc-title').textContent = 'Renovar vencimento';
   }
 
-  excluirVencimento(id) {
+  async excluirVencimento(id) {
     if (!confirm('Excluir este vencimento?')) return;
-    this.VENCIMENTOS = this.VENCIMENTOS.filter(x => x.id !== id);
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      const v = this.VENCIMENTOS.find(x => x.id === id);
+      const tabela = v?._tabela || 'documentos';
+      try {
+        await this.Vencimentos.excluir(id, tabela);
+      } catch (err) {
+        alert('Erro ao excluir: ' + err.message);
+        return;
+      }
+    } else {
+      this.VENCIMENTOS = this.VENCIMENTOS.filter(x => x.id !== id);
+    }
     this.render();
   }
 

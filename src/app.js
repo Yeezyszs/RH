@@ -62,30 +62,36 @@ function bootstrap() {
   const advertencias = new AdvertenciasModule({
     $, h, iniciais, fmtDate,
     ADVERTENCIAS, COLABORADORES, ADV_TIPO_BADGE, ADV_STATUS_BADGE, CHART_COLORS,
+    Auth: window.Auth, Advertencias: window.Advertencias,
   });
 
   const ferias = new FeriasModule({
     $, h, iniciais, fmtDate, fmtBRL,
     FERIAS, COLABORADORES, SALARIOS: window.SALARIOS,
+    Auth: window.Auth, Ferias: window.Ferias,
   });
 
   const desligamentos = new DesligamentosModule({
     $, h, iniciais, fmtDate,
     DESLIGAMENTOS, COLABORADORES,
+    Auth: window.Auth, Desligamentos: window.Desligamentos,
   });
 
   const cronograma = new CronogramaModule({
     $, h, addDays, EVENTOS,
+    Auth: window.Auth, Cronograma: window.Cronograma,
   });
 
   const vencimentos = new VencimentosModule({
     $, h, iniciais, fmtDate,
     VENCIMENTOS, COLABORADORES, CHART_COLORS,
+    Auth: window.Auth, Vencimentos: window.Vencimentos,
   });
 
   const epi = new EpiModule({
     $, h, iniciais, fmtDate, diasAte,
     EPI_CATALOGO, EPI_ENTREGAS, EPI_KITS, COLABORADORES, SETOR_ICON,
+    Auth: window.Auth, Epis: window.Epis,
   });
 
   const rotatividade = new RotatividadeModule({
@@ -96,6 +102,7 @@ function bootstrap() {
   const salarios = new SalariosModule({
     $, h, iniciais, fmtDate, fmtBRL, faixaIdx,
     COLABORADORES, SALARIOS, FAIXAS, CHART_COLORS,
+    Auth: window.Auth, Salarios: window.Salarios,
   });
 
   // ─── Expor globais para onclick inline no index.html ────────────────────────────
