@@ -95,8 +95,8 @@ const Colaboradores = {
           limit,
           totalPages: Math.ceil(count / limit),
         };
-      })()
-    ));
+      })())
+    );
 
     Cache.set(cacheKey, result);
     return result;
