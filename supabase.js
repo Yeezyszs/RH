@@ -724,12 +724,16 @@ async function inicializarSupabase() {
       }
     }
 
-    if (typeof renderColaboradores === 'function') renderColaboradores();
-    if (typeof renderDesligamentos === 'function') renderDesligamentos();
-    if (typeof renderAdvertencias  === 'function') renderAdvertencias();
-    if (typeof renderFerias        === 'function') renderFerias();
-    if (typeof renderCalendario    === 'function') renderCalendario();
-    if (typeof renderDashboard     === 'function') renderDashboard();
+    if (typeof renderColaboradores  === 'function') renderColaboradores();
+    if (typeof renderDesligamentos  === 'function') renderDesligamentos();
+    if (typeof renderAdvertencias   === 'function') renderAdvertencias();
+    if (typeof renderFerias         === 'function') renderFerias();
+    if (typeof renderCronograma     === 'function') renderCronograma();
+    if (typeof renderVencimentos    === 'function') renderVencimentos();
+    if (typeof renderEpi            === 'function') renderEpi();
+    if (typeof renderRotatividade   === 'function') renderRotatividade();
+    if (typeof renderSalarios       === 'function') renderSalarios();
+    if (typeof renderDashboard      === 'function') renderDashboard();
 
     console.info('[RH] Dados carregados com sucesso.');
   } catch (err) {
