@@ -10662,6 +10662,8 @@ Liderança de equipe ≥3 pessoas"></textarea>
       await inicializarSupabase();
     } else {
       document.getElementById('login-screen').classList.add('active');
+      const centerEl = document.querySelector('.topbar-center span:last-child');
+      if (centerEl) centerEl.textContent = 'Sistema desconectado';
     }
   }
 
@@ -10704,12 +10706,21 @@ Liderança de equipe ≥3 pessoas"></textarea>
   // Logout
   async function fazerLogout() {
     try {
+      // Limpa listeners real-time
+      if (typeof window.sb !== 'undefined' && window.sb.removeAllChannels) {
+        await window.sb.removeAllChannels();
+      }
+
       await Auth.logout();
       showToast('Logout realizado com sucesso!', 'ok');
 
       // Mostra login e esconde app
       document.getElementById('login-screen').classList.add('active');
       document.getElementById('app').style.display = 'none';
+
+      // Limpa status da topbar
+      const centerEl = document.querySelector('.topbar-center span:last-child');
+      if (centerEl) centerEl.textContent = 'Sistema desconectado';
 
       // Limpa formulário
       document.getElementById('login-form').reset();

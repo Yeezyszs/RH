@@ -812,9 +812,137 @@ async function inicializarSupabase() {
     if (typeof renderDashboard      === 'function') renderDashboard();
 
     console.info('[RH] Dados carregados com sucesso.');
+    setupRealTimeListeners();
   } catch (err) {
     console.warn('[RH] Erro ao carregar dados, usando mock:', err.message);
   }
+}
+
+// ============================================================================
+// SINCRONIZAÇÃO REAL-TIME
+// ============================================================================
+
+async function setupRealTimeListeners() {
+  const handler = (payload) => {
+    const { eventType, new: novoReg, old: regAnterior, table } = payload;
+    const id = novoReg?.id ?? regAnterior?.id;
+
+    if (table === 'colaboradores') {
+      if (eventType === 'INSERT') {
+        const novo = mapColaborador(novoReg);
+        COLABORADORES.unshift(novo);
+      } else if (eventType === 'UPDATE') {
+        const i = COLABORADORES.findIndex(x => x.id === id);
+        if (i >= 0) COLABORADORES[i] = mapColaborador(novoReg);
+      } else if (eventType === 'DELETE') {
+        COLABORADORES = COLABORADORES.filter(x => x.id !== id);
+      }
+      if (typeof renderColaboradores === 'function') renderColaboradores();
+    }
+
+    if (table === 'advertencias') {
+      if (eventType === 'INSERT') {
+        ADVERTENCIAS.unshift(mapAdvertencia(novoReg));
+      } else if (eventType === 'UPDATE') {
+        const i = ADVERTENCIAS.findIndex(x => x.id === id);
+        if (i >= 0) ADVERTENCIAS[i] = mapAdvertencia(novoReg);
+      } else if (eventType === 'DELETE') {
+        ADVERTENCIAS = ADVERTENCIAS.filter(x => x.id !== id);
+      }
+      if (typeof renderAdvertencias === 'function') renderAdvertencias();
+    }
+
+    if (table === 'ferias') {
+      if (eventType === 'INSERT') {
+        FERIAS.unshift(mapFerias(novoReg));
+      } else if (eventType === 'UPDATE') {
+        const i = FERIAS.findIndex(x => x.id === id);
+        if (i >= 0) FERIAS[i] = mapFerias(novoReg);
+      } else if (eventType === 'DELETE') {
+        FERIAS = FERIAS.filter(x => x.id !== id);
+      }
+      if (typeof renderFerias === 'function') renderFerias();
+    }
+
+    if (table === 'desligamentos') {
+      if (eventType === 'INSERT') {
+        DESLIGAMENTOS.unshift(mapDesligamento(novoReg));
+      } else if (eventType === 'UPDATE') {
+        const i = DESLIGAMENTOS.findIndex(x => x.id === id);
+        if (i >= 0) DESLIGAMENTOS[i] = mapDesligamento(novoReg);
+      } else if (eventType === 'DELETE') {
+        DESLIGAMENTOS = DESLIGAMENTOS.filter(x => x.id !== id);
+      }
+      if (typeof renderDesligamentos === 'function') renderDesligamentos();
+    }
+
+    if (table === 'cronograma') {
+      if (eventType === 'INSERT') {
+        EVENTOS.unshift(mapEvento(novoReg));
+      } else if (eventType === 'UPDATE') {
+        const i = EVENTOS.findIndex(x => x.id === id);
+        if (i >= 0) EVENTOS[i] = mapEvento(novoReg);
+      } else if (eventType === 'DELETE') {
+        EVENTOS = EVENTOS.filter(x => x.id !== id);
+      }
+      if (typeof renderCronograma === 'function') renderCronograma();
+    }
+
+    if (table === 'epis') {
+      if (eventType === 'INSERT') {
+        EPI_ENTREGAS.unshift(novoReg);
+      } else if (eventType === 'UPDATE') {
+        const i = EPI_ENTREGAS.findIndex(x => x.id === id);
+        if (i >= 0) EPI_ENTREGAS[i] = novoReg;
+      } else if (eventType === 'DELETE') {
+        EPI_ENTREGAS = EPI_ENTREGAS.filter(x => x.id !== id);
+      }
+      if (typeof renderEpi === 'function') renderEpi();
+    }
+
+    console.debug(`[RH] Real-time: ${eventType} em ${table} (id: ${id})`);
+  };
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'colaboradores' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'advertencias' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'ferias' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'desligamentos' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'cronograma' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'epis' },
+    handler
+  ).subscribe();
+
+  const centerEl = document.querySelector('.topbar-center span:last-child');
+  if (centerEl) centerEl.textContent = 'Sincronização real-time ativa';
+
+  console.info('[RH] Listeners real-time ativados.');
 }
 
 // ============================================================================
