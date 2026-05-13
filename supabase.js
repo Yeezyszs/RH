@@ -150,27 +150,42 @@ function mapAdvertencia(row) {
 }
 
 function mapFerias(row) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const inicio = row.data_inicio;
+  const fim    = row.data_termino;
+  const status = fim < hoje ? 'concluida' : inicio <= hoje ? 'em_curso' : 'planejada';
   return {
-    id:          row.id,
-    colab_id:    row.colaborador_id,
-    inicio:      row.data_inicio,
-    fim:         row.data_termino,
-    dias:        row.dias_usados,
-    saldo:       row.dias_saldo,
-    ano:         row.ano_referencia,
-    aprovado:    row.aprovado,
-    observacoes: row.observacoes || '',
+    id:             row.id,
+    colaborador_id: row.colaborador_id,
+    inicio,
+    fim,
+    dias:           row.dias_usados,
+    abono:          row.abono_pecuniario ?? 0,
+    saldo:          row.dias_saldo,
+    ano:            row.ano_referencia,
+    aprovado:       row.aprovado,
+    observacoes:    row.observacoes || '',
+    status,
   };
 }
 
 function mapDesligamento(row) {
+  const c = row.colaboradores || {};
   return {
-    id:       row.id,
-    colab_id: row.colaborador_id,
-    data:     row.data_desligamento,
-    motivo:   row.motivo,
-    tipo:     row.tipo,
-    valor:    row.encargos_rescisao,
+    id:             row.id,
+    colaborador_id: row.colaborador_id,
+    nome:           c.nome           || row.nome           || '—',
+    cargo:          c.cargo          || row.cargo          || '—',
+    setor:          c.setor          || row.setor          || '—',
+    admissao:       c.data_admissao  || row.admissao       || null,
+    data:           row.data_desligamento,
+    ultimo_dia:     row.ultimo_dia   || row.data_desligamento,
+    motivo:      row.motivo,
+    tipo:        row.tipo,
+    aviso:       row.aviso        || null,
+    observacoes: row.observacoes  || '',
+    entrevista:  row.entrevista   || { realizada: false },
+    valor:       row.encargos_rescisao,
   };
 }
 
@@ -423,7 +438,7 @@ const Desligamentos = {
 
     const { data, error, count } = await withTimeout(
       sb.from('desligamentos')
-        .select('*', { count: 'exact' })
+        .select('*, colaboradores(nome, data_admissao)', { count: 'exact' })
         .range(from, to)
         .order('data_desligamento', { ascending: false })
     );
@@ -606,15 +621,44 @@ const Cronograma = {
 // ============================================================================
 
 const ValeCombustivel = {
-  async listar(mes, ano) {
-    let query = sb
-      .from('vale_combustivel')
-      .select('*, colaboradores(nome, departamentos(nome))');
-    if (mes) query = query.eq('mes', mes);
-    if (ano) query = query.eq('ano', ano);
-    const { data, error } = await withTimeout(query);
+  async listar() {
+    const cached = Cache.get('vale_combustivel');
+    if (cached) return cached;
+    const { data, error } = await withTimeout(
+      sb.from('vale_combustivel')
+        .select('id, colaborador_id, data, valor, litros, km_atual, posto, observacoes')
+        .not('data', 'is', null)
+        .order('data', { ascending: false })
+    );
     if (error) throw error;
+    Cache.set('vale_combustivel', data);
     return data;
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('vale_combustivel').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_combustivel');
+    return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('vale_combustivel').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_combustivel');
+    return data;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('vale_combustivel').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_combustivel');
   },
 };
 
@@ -686,28 +730,84 @@ const Salarios = {
 // ============================================================================
 
 const FeedbackClima = {
-  async listarFeedbacks({ page = 1, limit = 50 } = {}) {
-    const from = (page - 1) * limit;
-    const to   = from + limit - 1;
-
+  async listarFeedbacks() {
+    const cached = Cache.get('feedbacks');
+    if (cached) return cached;
     const { data, error } = await withTimeout(
       sb.from('feedbacks')
-        .select('*, colaboradores(nome)')
-        .range(from, to)
-        .order('data_feedback', { ascending: false })
+        .select('id, colaborador_id, avaliador, data, nota_entrega, nota_comportamento, nota_colaboracao, pontos_fortes, pontos_desenvolver, plano_acao')
+        .not('data', 'is', null)
+        .order('data', { ascending: false })
     );
     if (error) throw error;
+    Cache.set('feedbacks', data);
     return data;
   },
 
-  async listarPesquisas() {
+  async criarFeedback(payload) {
     const { data, error } = await withTimeout(
-      sb.from('pesquisas_clima')
-        .select('*')
-        .order('data_inicio', { ascending: false })
+      sb.from('feedbacks').insert(payload).select().single()
     );
     if (error) throw error;
+    Cache.invalidate('feedbacks');
     return data;
+  },
+
+  async atualizarFeedback(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('feedbacks').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('feedbacks');
+    return data;
+  },
+
+  async excluirFeedback(id) {
+    const { error } = await withTimeout(
+      sb.from('feedbacks').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('feedbacks');
+  },
+
+  async listarPesquisas() {
+    const cached = Cache.get('pesquisas_clima');
+    if (cached) return cached;
+    const { data, error } = await withTimeout(
+      sb.from('pesquisas_clima')
+        .select('id, titulo, inicio, fim, convidados, responderam, score_lideranca, score_ambiente, score_reconhecimento, score_carreira, score_comunicacao, score_remuneracao')
+        .not('inicio', 'is', null)
+        .order('inicio', { ascending: false })
+    );
+    if (error) throw error;
+    Cache.set('pesquisas_clima', data);
+    return data;
+  },
+
+  async criarPesquisa(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('pesquisas_clima').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('pesquisas_clima');
+    return data;
+  },
+
+  async atualizarPesquisa(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('pesquisas_clima').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('pesquisas_clima');
+    return data;
+  },
+
+  async excluirPesquisa(id) {
+    const { error } = await withTimeout(
+      sb.from('pesquisas_clima').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('pesquisas_clima');
   },
 };
 
@@ -822,7 +922,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -833,6 +933,9 @@ async function inicializarSupabase() {
         Vencimentos.listar(),
         Epis.listar(),
         Salarios.listar(),
+        FeedbackClima.listarFeedbacks(),
+        FeedbackClima.listarPesquisas(),
+        ValeCombustivel.listar(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -920,6 +1023,30 @@ async function inicializarSupabase() {
           };
         });
         console.info(`[RH] ${lista.length} salários carregados.`);
+      }
+    }
+
+    if (feedbacks.status === 'fulfilled') {
+      const lista = feedbacks.value ?? [];
+      if (lista.length > 0) {
+        FEEDBACK = lista;
+        console.info(`[RH] ${FEEDBACK.length} feedbacks carregados.`);
+      }
+    }
+
+    if (pesquisas.status === 'fulfilled') {
+      const lista = pesquisas.value ?? [];
+      if (lista.length > 0) {
+        CLIMA = lista;
+        console.info(`[RH] ${CLIMA.length} pesquisas de clima carregadas.`);
+      }
+    }
+
+    if (valeComb.status === 'fulfilled') {
+      const lista = valeComb.value ?? [];
+      if (lista.length > 0) {
+        VALE_LANCAMENTOS = lista;
+        console.info(`[RH] ${VALE_LANCAMENTOS.length} lançamentos de vale carregados.`);
       }
     }
 

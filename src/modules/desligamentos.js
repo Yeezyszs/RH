@@ -226,19 +226,24 @@ export class DesligamentosModule {
     if (!c) return;
 
     const payload = {
-      colaborador_id:  c.id,
+      colaborador_id:    c.id,
       data_desligamento: data.data,
-      ultimo_dia:      data.ultimo_dia || data.data,
-      motivo:          data.motivo,
-      tipo:            data.tipo,
-      aviso_previo:    data.aviso === 'sim',
-      observacoes:     data.observacoes || '',
+      ultimo_dia:        data.ultimo_dia || data.data,
+      motivo:            data.motivo,
+      tipo:              data.tipo,
+      aviso:             data.aviso,
+      observacoes:       data.observacoes || '',
+      entrevista:        { realizada: false },
     };
 
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
       try {
-        await this.Desligamentos.criar(payload);
+        const saved = await this.Desligamentos.criar(payload);
+        this.DESLIGAMENTOS.unshift({
+          ...saved,
+          nome: c.nome, cargo: c.cargo, setor: c.setor, admissao: c.admissao,
+        });
         await window.Colaboradores?.atualizar(c.id, { status: 'inativo' }).catch(() => null);
       } catch (err) {
         alert('Erro ao salvar: ' + err.message);
@@ -249,7 +254,6 @@ export class DesligamentosModule {
       this.DESLIGAMENTOS.unshift({
         id: newId, ...payload,
         nome: c.nome, cargo: c.cargo, setor: c.setor, admissao: c.admissao,
-        entrevista: { realizada: false },
       });
       c.status = 'inativo';
     }

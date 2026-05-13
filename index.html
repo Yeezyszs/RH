@@ -8131,7 +8131,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
     $('#modal-vale-lancamento').classList.remove('active');
   }
 
-  function salvarValeLancamento(ev) {
+  async function salvarValeLancamento(ev) {
     ev.preventDefault();
     const form = $('#form-vale-lancamento');
     const data = Object.fromEntries(new FormData(form));
@@ -8147,23 +8147,38 @@ Liderança de equipe ≥3 pessoas"></textarea>
       observacoes:    data.observacoes || '',
     };
 
-    if (id != null) {
-      const i = VALE_LANCAMENTOS.findIndex(x => x.id === id);
-      if (i >= 0) VALE_LANCAMENTOS[i] = { ...VALE_LANCAMENTOS[i], ...payload };
-      showToast('Lançamento atualizado', 'ok');
+    const temSessao = typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        if (id != null) {
+          const saved = await ValeCombustivel.atualizar(id, payload);
+          const i = VALE_LANCAMENTOS.findIndex(x => x.id === id);
+          if (i >= 0) VALE_LANCAMENTOS[i] = saved;
+        } else {
+          const saved = await ValeCombustivel.criar(payload);
+          VALE_LANCAMENTOS.unshift(saved);
+        }
+      } catch (err) { showToast('Erro ao salvar: ' + err.message, 'err'); return; }
     } else {
-      const newId = Math.max(0, ...VALE_LANCAMENTOS.map(x => x.id)) + 1;
-      VALE_LANCAMENTOS.unshift({ id:newId, ...payload });
-      showToast('Lançamento registrado', 'ok');
+      if (id != null) {
+        const i = VALE_LANCAMENTOS.findIndex(x => x.id === id);
+        if (i >= 0) VALE_LANCAMENTOS[i] = { ...VALE_LANCAMENTOS[i], ...payload };
+      } else {
+        VALE_LANCAMENTOS.unshift({ id: Math.max(0, ...VALE_LANCAMENTOS.map(x => x.id)) + 1, ...payload });
+      }
     }
+    showToast(id != null ? 'Lançamento atualizado' : 'Lançamento registrado', 'ok');
     fecharModalValeLancamento();
     renderVale();
-    // Re-render detalhe se aberto
     if (_detalheColabId) renderValeDetalhe(_detalheColabId, _detalheMes);
   }
 
-  function excluirValeLancamento(id) {
+  async function excluirValeLancamento(id) {
     if (!confirm('Excluir este lançamento?')) return;
+    const temSessao = typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try { await ValeCombustivel.excluir(id); } catch (err) { showToast('Erro: ' + err.message, 'err'); return; }
+    }
     VALE_LANCAMENTOS = VALE_LANCAMENTOS.filter(x => x.id !== id);
     renderVale();
     if (_detalheColabId) renderValeDetalhe(_detalheColabId, _detalheMes);
@@ -8884,7 +8899,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
       data_termino:   data.fim,
       dias_usados:    dias,
       dias_saldo:     30 - dias,
-      abono_pecuniario: abono > 0,
+      abono_pecuniario: abono,
       aprovado:       true,
       observacoes:    data.observacoes || '',
     };
@@ -9804,7 +9819,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
     $('#modal-feedback').classList.remove('active');
   }
 
-  function salvarFeedback(ev) {
+  async function salvarFeedback(ev) {
     ev.preventDefault();
     const form = $('#form-feedback');
     const data = Object.fromEntries(new FormData(form));
@@ -9827,21 +9842,37 @@ Liderança de equipe ≥3 pessoas"></textarea>
       return;
     }
 
-    if (id != null) {
-      const i = FEEDBACK.findIndex(x => x.id === id);
-      if (i >= 0) FEEDBACK[i] = { ...FEEDBACK[i], ...payload };
-      showToast('Feedback atualizado', 'ok');
+    const temSessao = typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        if (id != null) {
+          const saved = await FeedbackClima.atualizarFeedback(id, payload);
+          const i = FEEDBACK.findIndex(x => x.id === id);
+          if (i >= 0) FEEDBACK[i] = saved;
+        } else {
+          const saved = await FeedbackClima.criarFeedback(payload);
+          FEEDBACK.unshift(saved);
+        }
+      } catch (err) { showToast('Erro ao salvar: ' + err.message, 'err'); return; }
     } else {
-      const newId = Math.max(0, ...FEEDBACK.map(x => x.id)) + 1;
-      FEEDBACK.unshift({ id:newId, ...payload });
-      showToast('Feedback registrado', 'ok');
+      if (id != null) {
+        const i = FEEDBACK.findIndex(x => x.id === id);
+        if (i >= 0) FEEDBACK[i] = { ...FEEDBACK[i], ...payload };
+      } else {
+        FEEDBACK.unshift({ id: Math.max(0, ...FEEDBACK.map(x => x.id)) + 1, ...payload });
+      }
     }
+    showToast(id != null ? 'Feedback atualizado' : 'Feedback registrado', 'ok');
     fecharModalFeedback();
     renderFeedback();
   }
 
-  function excluirFeedback(id) {
+  async function excluirFeedback(id) {
     if (!confirm('Excluir este feedback?')) return;
+    const temSessao = typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try { await FeedbackClima.excluirFeedback(id); } catch (err) { showToast('Erro: ' + err.message, 'err'); return; }
+    }
     FEEDBACK = FEEDBACK.filter(x => x.id !== id);
     renderFeedback();
     showToast('Feedback excluído');
@@ -10016,7 +10047,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
     $('#modal-clima').classList.remove('active');
   }
 
-  function salvarClima(ev) {
+  async function salvarClima(ev) {
     ev.preventDefault();
     const form = $('#form-clima');
     const data = Object.fromEntries(new FormData(form));
@@ -10036,21 +10067,37 @@ Liderança de equipe ≥3 pessoas"></textarea>
       score_remuneracao:    parseFloat(data.score_remuneracao)   || 0,
     };
 
-    if (id != null) {
-      const i = CLIMA.findIndex(x => x.id === id);
-      if (i >= 0) CLIMA[i] = { ...CLIMA[i], ...payload };
-      showToast('Pesquisa atualizada', 'ok');
+    const temSessao = typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        if (id != null) {
+          const saved = await FeedbackClima.atualizarPesquisa(id, payload);
+          const i = CLIMA.findIndex(x => x.id === id);
+          if (i >= 0) CLIMA[i] = saved;
+        } else {
+          const saved = await FeedbackClima.criarPesquisa(payload);
+          CLIMA.unshift(saved);
+        }
+      } catch (err) { showToast('Erro ao salvar: ' + err.message, 'err'); return; }
     } else {
-      const newId = Math.max(0, ...CLIMA.map(x => x.id)) + 1;
-      CLIMA.unshift({ id:newId, ...payload });
-      showToast('Pesquisa cadastrada', 'ok');
+      if (id != null) {
+        const i = CLIMA.findIndex(x => x.id === id);
+        if (i >= 0) CLIMA[i] = { ...CLIMA[i], ...payload };
+      } else {
+        CLIMA.unshift({ id: Math.max(0, ...CLIMA.map(x => x.id)) + 1, ...payload });
+      }
     }
+    showToast(id != null ? 'Pesquisa atualizada' : 'Pesquisa cadastrada', 'ok');
     fecharModalClima();
     renderClima();
   }
 
-  function excluirClima(id) {
+  async function excluirClima(id) {
     if (!confirm('Excluir esta pesquisa?')) return;
+    const temSessao = typeof Auth !== 'undefined' && await Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try { await FeedbackClima.excluirPesquisa(id); } catch (err) { showToast('Erro: ' + err.message, 'err'); return; }
+    }
     CLIMA = CLIMA.filter(x => x.id !== id);
     renderClima();
     showToast('Pesquisa excluída');
