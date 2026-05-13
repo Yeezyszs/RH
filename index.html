@@ -2334,7 +2334,7 @@
 </div>
 
 <!-- ════════════ APP ════════════ -->
-<div id="app">
+<div id="app" style="display:none">
 
 <!-- ════════════ TOPBAR ════════════ -->
 <header class="topbar">
@@ -10565,18 +10565,31 @@ Liderança de equipe ≥3 pessoas"></textarea>
   // AUTENTICAÇÃO E LOGIN
   // ════════════════════════════════════════════════
 
+  // Atualiza informações do usuário no topbar
+  function atualizarTopbarUsuario(sessao) {
+    const nomeEl  = document.querySelector('.user-name');
+    const roleEl  = document.querySelector('.user-role');
+    const avatarEl = document.querySelector('.topbar-right .avatar');
+    if (!sessao) return;
+    const email = sessao.user?.email || '';
+    const meta  = sessao.user?.user_metadata || {};
+    const nome  = meta.nome || meta.full_name || email.split('@')[0] || 'Usuário';
+    const role  = meta.perfil || meta.role || 'RH';
+    if (nomeEl)   nomeEl.textContent  = nome.split(' ')[0];
+    if (roleEl)   roleEl.textContent  = role.charAt(0).toUpperCase() + role.slice(1);
+    if (avatarEl) avatarEl.textContent = nome.charAt(0).toUpperCase();
+  }
+
   // Verifica sessão ao carregar a página
   async function verificarSessao() {
     const sessao = await Auth.sessaoAtual();
     if (sessao) {
-      // Usuário logado: esconde tela de login e mostra app
+      atualizarTopbarUsuario(sessao);
       document.getElementById('login-screen').classList.remove('active');
       document.getElementById('app').style.display = '';
       await inicializarSupabase();
     } else {
-      // Sem sessão: mostra tela de login
       document.getElementById('login-screen').classList.add('active');
-      document.getElementById('app').style.display = 'none';
     }
   }
 
@@ -10589,33 +10602,27 @@ Liderança de equipe ≥3 pessoas"></textarea>
     const btn = document.getElementById('login-btn');
     const errorEl = document.getElementById('login-error');
 
-    // Limpa erro anterior
     errorEl.classList.remove('show');
     errorEl.textContent = '';
 
-    // Desabilita botão
     btn.classList.add('loading');
     btn.disabled = true;
     btn.textContent = 'Entrando...';
 
     try {
-      await Auth.login(email, senha);
+      const dados = await Auth.login(email, senha);
+      atualizarTopbarUsuario(dados.session);
 
-      // Login bem-sucedido
       showToast('Login realizado com sucesso!', 'ok');
 
-      // Esconde login e mostra app imediatamente (sem recarregar)
       document.getElementById('login-screen').classList.remove('active');
       document.getElementById('app').style.display = '';
 
-      // Carrega dados do Supabase
       await inicializarSupabase();
     } catch (err) {
-      // Mostra erro
       errorEl.textContent = err.message || 'Erro ao fazer login. Verifique suas credenciais.';
       errorEl.classList.add('show');
 
-      // Re-habilita botão
       btn.classList.remove('loading');
       btn.disabled = false;
       btn.textContent = 'Entrar';
