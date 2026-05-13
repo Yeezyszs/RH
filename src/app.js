@@ -115,21 +115,21 @@ function bootstrap() {
   window.mostrarAlertaReincidencia= ()     => advertencias.mostrarAlertaReincidencia();
   window.renderAdvertencias       = ()     => advertencias.render();
 
-  // Férias
-  window.abrirModalFerias         = (id)   => ferias.abrirModal(id);
-  window.fecharModalFerias        = ()     => ferias.fecharModal();
-  window.salvarFerias             = (ev)   => ferias.salvar(ev);
-  window.excluirFerias            = (id)   => ferias.excluir(id);
+  // Férias (modal gerenciado pelo index.html; módulo só faz render da tabela/timeline)
   window.renderFerias             = ()     => ferias.render();
 
   // Desligamentos
   window.abrirDrawerDesl          = (id)   => desligamentos.abrirDrawer(id);
   window.fecharDrawerDesl         = ()     => desligamentos.fecharDrawer();
-  window.abrirModalDesligamento   = (id)   => desligamentos.abrirModal(id);
-  window.fecharModalDesligamento  = ()     => desligamentos.fecharModal();
-  window.salvarDesligamento       = (ev)   => desligamentos.salvar(ev);
-  window.excluirDesligamento      = (id)   => desligamentos.excluir(id);
-  window.renderDesligamentos      = ()     => desligamentos.render();
+  window.abrirModalDesligamento        = (id)   => desligamentos.abrirModalDesligamento(id);
+  window.fecharModalDesligamento       = ()     => desligamentos.fecharModalDesligamento();
+  window.salvarDesligamento            = (ev)   => desligamentos.salvarDesligamento(ev);
+  window.excluirDesligamento           = (id)   => desligamentos.excluirDesligamento(id);
+  window.abrirModalEntrevista          = (id)   => desligamentos.abrirModalEntrevista(id);
+  window.fecharModalEntrevista         = ()     => desligamentos.fecharModalEntrevista();
+  window.salvarEntrevista              = (ev)   => desligamentos.salvarEntrevista(ev);
+  window.abrirModalEntrevistaDoDrawer  = ()     => desligamentos.abrirModalEntrevistaDoDrawer();
+  window.renderDesligamentos           = ()     => desligamentos.render();
 
   // Cronograma
   window.navCalendar              = (d)    => cronograma.navCalendar(d);
@@ -141,6 +141,7 @@ function bootstrap() {
 
   // Vencimentos
   window.setFiltroVenc            = (st)   => vencimentos.setFiltroStatus(st);
+  window.setVencStatus            = (st)   => vencimentos.setFiltroStatus(st);
   window.abrirModalVencimento     = (id)   => vencimentos.abrirModalVencimento(id);
   window.fecharModalVencimento    = ()     => vencimentos.fecharModalVencimento();
   window.salvarVencimento         = (ev)   => vencimentos.salvarVencimento(ev);
@@ -155,6 +156,7 @@ function bootstrap() {
   window.devolverEpi              = (id)   => epi.devolver(id);
   window.excluirEpi               = (id)   => epi.excluirEntrega(id);
   window.editarEpiCatalogo        = (id)   => epi.editarCatalogo(id);
+  window.resetEpiCatalogoForm     = ()     => epi.resetCatalogoForm();
   window.salvarEpiCatalogo        = (ev)   => epi.salvarCatalogo(ev);
   window.excluirEpiCatalogo       = (id)   => epi.excluirCatalogo(id);
   window.abrirModalEpiKit         = (s)    => epi.abrirModalKit(s);
