@@ -9902,6 +9902,10 @@ Liderança de equipe ≥3 pessoas"></textarea>
     { id:4, titulo:'Pulso Q1 2026', inicio:'2026-03-01', fim:'2026-03-14', convidados:142, responderam:113, score_lideranca:8.0, score_ambiente:8.2, score_reconhecimento:7.2, score_carreira:7.0, score_comunicacao:7.8, score_remuneracao:7.1 },
   ];
 
+  let VALE_ALIMENTACAO = [];
+
+  let ROTATIVIDADE = [];
+
   function scoreGeral(p) {
     const vals = CLIMA_DIMS.map(d => p['score_' + d]);
     return vals.reduce((a,b) => a + b, 0) / vals.length;
