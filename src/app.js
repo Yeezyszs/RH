@@ -193,9 +193,9 @@ function bootstrap() {
   window.setVencStatus            = (st)  => vencimentos.setFiltroStatus(st);
   window.abrirModalVencimento     = (id)  => vencimentos.abrirModalVencimento(id);
   window.fecharModalVencimento    = ()    => vencimentos.fecharModalVencimento();
-  window.salvarVencimento         = (ev)  => vencimentos.salvarVencimento(ev);
+  window.salvarVencimento         = async (ev) => { await vencimentos.salvarVencimento(ev); window.atualizarBadgeVencimentos?.(); };
   window.renovarVencimento        = (id)  => vencimentos.renovarVencimento(id);
-  window.excluirVencimento        = (id)  => vencimentos.excluirVencimento(id);
+  window.excluirVencimento        = async (id) => { await vencimentos.excluirVencimento(id); window.atualizarBadgeVencimentos?.(); };
   window.renderVencimentos        = ()    => vencimentos.render();
 
   // EPI
@@ -223,6 +223,7 @@ function bootstrap() {
   window.abrirModalSalario        = (id)  => salarios.abrirModal(id);
   window.fecharModalSalario       = ()    => salarios.fecharModal();
   window.salvarSalario            = (ev)  => salarios.salvar(ev);
+  window.exportSalarios           = ()    => salarios.exportSalarios();
   window.renderSalarios           = ()    => salarios.render();
 
   // Vale Combustível
