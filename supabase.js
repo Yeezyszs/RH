@@ -907,6 +907,63 @@ const FeedbackClima = {
 };
 
 // ============================================================================
+// HISTÓRICO COLABORADORES
+// ============================================================================
+
+const HistoricoColaboradores = {
+  async listarPorColab(colaboradorId) {
+    const { data, error } = await withTimeout(
+      sb.from('historico_colaboradores')
+        .select('id, data_mudanca, motivo, cargo_anterior_id, cargo_novo_id, departamento_anterior_id, departamento_novo_id, salario_anterior, salario_novo, cargos_anterior:cargo_anterior_id(nome), cargos_novo:cargo_novo_id(nome), depto_anterior:departamento_anterior_id(nome), depto_novo:departamento_novo_id(nome)')
+        .eq('colaborador_id', colaboradorId)
+        .order('data_mudanca', { ascending: false })
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async registrar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('historico_colaboradores').insert(payload).select().single()
+    );
+    if (error) throw error;
+    return data;
+  },
+};
+
+// ============================================================================
+// RESPOSTAS PESQUISA
+// ============================================================================
+
+const RespostasPesquisa = {
+  async listarPorPesquisa(pesquisaId) {
+    const { data, error } = await withTimeout(
+      sb.from('respostas_pesquisa')
+        .select('id, colaborador_id, pergunta, resposta, rating, data_resposta, colaboradores(nome)')
+        .eq('pesquisa_id', pesquisaId)
+        .order('data_resposta', { ascending: false })
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async registrar(pesquisaId, colaboradorId, respostas) {
+    const rows = respostas.map(r => ({
+      pesquisa_id:    pesquisaId,
+      colaborador_id: colaboradorId,
+      pergunta:       r.pergunta,
+      resposta:       r.resposta || null,
+      rating:         r.rating   || null,
+    }));
+    const { data, error } = await withTimeout(
+      sb.from('respostas_pesquisa').insert(rows).select()
+    );
+    if (error) throw error;
+    return data;
+  },
+};
+
+// ============================================================================
 // DASHBOARD — KPIs
 // ============================================================================
 
@@ -1564,8 +1621,10 @@ window.Cronograma      = Cronograma;
 window.ValeCombustivel = ValeCombustivel;
 window.ValeAlimentacao = ValeAlimentacao;
 window.Rotatividade    = Rotatividade;
-window.Treinamentos    = Treinamentos;
-window.Salarios        = Salarios;
+window.Treinamentos           = Treinamentos;
+window.HistoricoColaboradores = HistoricoColaboradores;
+window.RespostasPesquisa      = RespostasPesquisa;
+window.Salarios               = Salarios;
 window.FeedbackClima   = FeedbackClima;
 window.Dashboard       = Dashboard;
 window.PlanoCarreiras  = PlanoCarreiras;
