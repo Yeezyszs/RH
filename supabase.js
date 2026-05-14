@@ -509,6 +509,23 @@ const Vencimentos = {
   },
 
   async criar(payload) {
+    if (payload.categoria === 'Treinamento') {
+      const row = {
+        colaborador_id:  payload.colaborador_id,
+        data_conclusao:  payload.data_emissao || null,
+        data_vencimento: payload.data_vencimento,
+        observacoes:     payload.observacoes || null,
+        status:          'concluido',
+      };
+      const { data, error } = await withTimeout(
+        sb.from('participantes_treinamento').insert(row).select().single()
+      );
+      if (error) throw error;
+      Cache.invalidate('vencimentos');
+      Cache.invalidate('treinamentos');
+      return { ...row, id: data.id, _tabela: 'participantes_treinamento' };
+    }
+
     const tabela = payload.categoria === 'ASO' ? 'asos' : 'documentos';
     const base = {
       colaborador_id:  payload.colaborador_id,
@@ -531,6 +548,7 @@ const Vencimentos = {
     );
     if (error) throw error;
     Cache.invalidate('vencimentos');
+    if (tabela === 'participantes_treinamento') Cache.invalidate('treinamentos');
   },
 };
 
@@ -659,6 +677,55 @@ const ValeCombustivel = {
     );
     if (error) throw error;
     Cache.invalidate('vale_combustivel');
+  },
+};
+
+// ============================================================================
+// TREINAMENTOS
+// ============================================================================
+
+const Treinamentos = {
+  async listarParticipacoes() {
+    const cached = Cache.get('treinamentos');
+    if (cached) return cached;
+    const { data, error } = await withTimeout(
+      sb.from('participantes_treinamento')
+        .select('id, colaborador_id, data_conclusao, data_vencimento, status, avaliacao_final, observacoes, treinamentos(id, nome, categoria, carga_horaria)')
+        .not('data_vencimento', 'is', null)
+        .order('data_vencimento', { ascending: true })
+    );
+    if (error) throw error;
+    Cache.set('treinamentos', data);
+    return data;
+  },
+
+  async criarParticipacao(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('participantes_treinamento').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('treinamentos');
+    Cache.invalidate('vencimentos');
+    return data;
+  },
+
+  async atualizarParticipacao(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('participantes_treinamento').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('treinamentos');
+    Cache.invalidate('vencimentos');
+    return data;
+  },
+
+  async excluirParticipacao(id) {
+    const { error } = await withTimeout(
+      sb.from('participantes_treinamento').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('treinamentos');
+    Cache.invalidate('vencimentos');
   },
 };
 
@@ -995,7 +1062,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -1011,6 +1078,7 @@ async function inicializarSupabase() {
         ValeCombustivel.listar(),
         ValeAlimentacao.listar(),
         Rotatividade.listar(),
+        Treinamentos.listarParticipacoes(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -1138,6 +1206,24 @@ async function inicializarSupabase() {
       if (lista.length > 0) {
         ROTATIVIDADE = lista;
         console.info(`[RH] ${ROTATIVIDADE.length} registros de rotatividade carregados.`);
+      }
+    }
+
+    if (trein.status === 'fulfilled') {
+      const lista = trein.value ?? [];
+      if (lista.length > 0) {
+        const treinVencimentos = lista.map(p => ({
+          id:             p.id,
+          colaborador_id: p.colaborador_id,
+          categoria:      'Treinamento',
+          item:           p.treinamentos?.nome || 'Treinamento',
+          emissao:        p.data_conclusao || null,
+          vencimento:     p.data_vencimento,
+          observacoes:    p.observacoes || '',
+          _tabela:        'participantes_treinamento',
+        }));
+        VENCIMENTOS = [...VENCIMENTOS.filter(v => v._tabela !== 'participantes_treinamento'), ...treinVencimentos];
+        console.info(`[RH] ${treinVencimentos.length} treinamentos carregados como vencimentos.`);
       }
     }
 
@@ -1335,6 +1421,29 @@ async function setupRealTimeListeners() {
       if (typeof renderRotatividade === 'function') renderRotatividade();
     }
 
+    if (table === 'participantes_treinamento') {
+      const mapTrein = (row) => ({
+        id:             row.id,
+        colaborador_id: row.colaborador_id,
+        categoria:      'Treinamento',
+        item:           row.treinamentos?.nome || 'Treinamento',
+        emissao:        row.data_conclusao || null,
+        vencimento:     row.data_vencimento,
+        observacoes:    row.observacoes || '',
+        _tabela:        'participantes_treinamento',
+      });
+      if (eventType === 'INSERT' && novoReg.data_vencimento) {
+        VENCIMENTOS.unshift(mapTrein(novoReg));
+      } else if (eventType === 'UPDATE') {
+        const i = VENCIMENTOS.findIndex(x => x.id === id && x._tabela === 'participantes_treinamento');
+        if (i >= 0) VENCIMENTOS[i] = mapTrein(novoReg);
+        else if (novoReg.data_vencimento) VENCIMENTOS.unshift(mapTrein(novoReg));
+      } else if (eventType === 'DELETE') {
+        VENCIMENTOS = VENCIMENTOS.filter(x => !(x.id === id && x._tabela === 'participantes_treinamento'));
+      }
+      if (typeof renderVencimentos === 'function') renderVencimentos();
+    }
+
     console.debug(`[RH] Real-time: ${eventType} em ${table} (id: ${id})`);
   };
 
@@ -1422,6 +1531,12 @@ async function setupRealTimeListeners() {
     handler
   ).subscribe();
 
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'participantes_treinamento' },
+    handler
+  ).subscribe();
+
   const centerEl = document.querySelector('.topbar-center span:last-child');
   if (centerEl) centerEl.textContent = 'Sincronização real-time ativa';
 
@@ -1449,6 +1564,7 @@ window.Cronograma      = Cronograma;
 window.ValeCombustivel = ValeCombustivel;
 window.ValeAlimentacao = ValeAlimentacao;
 window.Rotatividade    = Rotatividade;
+window.Treinamentos    = Treinamentos;
 window.Salarios        = Salarios;
 window.FeedbackClima   = FeedbackClima;
 window.Dashboard       = Dashboard;
