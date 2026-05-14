@@ -69,11 +69,17 @@ function bootstrap() {
 
   // ─── Instanciar módulos ─────────────────────────────────────────────────────
 
+  const DEPENDENTES    = window.DEPENDENTES;
+  const CONTATOS_EMERG = window.CONTATOS_EMERG;
+
   const colaboradores = new ColaboradoresModule({
-    $, h, iniciais, fmtDate, tempoCasa,
-    COLABORADORES, STATUS_LABEL,
+    $, h, iniciais, fmtDate, fmtBRL, tempoCasa, showToast,
+    COLABORADORES, DEPENDENTES, CONTATOS_EMERG,
+    EPI_ENTREGAS, VENCIMENTOS,
+    STATUS_LABEL, SETOR_ICON,
     Colaboradores: window.Colaboradores,
     Departamentos: window.Departamentos,
+    HistoricoColaboradores: window.HistoricoColaboradores,
     Auth: window.Auth,
   });
 
@@ -87,6 +93,7 @@ function bootstrap() {
     $, h, iniciais, fmtDate, fmtBRL,
     FERIAS, COLABORADORES, SALARIOS,
     Auth: window.Auth, Ferias: window.Ferias,
+    Colaboradores: window.Colaboradores,
   });
 
   const desligamentos = new DesligamentosModule({
@@ -150,8 +157,31 @@ function bootstrap() {
   // ─── Expor globais para onclick inline no index.html ────────────────────────
 
   // Colaboradores
-  window.colabIrPagina            = (p)    => colaboradores.irPagina(p);
-  window.renderColaboradores      = ()     => colaboradores.render();
+  window.colabIrPagina              = (p)    => colaboradores.irPagina(p);
+  window.renderColaboradores        = ()     => colaboradores.render();
+  window.abrirDrawerColab           = (id)   => colaboradores.abrirDrawerColab(id);
+  window.fecharDrawerColab          = ()     => colaboradores.fecharDrawerColab();
+  window.editarColaboradorDoDrawer  = ()     => colaboradores.editarColaboradorDoDrawer();
+  window.abrirModalColaborador      = (id)   => colaboradores.abrirModalColaborador(id);
+  window.fecharModalColaborador     = ()     => colaboradores.fecharModalColaborador();
+  window.salvarColaborador          = (ev)   => colaboradores.salvarColaborador(ev);
+  window.excluirColaborador         = (id)   => colaboradores.excluirColaborador(id);
+  window.renderDepsModal            = ()     => colaboradores.renderDepsModal();
+  window.adicionarDepModal          = ()     => colaboradores.adicionarDepModal();
+  window.removerDepModal            = (s)    => colaboradores.removerDepModal(s);
+  window.renderEmergsModal          = ()     => colaboradores.renderEmergsModal();
+  window.adicionarEmergModal        = ()     => colaboradores.adicionarEmergModal();
+  window.removerEmergModal          = (s)    => colaboradores.removerEmergModal(s);
+  window.renderContatosEmergencia   = (id)   => colaboradores.renderContatosEmergencia(id);
+  window.abrirModalContato          = (id)   => colaboradores.abrirModalContato(id);
+  window.fecharModalContato         = ()     => colaboradores.fecharModalContato();
+  window.salvarContato              = (ev)   => colaboradores.salvarContato(ev);
+  window.excluirContato             = (id)   => colaboradores.excluirContato(id);
+  window.exportColaboradores        = ()     => colaboradores.exportColaboradores();
+  window.renderQuadro               = ()     => colaboradores.renderQuadro();
+  window.popularFiltroSetores       = ()     => colaboradores.popularFiltroSetores();
+  window._depUpdate                 = (s, k, v) => colaboradores._depUpdate(s, k, v);
+  window._emergUpdate               = (s, k, v) => colaboradores._emergUpdate(s, k, v);
 
   // Advertências
   window.abrirDrawerAdv           = (id)   => advertencias.abrirDrawer(id);
@@ -166,6 +196,12 @@ function bootstrap() {
 
   // Férias
   window.renderFerias             = ()     => ferias.render();
+  window.abrirModalFerias         = (id)   => ferias.abrirModalFerias(id);
+  window.fecharModalFerias        = ()     => ferias.fecharModalFerias();
+  window.renderFeriasModal        = ()     => ferias.renderFeriasModal();
+  window.calcDiasFerias           = ()     => ferias.calcDiasFerias();
+  window.salvarFeriasPeriodo      = (ev)   => ferias.salvarFeriasPeriodo(ev);
+  window.excluirFerias            = (id)   => ferias.excluirFerias(id);
 
   // Desligamentos
   window.abrirDrawerDesl               = (id)  => desligamentos.abrirDrawer(id);

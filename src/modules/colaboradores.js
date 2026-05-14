@@ -1,33 +1,52 @@
 // Colaboradores Module
-// Gerencia renderização e lógica da seção de colaboradores
+// Gerencia renderização, drawer, modal, dependentes, contatos de emergência e quadro
 
 export class ColaboradoresModule {
   constructor(deps) {
     this.Colaboradores = deps.Colaboradores;
     this.Departamentos = deps.Departamentos;
+    this.HistoricoColaboradores = deps.HistoricoColaboradores;
     this.Auth = deps.Auth;
     this.$ = deps.$;
     this.h = deps.h;
     this.iniciais = deps.iniciais;
     this.fmtDate = deps.fmtDate;
+    this.fmtBRL = deps.fmtBRL;
     this.tempoCasa = deps.tempoCasa;
+    this.showToast = deps.showToast;
     this.STATUS_LABEL = deps.STATUS_LABEL;
+    this.SETOR_ICON = deps.SETOR_ICON;
     this.COLABORADORES = deps.COLABORADORES;
+    this.DEPENDENTES = deps.DEPENDENTES;
+    this.CONTATOS_EMERG = deps.CONTATOS_EMERG;
+    this.EPI_ENTREGAS = deps.EPI_ENTREGAS;
+    this.VENCIMENTOS = deps.VENCIMENTOS;
 
-    // Estado da seção
     this.state = {
       page: 1,
       limit: 50,
       totalPages: 1,
       total: 0,
-      drawerColabId: null,
     };
+
+    this._drawerColabId = null;
+    this._editandoColabId = null;
+    this._depsModal = [];
+    this._emergsModal = [];
+    this._depSeq = 0;
+    this._emergSeq = 0;
+    this._editandoContatoId = null;
+
+    this._PARENTESCO_OPTS = ['Cônjuge','Mãe','Pai','Filho(a)','Irmã','Irmão','Avó','Avô','Tio(a)','Amigo(a)','Outro'];
 
     this.init();
   }
 
   init() {
     this.setupEventListeners();
+    // Initial render (module loads after DOMContentLoaded)
+    this.render();
+    this.renderQuadro();
   }
 
   setupEventListeners() {
@@ -36,6 +55,7 @@ export class ColaboradoresModule {
         this.state.page = 1;
         this.render();
       }
+      if (e.target.id === 'quad-search') this.renderQuadro();
     });
 
     document.addEventListener('change', (e) => {
@@ -43,8 +63,34 @@ export class ColaboradoresModule {
         this.state.page = 1;
         this.render();
       }
+      if (e.target.id === 'quad-filter-cargo' || e.target.id === 'quad-filter-status') {
+        this.renderQuadro();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      const tab = e.target.closest('.drawer-tab');
+      if (!tab) return;
+      const name = tab.dataset.dtab;
+      tab.parentElement.querySelectorAll('.drawer-tab').forEach(t => t.classList.toggle('active', t === tab));
+      document.querySelectorAll('.drawer-section').forEach(s => s.classList.toggle('active', s.dataset.dsec === name));
+    });
+
+    document.addEventListener('click', (e) => {
+      const tab = e.target.closest('.modal-tab-inner');
+      if (!tab) return;
+      const name = tab.dataset.mtab;
+      const box  = tab.closest('.modal-box');
+      box.querySelectorAll('.modal-tab-inner').forEach(t => t.classList.toggle('active', t === tab));
+      box.querySelectorAll('.modal-sec').forEach(s => s.classList.toggle('active', s.dataset.msec === name));
+    });
+
+    document.querySelectorAll('.nav-item[data-page="quadro"]').forEach(el => {
+      el.addEventListener('click', () => setTimeout(() => this.renderQuadro(), 60));
     });
   }
+
+  // ─── Lista de colaboradores ───────────────────────────────────────────────
 
   async render() {
     const tbody = this.$('#tb-colaboradores');
@@ -62,12 +108,9 @@ export class ColaboradoresModule {
         const res = await this.Colaboradores.listar({
           page: this.state.page,
           limit: this.state.limit,
-          busca,
-          status,
-          setor
+          busca, status, setor,
         });
-
-        this.state.total = res.total;
+        this.state.total      = res.total;
         this.state.totalPages = res.totalPages;
 
         tbody.innerHTML = res.data.length
@@ -80,7 +123,6 @@ export class ColaboradoresModule {
         tbody.innerHTML = `<tr><td colspan="6" class="empty">Erro ao carregar: ${this.h(err.message)}</td></tr>`;
       }
     } else {
-      // Fallback mock
       const lista = this._filtrarMock(busca, status, setor);
       tbody.innerHTML = lista.length
         ? this._renderLinhas(lista)
@@ -197,6 +239,583 @@ export class ColaboradoresModule {
     if (status) lista = lista.filter(x => x.status === status);
     if (setor)  lista = lista.filter(x => String(x.departamento_id) === String(setor));
     return lista;
+  }
+
+  // ─── Drawer ───────────────────────────────────────────────────────────────
+
+  async abrirDrawerColab(id) {
+    const c = this.COLABORADORES.find(x => x.id === id);
+    if (!c) return;
+    this._drawerColabId = id;
+
+    this.$('#dcol-avatar').textContent = this.iniciais(c.nome);
+    this.$('#dcol-name').textContent   = c.nome;
+    this.$('#dcol-role').textContent   = `${c.cargo} · ${c.setor}`;
+
+    const st = this.STATUS_LABEL[c.status] || this.STATUS_LABEL.ativo;
+    const sexoLabel = { M:'Masculino', F:'Feminino', O:'Outro' }[c.sexo] || '—';
+
+    this.$('#dcol-dados').innerHTML = `
+      <div class="info-item"><div class="info-label">Matrícula</div><div class="info-value mono">${this.h(c.matricula)}</div></div>
+      <div class="info-item"><div class="info-label">Status</div><div class="info-value"><span class="badge ${st.cls}">${st.t}</span></div></div>
+      <div class="info-item"><div class="info-label">Setor · Área</div><div class="info-value">${this.h(c.setor)}${c.area ? ` · ${this.h(c.area)}` : ''}</div></div>
+      <div class="info-item"><div class="info-label">Cargo</div><div class="info-value">${this.h(c.cargo || '—')}</div></div>
+      <div class="info-item"><div class="info-label">Sexo</div><div class="info-value">${sexoLabel}</div></div>
+      <div class="info-item"><div class="info-label">Escolaridade</div><div class="info-value">${this.h(c.escolaridade || '—')}</div></div>
+      <div class="info-sep"></div>
+      <div class="info-item"><div class="info-label">CPF</div><div class="info-value mono">${this.h(c.cpf || '—')}</div></div>
+      <div class="info-item"><div class="info-label">Nascimento</div><div class="info-value mono">${this.fmtDate(c.nascimento)}</div></div>
+      <div class="info-item"><div class="info-label">Admissão</div><div class="info-value mono">${this.fmtDate(c.admissao)}</div></div>
+      <div class="info-item"><div class="info-label">Tempo de casa</div><div class="info-value mono">${this.tempoCasa(c.admissao)}</div></div>
+      <div class="info-sep"></div>
+      <div class="info-item"><div class="info-label">Telefone</div><div class="info-value mono">${this.h(c.telefone || '—')}</div></div>
+      <div class="info-item"><div class="info-label">E-mail</div><div class="info-value">${this.h(c.email || '—')}</div></div>
+      <div class="info-item" style="grid-column:1/-1"><div class="info-label">Endereço</div><div class="info-value">${this.h(c.endereco || '—')}</div></div>
+    `;
+
+    this.renderContatosEmergencia(id);
+
+    const docsColab = this.VENCIMENTOS.filter(v => v.colaborador_id === id);
+    const hoje = new Date().toISOString().slice(0, 10);
+    this.$('#dcol-docs').innerHTML = docsColab.length ? `
+      <table class="data" style="margin: -6px 0;">
+        <thead><tr><th>Documento</th><th>Emissão</th><th>Validade</th><th>Status</th></tr></thead>
+        <tbody>
+          ${docsColab.map(v => {
+            const diasR = v.vencimento ? Math.ceil((new Date(v.vencimento) - new Date(hoje)) / 86400000) : null;
+            const badge = diasR === null ? '' : diasR < 0 ? `<span class="badge danger">Vencido</span>` : diasR <= 30 ? `<span class="badge warn">Vence em ${diasR}d</span>` : `<span class="badge ok">Válido</span>`;
+            return `<tr><td>${this.h(v.item)}</td><td class="cell-mono">${this.fmtDate(v.emissao)}</td><td class="cell-mono">${this.fmtDate(v.vencimento)}</td><td>${badge}</td></tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    ` : `<p class="empty" style="padding:12px 0">Nenhum documento cadastrado</p>`;
+
+    const episColab = this.EPI_ENTREGAS.filter(e => e.colaborador_id === id && !e.devolvido);
+    this.$('#dcol-epi').innerHTML = episColab.length ? `
+      <table class="data" style="margin: -6px 0;">
+        <thead><tr><th>EPI</th><th>Entrega</th><th>Próxima troca</th></tr></thead>
+        <tbody>
+          ${episColab.map(e => `<tr><td>${this.h(e.tipo || e.item || '—')}</td><td class="cell-mono">${this.fmtDate(e.data_entrega || e.entrega)}</td><td class="cell-mono">${this.fmtDate(e.proxima_troca) || '—'}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    ` : `<p class="empty" style="padding:12px 0">Nenhum EPI ativo</p>`;
+
+    const histEl = this.$('#dcol-historico');
+    const admissaoItem = `<li class="activity-item"><span class="activity-chip admissao">Admissão</span><span class="activity-text">Admitido na empresa</span><span class="activity-time">${this.fmtDate(c.admissao)}</span></li>`;
+    histEl.innerHTML = `<ul class="activity-feed" style="margin: -6px 0;">${admissaoItem}</ul>`;
+
+    if (this.HistoricoColaboradores && this.Auth?.sessaoAtual) {
+      this.Auth.sessaoAtual().then(sessao => {
+        if (!sessao) return;
+        this.HistoricoColaboradores.listarPorColab(id).then(registros => {
+          const itens = [
+            admissaoItem,
+            ...registros.map(r => {
+              const partes = [];
+              if (r.cargos_novo?.nome && r.cargos_anterior?.nome) partes.push(`${r.cargos_anterior.nome} → ${r.cargos_novo.nome}`);
+              else if (r.cargos_novo?.nome) partes.push(`Cargo: ${r.cargos_novo.nome}`);
+              if (r.depto_novo?.nome && r.depto_anterior?.nome) partes.push(`${r.depto_anterior.nome} → ${r.depto_novo.nome}`);
+              if (r.salario_novo && r.salario_anterior) partes.push(`Salário: ${this.fmtBRL(r.salario_anterior)} → ${this.fmtBRL(r.salario_novo)}`);
+              const texto = partes.join(' · ') || (r.motivo || 'Alteração');
+              return `<li class="activity-item"><span class="activity-chip">RH</span><span class="activity-text">${this.h(texto)}</span><span class="activity-time">${this.fmtDate(r.data_mudanca)}</span></li>`;
+            }),
+          ];
+          histEl.innerHTML = `<ul class="activity-feed" style="margin: -6px 0;">${itens.join('')}</ul>`;
+        }).catch(() => {});
+      }).catch(() => {});
+    }
+
+    document.querySelectorAll('.drawer-tab').forEach(t => t.classList.toggle('active', t.dataset.dtab === 'dados'));
+    document.querySelectorAll('.drawer-section').forEach(s => s.classList.toggle('active', s.dataset.dsec === 'dados'));
+
+    this.$('#drawer-backdrop').classList.add('active');
+    this.$('#drawer-colab').classList.add('active');
+  }
+
+  fecharDrawerColab() {
+    this.$('#drawer-backdrop').classList.remove('active');
+    this.$('#drawer-colab').classList.remove('active');
+    this._drawerColabId = null;
+  }
+
+  // ─── Dependentes (modal) ─────────────────────────────────────────────────
+
+  _idadeAnos(nascimento) {
+    if (!nascimento) return null;
+    const d = new Date(nascimento + 'T00:00:00');
+    const hoje = new Date();
+    let a = hoje.getFullYear() - d.getFullYear();
+    if (hoje.getMonth() < d.getMonth() || (hoje.getMonth() === d.getMonth() && hoje.getDate() < d.getDate())) a--;
+    return a;
+  }
+
+  _depUpdate(sid, key, val) {
+    const dep = this._depsModal.find(x => x._sid === sid);
+    if (dep) dep[key] = val;
+  }
+
+  _emergUpdate(sid, key, val) {
+    const em = this._emergsModal.find(x => x._sid === sid);
+    if (em) em[key] = val;
+  }
+
+  renderDepsModal() {
+    const el = document.getElementById('dep-lista-modal');
+    if (!el) return;
+    if (!this._depsModal.length) {
+      el.innerHTML = '<div style="color:var(--text-muted);font-size:.88rem;padding:4px 0 10px;">Nenhum dependente cadastrado.</div>';
+      return;
+    }
+    el.innerHTML = this._depsModal.map(d => {
+      const menor14 = d.nascimento && this._idadeAnos(d.nascimento) < 14;
+      return `
+      <div class="inline-card" id="dep-card-${d._sid}">
+        <div class="inline-card-body">
+          <div class="form-group">
+            <label>Nome <span class="req">*</span></label>
+            <input type="text" value="${this.h(d.nome)}" placeholder="Nome completo"
+              oninput="window._depUpdate(${d._sid},'nome',this.value)">
+          </div>
+          <div class="form-group">
+            <label>Parentesco</label>
+            <select onchange="window._depUpdate(${d._sid},'parentesco',this.value)">
+              ${['Filho(a)','Cônjuge','Mãe','Pai','Irmã','Irmão','Outro'].map(p =>
+                `<option value="${p}"${d.parentesco===p?' selected':''}>${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Data de nascimento</label>
+            <input type="date" value="${this.h(d.nascimento||'')}"
+              oninput="window._depUpdate(${d._sid},'nascimento',this.value);window.renderDepsModal()">
+          </div>
+          <div class="form-group">
+            <label>CPF do dependente</label>
+            <input type="text" value="${this.h(d.cpf||'')}" placeholder="000.000.000-00"
+              oninput="window._depUpdate(${d._sid},'cpf',this.value)">
+          </div>
+          ${menor14 ? `
+          <div class="form-group full">
+            <label>Escola (obrigatório — menor de 14 anos)</label>
+            <input type="text" value="${this.h(d.escola||'')}" placeholder="Nome da escola / creche"
+              oninput="window._depUpdate(${d._sid},'escola',this.value)">
+            <div class="inline-card-hint">📚 Dependente com menos de 14 anos — campo de escola exigido para fins de declaração e benefícios.</div>
+          </div>` : ''}
+        </div>
+        <button type="button" class="inline-card-remove" title="Remover" onclick="window.removerDepModal(${d._sid})">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  adicionarDepModal() {
+    this._depsModal.push({ _sid: ++this._depSeq, nome:'', parentesco:'Filho(a)', nascimento:'', cpf:'', escola:'' });
+    this.renderDepsModal();
+  }
+
+  removerDepModal(sid) {
+    this._depsModal = this._depsModal.filter(x => x._sid !== sid);
+    this.renderDepsModal();
+  }
+
+  // ─── Emergência (modal) ───────────────────────────────────────────────────
+
+  renderEmergsModal() {
+    const el = document.getElementById('emerg-lista-modal');
+    if (!el) return;
+    if (!this._emergsModal.length) {
+      el.innerHTML = '<div style="color:var(--text-muted);font-size:.88rem;padding:4px 0 10px;">Nenhum contato de emergência cadastrado.</div>';
+      return;
+    }
+    el.innerHTML = this._emergsModal.map(c => `
+      <div class="inline-card" id="emerg-card-${c._sid}">
+        <div class="inline-card-body">
+          <div class="form-group">
+            <label>Nome <span class="req">*</span></label>
+            <input type="text" value="${this.h(c.nome)}" placeholder="Nome do contato"
+              oninput="window._emergUpdate(${c._sid},'nome',this.value)">
+          </div>
+          <div class="form-group">
+            <label>Parentesco</label>
+            <select onchange="window._emergUpdate(${c._sid},'parentesco',this.value)">
+              ${this._PARENTESCO_OPTS.map(p =>
+                `<option value="${p}"${c.parentesco===p?' selected':''}>${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Telefone</label>
+            <input type="tel" value="${this.h(c.telefone||'')}" placeholder="(00) 00000-0000"
+              oninput="window._emergUpdate(${c._sid},'telefone',this.value)">
+          </div>
+        </div>
+        <button type="button" class="inline-card-remove" title="Remover" onclick="window.removerEmergModal(${c._sid})">×</button>
+      </div>`).join('');
+  }
+
+  adicionarEmergModal() {
+    this._emergsModal.push({ _sid: ++this._emergSeq, nome:'', parentesco:'Cônjuge', telefone:'' });
+    this.renderEmergsModal();
+  }
+
+  removerEmergModal(sid) {
+    this._emergsModal = this._emergsModal.filter(x => x._sid !== sid);
+    this.renderEmergsModal();
+  }
+
+  // ─── Modal colaborador ────────────────────────────────────────────────────
+
+  abrirModalColaborador(id = null) {
+    this._editandoColabId = id;
+    this._depsModal   = [];
+    this._emergsModal = [];
+
+    const form = document.getElementById('form-colaborador');
+    form.reset();
+
+    if (id != null) {
+      document.getElementById('modal-colab-title').textContent = 'Editar colaborador';
+      const c = this.COLABORADORES.find(x => x.id === id);
+      if (c) {
+        for (const [k, v] of Object.entries(c)) {
+          const f = form.elements[k];
+          if (f) f.value = v ?? '';
+        }
+      }
+      this._depsModal   = (this.DEPENDENTES || []).filter(d => d.colaborador_id === id)
+                          .map(d => ({ ...d, _sid: ++this._depSeq }));
+      this._emergsModal = this.CONTATOS_EMERG.filter(c => c.colaborador_id === id)
+                          .map(c => ({ ...c, _sid: ++this._emergSeq }));
+    } else {
+      document.getElementById('modal-colab-title').textContent = 'Novo colaborador';
+    }
+
+    const box = document.getElementById('modal-colaborador').querySelector('.modal-box');
+    box.querySelectorAll('.modal-tab-inner').forEach(t => t.classList.toggle('active', t.dataset.mtab === 'dados'));
+    box.querySelectorAll('.modal-sec').forEach(s => s.classList.toggle('active', s.dataset.msec === 'dados'));
+
+    this.renderDepsModal();
+    this.renderEmergsModal();
+    document.getElementById('modal-colaborador').classList.add('active');
+  }
+
+  fecharModalColaborador() {
+    document.getElementById('modal-colaborador').classList.remove('active');
+    this._editandoColabId = null;
+  }
+
+  async salvarColaborador(e) {
+    e.preventDefault();
+    const form = document.getElementById('form-colaborador');
+    const data = Object.fromEntries(new FormData(form));
+
+    const depSemEscola = this._depsModal.filter(d => {
+      const menor = d.nascimento && this._idadeAnos(d.nascimento) < 14;
+      return menor && !d.escola.trim();
+    });
+    if (depSemEscola.length) {
+      this.showToast('Preencha a escola dos dependentes menores de 14 anos', 'err');
+      const box = document.getElementById('modal-colaborador').querySelector('.modal-box');
+      box.querySelectorAll('.modal-tab-inner').forEach(t => t.classList.toggle('active', t.dataset.mtab === 'dependentes'));
+      box.querySelectorAll('.modal-sec').forEach(s => s.classList.toggle('active', s.dataset.msec === 'dependentes'));
+      return;
+    }
+
+    const payload = {
+      nome:            data.nome,
+      data_admissao:   data.admissao,
+      data_nascimento: data.nascimento || null,
+      cpf:             data.cpf || null,
+      email:           data.email || null,
+      celular:         data.celular || null,
+      genero:          data.sexo === 'M' ? 'Masculino' : data.sexo === 'F' ? 'Feminino' : 'Outro',
+      status:          data.status || 'ativo',
+      cargo_id:        data.cargo_id ? parseInt(data.cargo_id, 10) : null,
+      departamento_id: data.departamento_id ? parseInt(data.departamento_id, 10) : null,
+    };
+
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    let colabId;
+
+    if (temSessao) {
+      try {
+        if (this._editandoColabId != null) {
+          await this.Colaboradores.atualizar(this._editandoColabId, payload);
+          colabId = this._editandoColabId;
+          this.showToast('Colaborador atualizado', 'ok');
+        } else {
+          const novo = await this.Colaboradores.criar(payload);
+          colabId = novo.id;
+          this.showToast('Colaborador cadastrado', 'ok');
+        }
+      } catch (err) {
+        this.showToast('Erro ao salvar: ' + err.message, 'err');
+        return;
+      }
+    } else {
+      if (this._editandoColabId != null) {
+        const i = this.COLABORADORES.findIndex(x => x.id === this._editandoColabId);
+        if (i >= 0) this.COLABORADORES[i] = { ...this.COLABORADORES[i], ...data };
+        colabId = this._editandoColabId;
+        this.showToast('Colaborador atualizado', 'ok');
+      } else {
+        colabId = Math.max(0, ...this.COLABORADORES.map(x => x.id)) + 1;
+        this.COLABORADORES.unshift({ id: colabId, ...data });
+        this.showToast('Colaborador cadastrado', 'ok');
+      }
+    }
+
+    if (!temSessao) {
+      this.DEPENDENTES = this.DEPENDENTES.filter(d => d.colaborador_id !== colabId);
+      this._depsModal.forEach(d => {
+        const { _sid, ...rest } = d;
+        const existeId = rest.id || Math.max(0, ...this.DEPENDENTES.map(x => x.id), 0) + 1;
+        this.DEPENDENTES.push({ ...rest, id: existeId, colaborador_id: colabId });
+      });
+      this.CONTATOS_EMERG = this.CONTATOS_EMERG.filter(c => c.colaborador_id !== colabId);
+      this._emergsModal.forEach(c => {
+        const { _sid, ...rest } = c;
+        const existeId = rest.id || Math.max(0, ...this.CONTATOS_EMERG.map(x => x.id), 0) + 1;
+        this.CONTATOS_EMERG.push({ ...rest, id: existeId, colaborador_id: colabId });
+      });
+    }
+
+    this.fecharModalColaborador();
+    this.render();
+  }
+
+  editarColaboradorDoDrawer() {
+    if (this._drawerColabId != null) {
+      this.fecharDrawerColab();
+      this.abrirModalColaborador(this._drawerColabId);
+    }
+  }
+
+  async excluirColaborador(id) {
+    if (!confirm('Excluir este colaborador?')) return;
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Colaboradores.excluir(id);
+        this.showToast('Colaborador excluído');
+      } catch (err) {
+        this.showToast('Erro ao excluir: ' + err.message, 'err');
+        return;
+      }
+    } else {
+      this.COLABORADORES = this.COLABORADORES.filter(x => x.id !== id);
+      this.showToast('Colaborador excluído');
+    }
+    this.render();
+  }
+
+  // ─── Contatos de emergência (drawer) ─────────────────────────────────────
+
+  renderContatosEmergencia(colabId) {
+    const el = this.$('#dcol-emerg-list');
+    if (!el) return;
+    const lista = this.CONTATOS_EMERG.filter(c => c.colaborador_id === colabId);
+    if (!lista.length) {
+      el.innerHTML = '<div style="color:var(--text-muted);font-size:.88rem;padding:8px 0;">Nenhum contato de emergência cadastrado.</div>';
+      return;
+    }
+    el.innerHTML = lista.map(c => `
+      <div class="emerg-card">
+        <div class="emerg-avatar">${this.h(c.nome[0] || '?')}</div>
+        <div class="emerg-info">
+          <div class="emerg-nome">${this.h(c.nome)}</div>
+          <div class="emerg-sub">
+            <span class="emerg-parentesco">${this.h(c.parentesco)}</span>
+            <span class="emerg-tel">📞 ${this.h(c.telefone)}</span>
+          </div>
+        </div>
+        <div class="emerg-actions">
+          <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalContato(${c.id})">✎</button>
+          <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirContato(${c.id})">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  abrirModalContato(id = null) {
+    this._editandoContatoId = id || null;
+    const form = this.$('#form-contato');
+    form.reset();
+
+    const sel = this.$('#contato-select-parentesco');
+    sel.innerHTML = this._PARENTESCO_OPTS.map(p => `<option value="${p}">${p}</option>`).join('');
+
+    if (id) {
+      const c = this.CONTATOS_EMERG.find(x => x.id === id);
+      if (!c) return;
+      this.$('#contato-modal-title').textContent = 'Editar contato de emergência';
+      form.elements['nome'].value     = c.nome;
+      form.elements['telefone'].value = c.telefone;
+      sel.value                       = c.parentesco;
+    } else {
+      this.$('#contato-modal-title').textContent = 'Novo contato de emergência';
+    }
+    this.$('#modal-contato-emerg').classList.add('active');
+  }
+
+  fecharModalContato() {
+    this.$('#modal-contato-emerg').classList.remove('active');
+    this._editandoContatoId = null;
+  }
+
+  salvarContato(e) {
+    e.preventDefault();
+    const form = this.$('#form-contato');
+    const nome       = form.elements['nome'].value.trim();
+    const telefone   = form.elements['telefone'].value.trim();
+    const parentesco = form.elements['parentesco'].value;
+    if (!nome) { this.showToast('Informe o nome do contato', 'err'); return; }
+
+    if (this._editandoContatoId) {
+      const c = this.CONTATOS_EMERG.find(x => x.id === this._editandoContatoId);
+      if (c) Object.assign(c, { nome, telefone, parentesco });
+      this.showToast('Contato atualizado', 'ok');
+    } else {
+      this.CONTATOS_EMERG.push({
+        id: Math.max(0, ...this.CONTATOS_EMERG.map(x => x.id)) + 1,
+        colaborador_id: this._drawerColabId,
+        nome, telefone, parentesco,
+      });
+      this.showToast('Contato cadastrado', 'ok');
+    }
+    this.fecharModalContato();
+    this.renderContatosEmergencia(this._drawerColabId);
+  }
+
+  excluirContato(id) {
+    if (!confirm('Remover este contato de emergência?')) return;
+    this.CONTATOS_EMERG = this.CONTATOS_EMERG.filter(x => x.id !== id);
+    this.renderContatosEmergencia(this._drawerColabId);
+    this.showToast('Contato removido');
+  }
+
+  exportColaboradores() {
+    this.showToast('Exportação CSV será implementada na integração', 'ok');
+  }
+
+  // ─── Quadro de funcionários ───────────────────────────────────────────────
+
+  renderQuadro() {
+    const grid = this.$('#setor-grid');
+    if (!grid) return;
+
+    const cargosAll = [...new Set(this.COLABORADORES.map(c => c.cargo))].sort();
+    const filtroCargo = this.$('#quad-filter-cargo');
+    if (filtroCargo && filtroCargo.options.length <= 1) {
+      cargosAll.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        filtroCargo.appendChild(opt);
+      });
+    }
+
+    const q       = (this.$('#quad-search')?.value || '').trim().toLowerCase();
+    const fCargo  = this.$('#quad-filter-cargo')?.value  || '';
+    const fStatus = this.$('#quad-filter-status')?.value || '';
+
+    const filtrados = this.COLABORADORES.filter(c => {
+      if (fCargo  && c.cargo  !== fCargo)  return false;
+      if (fStatus && c.status !== fStatus) return false;
+      if (q && !c.nome.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    const SEM_AREA = '— sem área definida —';
+    const porSetor = {};
+    filtrados.forEach(c => {
+      const area = c.area || SEM_AREA;
+      if (!porSetor[c.setor])                porSetor[c.setor] = {};
+      if (!porSetor[c.setor][area])          porSetor[c.setor][area] = {};
+      if (!porSetor[c.setor][area][c.cargo]) porSetor[c.setor][area][c.cargo] = [];
+      porSetor[c.setor][area][c.cargo].push(c);
+    });
+
+    const setoresAtivos = Object.keys(porSetor);
+    this.$('#quad-stat-total').textContent   = filtrados.length;
+    this.$('#quad-stat-setores').textContent = setoresAtivos.length;
+    this.$('#quad-stat-cargos').textContent  = [...new Set(filtrados.map(c => c.cargo))].length;
+
+    const totalSetor = (s) => Object.values(porSetor[s]).reduce((acc, areas) =>
+      acc + Object.values(areas).reduce((a, b) => a + b.length, 0), 0);
+
+    let maior = '—', maiorN = 0;
+    setoresAtivos.forEach(s => {
+      const n = totalSetor(s);
+      if (n > maiorN) { maiorN = n; maior = `${s} (${n})`; }
+    });
+    this.$('#quad-stat-maior').textContent = maior;
+
+    if (!setoresAtivos.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1; background:var(--white); border:1px solid var(--border); border-radius:12px;">Nenhum colaborador encontrado</div>`;
+      return;
+    }
+
+    setoresAtivos.sort((a, b) => totalSetor(b) - totalSetor(a));
+
+    grid.innerHTML = setoresAtivos.map(setor => {
+      const areas = porSetor[setor];
+      const total = totalSetor(setor);
+      const areasOrdenadas = Object.keys(areas).sort((a, b) => {
+        if (a === SEM_AREA) return 1;
+        if (b === SEM_AREA) return -1;
+        return a.localeCompare(b);
+      });
+
+      const areasHtml = areasOrdenadas.map(area => {
+        const cargos = areas[area];
+        const cargosOrdenados = Object.keys(cargos).sort();
+        const totalArea = Object.values(cargos).reduce((a, b) => a + b.length, 0);
+
+        const cargosHtml = cargosOrdenados.map(cargo => {
+          const pessoas = cargos[cargo];
+          const pessoasHtml = pessoas
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+            .map(p => `
+              <div class="func-mini" onclick="abrirDrawerColab(${p.id})">
+                <div class="cell-avatar">${this.h(this.iniciais(p.nome))}</div>
+                <div class="func-mini-name">${this.h(p.nome)}</div>
+                <div class="func-mini-status ${this.h(p.status)}" title="${this.h(this.STATUS_LABEL[p.status]?.t || p.status)}"></div>
+              </div>
+            `).join('');
+          return `
+            <div class="cargo-group">
+              <div class="cargo-header">
+                <span>${this.h(cargo)}</span>
+                <span class="cargo-count">${pessoas.length}</span>
+              </div>
+              <div class="func-list">${pessoasHtml}</div>
+            </div>
+          `;
+        }).join('');
+
+        const isSemArea = area === SEM_AREA;
+        return `
+          <div class="area-block">
+            <div class="area-header">
+              <span class="area-name${isSemArea ? ' sem-area' : ''}">${this.h(area)}</span>
+              <span class="area-count">${totalArea}</span>
+            </div>
+            <div class="area-body">${cargosHtml}</div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="setor-card">
+          <div class="setor-header">
+            <div class="setor-icon">${this.SETOR_ICON[setor] || '◆'}</div>
+            <div class="setor-title-block">
+              <div class="setor-name">${this.h(setor)}</div>
+              <div class="setor-meta">${areasOrdenadas.filter(a => a !== SEM_AREA).length} ${areasOrdenadas.filter(a => a !== SEM_AREA).length === 1 ? 'área' : 'áreas'}</div>
+            </div>
+            <div class="setor-count">${total}</div>
+          </div>
+          <div class="setor-body">${areasHtml}</div>
+        </div>
+      `;
+    }).join('');
   }
 }
 

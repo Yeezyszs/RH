@@ -1,11 +1,10 @@
 // Férias Module
-// Gerencia renderização, timeline e cálculos de férias (CLT)
+// Gerencia renderização, timeline, cálculos e modal de agendamento de férias (CLT)
 
 export class FeriasModule {
   constructor(deps) {
     this.Ferias = deps.Ferias;
     this.Colaboradores = deps.Colaboradores;
-    this.Salarios = deps.Salarios;
     this.$ = deps.$;
     this.h = deps.h;
     this.iniciais = deps.iniciais;
@@ -14,6 +13,7 @@ export class FeriasModule {
     this.FERIAS = deps.FERIAS;
     this.COLABORADORES = deps.COLABORADORES;
     this.SALARIOS = deps.SALARIOS;
+    this.Auth = deps.Auth;
 
     this.init();
   }
@@ -24,21 +24,19 @@ export class FeriasModule {
 
   setupEventListeners() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'fer-search') {
-        this.render();
-      }
+      if (e.target.id === 'fer-search') this.render();
     });
 
     document.addEventListener('change', (e) => {
-      if (['fer-filter-setor', 'fer-filter-status'].includes(e.target.id)) {
-        this.render();
-      }
+      if (['fer-filter-setor', 'fer-filter-status'].includes(e.target.id)) this.render();
     });
 
     document.querySelectorAll('.nav-item[data-page="ferias"]').forEach(el => {
       el.addEventListener('click', () => setTimeout(() => this.render(), 60));
     });
   }
+
+  // ─── Lista + timeline ─────────────────────────────────────────────────────
 
   async render() {
     const tb = this.$('#tb-ferias');
@@ -225,6 +223,174 @@ export class FeriasModule {
       </div>
     `;
   }
+
+  // ─── Modal de agendamento ─────────────────────────────────────────────────
+
+  abrirModalFerias(colabId = null) {
+    const sel = this.$('#fer-select-colab');
+    sel.innerHTML = this.COLABORADORES
+      .filter(c => c.status !== 'inativo')
+      .sort((a, b) => a.nome.localeCompare(b.nome))
+      .map(c => `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor)}</option>`).join('');
+    if (colabId) sel.value = colabId;
+    this.renderFeriasModal();
+    this.$('#modal-ferias').classList.add('active');
+  }
+
+  fecharModalFerias() {
+    this.$('#modal-ferias').classList.remove('active');
+  }
+
+  renderFeriasModal() {
+    const sel = this.$('#fer-select-colab');
+    const colabId = parseInt(sel.value, 10);
+    const c = this.COLABORADORES.find(x => x.id === colabId);
+    if (!c) return;
+
+    this.$('#fer-modal-title').textContent = `Férias — ${c.nome}`;
+    this.$('#form-ferias-periodo').elements['colaborador_id'].value = c.id;
+
+    const aq = this._periodoAquisitivoAtual(c.admissao);
+    const periodos = this.FERIAS.filter(f => f.colaborador_id === c.id).sort((a, b) => a.inicio.localeCompare(b.inicio));
+    const diasUsados = periodos.reduce((s, p) => s + (p.dias + (p.abono || 0)), 0);
+    const saldo = aq ? Math.max(0, 30 - diasUsados) : 0;
+
+    const sal = parseFloat(this.SALARIOS[c.id]?.valor || 0);
+    let provBruto = 0, provTerco = 0, provTotal = 0;
+    if (sal && saldo > 0) {
+      provBruto = (sal / 30) * saldo;
+      provTerco = provBruto / 3;
+      provTotal = provBruto + provTerco;
+    }
+
+    this.$('#fer-modal-summary').innerHTML = aq ? `
+      <div class="info-item"><div class="info-label">Admissão</div><div class="info-value mono">${this.fmtDate(c.admissao)}</div></div>
+      <div class="info-item"><div class="info-label">Aquisitivo atual</div><div class="info-value mono">${this.fmtDate(aq.inicio)} → ${this.fmtDate(aq.fim)}</div></div>
+      <div class="info-item"><div class="info-label">Concessivo limite</div><div class="info-value mono">${this.fmtDate(aq.concessivoLimite)}</div></div>
+      <div class="info-item"><div class="info-label">Saldo de dias</div><div class="info-value mono" style="${saldo === 0 ? 'color:var(--text-muted)' : 'color:var(--success); font-weight:700'}">${saldo} / 30</div></div>
+      <div class="info-sep"></div>
+      <div class="info-item"><div class="info-label">Salário base</div><div class="info-value mono">${sal ? this.fmtBRL(sal) : '<span style="color:var(--text-soft)">não cadastrado</span>'}</div></div>
+      <div class="info-item"><div class="info-label">Bruto férias</div><div class="info-value mono">${provBruto ? this.fmtBRL(provBruto) : '—'}</div></div>
+      <div class="info-item"><div class="info-label">+ 1/3 constitucional</div><div class="info-value mono">${provTerco ? this.fmtBRL(provTerco) : '—'}</div></div>
+      <div class="info-item"><div class="info-label">Provisão total</div><div class="info-value mono" style="color:var(--phthalo-dark); font-weight:700">${provTotal ? this.fmtBRL(provTotal) : '—'}</div></div>
+    ` : `<div class="empty" style="grid-column:1/-1">Colaborador ainda não completou o primeiro período aquisitivo (12 meses de admissão).</div>`;
+
+    const tbP = this.$('#tb-fer-periodos');
+    tbP.innerHTML = periodos.length ? periodos.map(p => {
+      const st = this._periodoStatus(p);
+      const stBadge = {
+        planejada: `<span class="badge ok">Planejada</span>`,
+        em_curso:  `<span class="badge info">Em curso</span>`,
+        concluida: `<span class="badge neutral">Concluída</span>`,
+      }[st];
+      return `
+        <tr>
+          <td class="cell-mono">${this.fmtDate(p.inicio)}</td>
+          <td class="cell-mono">${this.fmtDate(p.fim)}</td>
+          <td class="cell-mono" style="text-align:right">${p.dias}</td>
+          <td class="cell-mono">${p.abono ? p.abono + 'd' : '—'}</td>
+          <td>${stBadge}</td>
+          <td class="actions">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirFerias(${p.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="6" class="empty">Sem períodos registrados</td></tr>`;
+  }
+
+  calcDiasFerias() {
+    const f = this.$('#form-ferias-periodo');
+    const ini = f.elements['inicio'].value;
+    const fim = f.elements['fim'].value;
+    if (ini && fim && fim >= ini) {
+      f.elements['dias'].value = this._diasEntre(ini, fim);
+    }
+  }
+
+  async salvarFeriasPeriodo(ev) {
+    ev.preventDefault();
+    const f = this.$('#form-ferias-periodo');
+    const data = Object.fromEntries(new FormData(f));
+    const colabId = parseInt(data.colaborador_id, 10);
+    const dias  = parseInt(data.dias, 10) || this._diasEntre(data.inicio, data.fim);
+    const abono = parseInt(data.abono, 10) || 0;
+
+    if (!data.inicio || !data.fim || dias <= 0) {
+      window.showToast?.('Período inválido', 'err');
+      return;
+    }
+
+    const existentes = this.FERIAS.filter(x => x.colaborador_id === colabId)
+                                  .reduce((s, p) => s + (p.dias + (p.abono || 0)), 0);
+    if (existentes + dias + abono > 30) {
+      if (!confirm(`Este período somado aos já existentes (${existentes}d) ultrapassa 30 dias. Confirmar mesmo assim?`)) return;
+    }
+
+    const payload = {
+      colaborador_id:   colabId,
+      data_inicio:      data.inicio,
+      data_termino:     data.fim,
+      dias_usados:      dias,
+      dias_saldo:       30 - dias,
+      abono_pecuniario: abono,
+      aprovado:         true,
+      observacoes:      data.observacoes || '',
+    };
+
+    const temSessao = this.Ferias && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Ferias.criar(payload);
+        const hoje = new Date().toISOString().slice(0, 10);
+        if (data.inicio <= hoje && data.fim >= hoje) {
+          await this.Colaboradores?.atualizar(colabId, { status: 'ferias' }).catch(() => null);
+        }
+        window.showToast?.('Período agendado', 'ok');
+      } catch (err) {
+        window.showToast?.('Erro ao agendar: ' + err.message, 'err');
+        return;
+      }
+    } else {
+      const newId = Math.max(0, ...this.FERIAS.map(x => x.id)) + 1;
+      this.FERIAS.push({
+        id: newId, colaborador_id: colabId,
+        inicio: data.inicio, fim: data.fim, dias, abono,
+        observacoes: data.observacoes || '',
+        status: data.inicio > new Date().toISOString().slice(0, 10) ? 'planejada' : 'em_curso',
+      });
+      const c = this.COLABORADORES.find(x => x.id === colabId);
+      const hoje = new Date().toISOString().slice(0, 10);
+      if (c && data.inicio <= hoje && data.fim >= hoje && c.status === 'ativo') c.status = 'ferias';
+      window.showToast?.('Período agendado', 'ok');
+    }
+
+    f.reset();
+    this.renderFeriasModal();
+    this.render();
+    window.renderColaboradores?.();
+  }
+
+  async excluirFerias(id) {
+    if (!confirm('Excluir este período?')) return;
+    const temSessao = this.Ferias && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Ferias.excluir(id);
+        window.showToast?.('Período excluído');
+      } catch (err) {
+        window.showToast?.('Erro ao excluir: ' + err.message, 'err');
+        return;
+      }
+    } else {
+      this.FERIAS = this.FERIAS.filter(x => x.id !== id);
+      window.FERIAS = this.FERIAS;
+      window.showToast?.('Período excluído');
+    }
+    this.renderFeriasModal();
+    this.render();
+  }
+
+  // ─── Helpers privados ─────────────────────────────────────────────────────
 
   _isoNow() {
     return new Date().toISOString().slice(0, 10);
