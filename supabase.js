@@ -667,15 +667,43 @@ const ValeCombustivel = {
 // ============================================================================
 
 const ValeAlimentacao = {
-  async listar(mes, ano) {
-    let query = sb
-      .from('vale_alimentacao')
-      .select('*, colaboradores(nome, departamentos(nome))');
-    if (mes) query = query.eq('mes', mes);
-    if (ano) query = query.eq('ano', ano);
-    const { data, error } = await withTimeout(query);
+  async listar() {
+    const cached = Cache.get('vale_alimentacao');
+    if (cached) return cached;
+    const { data, error } = await withTimeout(
+      sb.from('vale_alimentacao')
+        .select('id, colaborador_id, mes, ano, valor_mensal, data_concessao, status')
+        .order('colaborador_id')
+    );
     if (error) throw error;
+    Cache.set('vale_alimentacao', data);
     return data;
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('vale_alimentacao').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_alimentacao');
+    return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('vale_alimentacao').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_alimentacao');
+    return data;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('vale_alimentacao').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_alimentacao');
   },
 };
 
@@ -849,6 +877,51 @@ const Dashboard = {
 };
 
 // ============================================================================
+// ROTATIVIDADE
+// ============================================================================
+
+const Rotatividade = {
+  async listar() {
+    const cached = Cache.get('rotatividade');
+    if (cached) return cached;
+    const { data, error } = await withTimeout(
+      sb.from('rotatividade')
+        .select('id, colaborador_id, data_desligamento, motivo_desligamento, tipo_saida, aviso_previo_dias, entrevista_saida, feedback_saida')
+        .order('data_desligamento', { ascending: false })
+    );
+    if (error) throw error;
+    Cache.set('rotatividade', data);
+    return data;
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('rotatividade').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('rotatividade');
+    return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('rotatividade').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('rotatividade');
+    return data;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('rotatividade').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('rotatividade');
+  },
+};
+
+// ============================================================================
 // PLANO DE CARREIRAS
 // ============================================================================
 
@@ -922,7 +995,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -936,6 +1009,8 @@ async function inicializarSupabase() {
         FeedbackClima.listarFeedbacks(),
         FeedbackClima.listarPesquisas(),
         ValeCombustivel.listar(),
+        ValeAlimentacao.listar(),
+        Rotatividade.listar(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -1047,6 +1122,22 @@ async function inicializarSupabase() {
       if (lista.length > 0) {
         VALE_LANCAMENTOS = lista;
         console.info(`[RH] ${VALE_LANCAMENTOS.length} lançamentos de vale carregados.`);
+      }
+    }
+
+    if (valeAlim.status === 'fulfilled') {
+      const lista = valeAlim.value ?? [];
+      if (lista.length > 0) {
+        VALE_ALIMENTACAO = lista;
+        console.info(`[RH] ${VALE_ALIMENTACAO.length} vale-alimentação carregados.`);
+      }
+    }
+
+    if (rotat.status === 'fulfilled') {
+      const lista = rotat.value ?? [];
+      if (lista.length > 0) {
+        ROTATIVIDADE = lista;
+        console.info(`[RH] ${ROTATIVIDADE.length} registros de rotatividade carregados.`);
       }
     }
 
@@ -1184,6 +1275,66 @@ async function setupRealTimeListeners() {
       if (typeof renderVencimentos === 'function') renderVencimentos();
     }
 
+    if (table === 'feedbacks') {
+      if (eventType === 'INSERT') {
+        FEEDBACK.unshift(novoReg);
+      } else if (eventType === 'UPDATE') {
+        const i = FEEDBACK.findIndex(x => x.id === id);
+        if (i >= 0) FEEDBACK[i] = novoReg;
+      } else if (eventType === 'DELETE') {
+        FEEDBACK = FEEDBACK.filter(x => x.id !== id);
+      }
+      if (typeof renderFeedback === 'function') renderFeedback();
+    }
+
+    if (table === 'pesquisas_clima') {
+      if (eventType === 'INSERT') {
+        CLIMA.unshift(novoReg);
+      } else if (eventType === 'UPDATE') {
+        const i = CLIMA.findIndex(x => x.id === id);
+        if (i >= 0) CLIMA[i] = novoReg;
+      } else if (eventType === 'DELETE') {
+        CLIMA = CLIMA.filter(x => x.id !== id);
+      }
+      if (typeof renderClima === 'function') renderClima();
+    }
+
+    if (table === 'vale_combustivel') {
+      if (eventType === 'INSERT') {
+        VALE_LANCAMENTOS.unshift(novoReg);
+      } else if (eventType === 'UPDATE') {
+        const i = VALE_LANCAMENTOS.findIndex(x => x.id === id);
+        if (i >= 0) VALE_LANCAMENTOS[i] = novoReg;
+      } else if (eventType === 'DELETE') {
+        VALE_LANCAMENTOS = VALE_LANCAMENTOS.filter(x => x.id !== id);
+      }
+      if (typeof renderValeLancamentos === 'function') renderValeLancamentos();
+    }
+
+    if (table === 'vale_alimentacao') {
+      if (eventType === 'INSERT') {
+        VALE_ALIMENTACAO.unshift(novoReg);
+      } else if (eventType === 'UPDATE') {
+        const i = VALE_ALIMENTACAO.findIndex(x => x.id === id);
+        if (i >= 0) VALE_ALIMENTACAO[i] = novoReg;
+      } else if (eventType === 'DELETE') {
+        VALE_ALIMENTACAO = VALE_ALIMENTACAO.filter(x => x.id !== id);
+      }
+      if (typeof renderValeAlimentacao === 'function') renderValeAlimentacao();
+    }
+
+    if (table === 'rotatividade') {
+      if (eventType === 'INSERT') {
+        ROTATIVIDADE.unshift(novoReg);
+      } else if (eventType === 'UPDATE') {
+        const i = ROTATIVIDADE.findIndex(x => x.id === id);
+        if (i >= 0) ROTATIVIDADE[i] = novoReg;
+      } else if (eventType === 'DELETE') {
+        ROTATIVIDADE = ROTATIVIDADE.filter(x => x.id !== id);
+      }
+      if (typeof renderRotatividade === 'function') renderRotatividade();
+    }
+
     console.debug(`[RH] Real-time: ${eventType} em ${table} (id: ${id})`);
   };
 
@@ -1241,6 +1392,36 @@ async function setupRealTimeListeners() {
     handler
   ).subscribe();
 
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'feedbacks' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'pesquisas_clima' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'vale_combustivel' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'vale_alimentacao' },
+    handler
+  ).subscribe();
+
+  sb.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'rotatividade' },
+    handler
+  ).subscribe();
+
   const centerEl = document.querySelector('.topbar-center span:last-child');
   if (centerEl) centerEl.textContent = 'Sincronização real-time ativa';
 
@@ -1267,6 +1448,8 @@ window.Epis            = Epis;
 window.Cronograma      = Cronograma;
 window.ValeCombustivel = ValeCombustivel;
 window.ValeAlimentacao = ValeAlimentacao;
+window.Rotatividade    = Rotatividade;
 window.Salarios        = Salarios;
 window.FeedbackClima   = FeedbackClima;
 window.Dashboard       = Dashboard;
+window.PlanoCarreiras  = PlanoCarreiras;
