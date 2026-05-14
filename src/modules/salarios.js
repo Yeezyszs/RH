@@ -264,6 +264,10 @@ export class SalariosModule {
     this.fecharModal();
     this.render();
   }
+
+  exportSalarios() {
+    window.showToast?.('Exportação CSV será implementada na integração', 'ok');
+  }
 }
 
 export default SalariosModule;
