@@ -276,6 +276,8 @@ export class VencimentosModule {
       const tabela = v?._tabela || 'documentos';
       try {
         await this.Vencimentos.excluir(id, tabela);
+        // Remove do array local após sucesso no banco
+        this.VENCIMENTOS = this.VENCIMENTOS.filter(x => x.id !== id);
       } catch (err) {
         alert('Erro ao excluir: ' + err.message);
         return;
