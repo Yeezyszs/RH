@@ -1,0 +1,66 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # permite trigger manual
+
+jobs:
+  test:
+    name: Validar antes do deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci --legacy-peer-deps
+      - run: npm test
+
+  deploy:
+    name: Deploy → GitHub Pages
+    runs-on: ubuntu-latest
+    needs: test  # só faz deploy se os testes passarem
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Preparar artefato de deploy
+        run: |
+          mkdir -p _site
+          # Copia arquivos estáticos necessários
+          cp index.html _site/
+          cp supabase.js _site/
+          cp -r css _site/
+          cp -r src _site/
+          # Cria 404.html (SPA redirect)
+          cp index.html _site/404.html
+          echo "Arquivos prontos para deploy:"
+          find _site -type f | sort
+
+      - name: Upload artefato
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site/
+
+      - name: Deploy para GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

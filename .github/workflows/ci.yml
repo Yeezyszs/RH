@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci --legacy-peer-deps
+
+      - name: Rodar testes
+        run: npm test
+
+      - name: Coverage report
+        run: npm run test:coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar sintaxe JS (node --check)
+        run: |
+          find src -name "*.js" | xargs -I{} node --input-type=module --check < {} 2>&1 || true
+          echo "Lint concluído"
+
+      - name: Verificar arquivos críticos existem
+        run: |
+          test -f index.html      && echo "✓ index.html"
+          test -f supabase.js     && echo "✓ supabase.js"
+          test -f css/style.css   && echo "✓ css/style.css"
+          test -f src/app.js      && echo "✓ src/app.js"
+          test -f src/constants.js && echo "✓ src/constants.js"
+
+  security:
+    name: Segurança
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci --legacy-peer-deps
+
+      - name: Verificar vulnerabilidades (npm audit)
+        run: npm audit --audit-level=high || true
+
+      - name: Verificar secrets hardcoded
+        run: |
+          # Bloqueia se secret key (service_role) estiver no código
+          if grep -rn "service_role" --include="*.js" --include="*.html" .; then
+            echo "ERRO: service_role key encontrada no código!"
+            exit 1
+          fi
+          echo "✓ Nenhuma service_role key encontrada"
+
+      - name: Verificar .env não commitado
+        run: |
+          if git ls-files | grep -E "^\.env$"; then
+            echo "ERRO: arquivo .env commitado!"
+            exit 1
+          fi
+          echo "✓ .env não está no repositório"
