@@ -191,8 +191,8 @@
         </div>
         <div class="kpi-card kpi-warn">
           <div class="kpi-label">Rotatividade 30d</div>
-          <div class="kpi-value">4,8<span class="unit">%</span></div>
-          <div class="kpi-trend down">↓ 1,2 pp vs. mês anterior</div>
+          <div class="kpi-value" id="dash-kpi-rot">—<span class="unit">%</span></div>
+          <div class="kpi-trend down" id="dash-kpi-rot-trend">calculando…</div>
         </div>
         <div class="kpi-card kpi-success">
           <div class="kpi-label">Aniversariantes do mês</div>
@@ -309,32 +309,8 @@
           <div class="widget-title">Atividade recente</div>
           <span class="widget-badge">últimos 7 dias</span>
         </div>
-        <ul class="activity-feed">
-          <li class="activity-item">
-            <span class="activity-chip admissao">Admissão</span>
-            <span class="activity-text"><strong>Carlos Mendes</strong> admitido como Op. Produção</span>
-            <span class="activity-time">há 2h</span>
-          </li>
-          <li class="activity-item">
-            <span class="activity-chip advertencia">Advertência</span>
-            <span class="activity-text"><strong>Paulo Rocha</strong> recebeu advertência por atraso recorrente</span>
-            <span class="activity-time">ontem</span>
-          </li>
-          <li class="activity-item">
-            <span class="activity-chip ferias">Férias</span>
-            <span class="activity-text"><strong>Ana Costa</strong> iniciou período de férias (15 dias)</span>
-            <span class="activity-time">2 dias</span>
-          </li>
-          <li class="activity-item">
-            <span class="activity-chip treinamento">Treinamento</span>
-            <span class="activity-text"><strong>Equipe Manutenção</strong> concluiu NR-12 (6 colaboradores)</span>
-            <span class="activity-time">3 dias</span>
-          </li>
-          <li class="activity-item">
-            <span class="activity-chip desligamento">Desligamento</span>
-            <span class="activity-text"><strong>Luiz Araújo</strong> desligado — pedido de demissão</span>
-            <span class="activity-time">5 dias</span>
-          </li>
+        <ul class="activity-feed" id="dash-activity-list">
+          <li style="padding:12px; color:var(--text-soft); font-size:.85rem">Carregando…</li>
         </ul>
       </div>
 
@@ -3081,17 +3057,37 @@ Liderança de equipe ≥3 pessoas"></textarea>
   let _chartRot, _chartHead;
 
   function renderDashboardCharts() {
-    // Rotatividade 6 meses (linha)
+    // Rotatividade 6 meses (linha) — dados reais
     const ctxRot = document.getElementById('chart-rotatividade');
     if (ctxRot) {
       _chartRot?.destroy();
+      const agora = new Date();
+      const labelsRot = [], taxasRot = [];
+      for (let i = 5; i >= 0; i--) {
+        const ano = agora.getFullYear(), mesIdx = agora.getMonth() - i;
+        const d = new Date(ano, mesIdx, 1);
+        const chave = d.getFullYear() * 100 + d.getMonth();
+        const admMes = COLABORADORES.filter(c => {
+          if (!c.admissao) return false;
+          const da = new Date(c.admissao);
+          return da.getFullYear() * 100 + da.getMonth() === chave;
+        }).length;
+        const desMes = (typeof DESLIGAMENTOS !== 'undefined' ? DESLIGAMENTOS : []).filter(dl => {
+          if (!dl.data) return false;
+          const dd = new Date(dl.data);
+          return dd.getFullYear() * 100 + dd.getMonth() === chave;
+        }).length;
+        const hc = COLABORADORES.filter(c => c.status !== 'inativo').length || 1;
+        labelsRot.push(d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''));
+        taxasRot.push(parseFloat(((admMes + desMes) / 2 / hc * 100).toFixed(1)));
+      }
       _chartRot = new Chart(ctxRot, {
         type: 'line',
         data: {
-          labels: ['Nov', 'Dez', 'Jan', 'Fev', 'Mar', 'Abr'],
+          labels: labelsRot,
           datasets: [{
             label: 'Rotatividade %',
-            data: [5.2, 6.1, 4.9, 5.8, 6.0, 4.8],
+            data: taxasRot,
             borderColor: CHART_COLORS.phthalo,
             backgroundColor: 'rgba(46,122,184,.12)',
             borderWidth: 2.5,
@@ -3208,6 +3204,64 @@ Liderança de equipe ≥3 pessoas"></textarea>
     if (el('dash-kpi-venc')) el('dash-kpi-venc').textContent = vencCriticos.length;
     if (el('dash-kpi-venc-trend')) {
       el('dash-kpi-venc-trend').textContent = `${vencVencidos.length} já vencido${vencVencidos.length !== 1 ? 's' : ''}`;
+    }
+
+    // Rotatividade 30d
+    const corte30 = new Date(); corte30.setDate(corte30.getDate() - 30);
+    const adm30 = COLABORADORES.filter(c => c.admissao && new Date(c.admissao) >= corte30).length;
+    const des30 = (typeof DESLIGAMENTOS !== 'undefined' ? DESLIGAMENTOS : [])
+      .filter(d => d.data && new Date(d.data) >= corte30).length;
+    const taxa30 = headcount > 0 ? ((adm30 + des30) / 2 / headcount * 100) : 0;
+    if (el('dash-kpi-rot')) {
+      el('dash-kpi-rot').innerHTML = `${taxa30.toFixed(1).replace('.', ',')}<span class="unit">%</span>`;
+    }
+    if (el('dash-kpi-rot-trend')) {
+      const rotTrend = el('dash-kpi-rot-trend');
+      rotTrend.textContent = `${adm30} admissões · ${des30} desligamentos`;
+      rotTrend.className = taxa30 > 5 ? 'kpi-trend down' : 'kpi-trend';
+    }
+
+    // Atividade recente (últimos 7 dias)
+    const corte7 = new Date(); corte7.setDate(corte7.getDate() - 7);
+    const atividades = [];
+    COLABORADORES.filter(c => c.admissao && new Date(c.admissao) >= corte7).forEach(c => {
+      atividades.push({ tipo: 'admissao', data: new Date(c.admissao),
+        label: 'Admissão', texto: `<strong>${h(c.nome)}</strong> admitido como ${h(c.cargo || '—')}` });
+    });
+    (typeof DESLIGAMENTOS !== 'undefined' ? DESLIGAMENTOS : [])
+      .filter(d => d.data && new Date(d.data) >= corte7).forEach(d => {
+        const col = COLABORADORES.find(x => x.id === d.colaborador_id);
+        atividades.push({ tipo: 'desligamento', data: new Date(d.data),
+          label: 'Desligamento', texto: `<strong>${h(col ? col.nome : '—')}</strong> desligado — ${h(d.tipo_saida || 'saída')}` });
+      });
+    (typeof ADVERTENCIAS !== 'undefined' ? ADVERTENCIAS : [])
+      .filter(a => a.data && new Date(a.data) >= corte7).forEach(a => {
+        const col = COLABORADORES.find(x => x.id === a.colaborador_id);
+        atividades.push({ tipo: 'advertencia', data: new Date(a.data),
+          label: 'Advertência', texto: `<strong>${h(col ? col.nome : '—')}</strong> recebeu advertência — ${h(a.tipo || '')}` });
+      });
+    (typeof FERIAS !== 'undefined' ? FERIAS : [])
+      .filter(f => f.inicio && new Date(f.inicio) >= corte7).forEach(f => {
+        const col = COLABORADORES.find(x => x.id === f.colaborador_id);
+        atividades.push({ tipo: 'ferias', data: new Date(f.inicio),
+          label: 'Férias', texto: `<strong>${h(col ? col.nome : '—')}</strong> iniciou período de férias` });
+      });
+    atividades.sort((a, b) => b.data - a.data);
+    const actList = el('dash-activity-list');
+    if (actList) {
+      if (atividades.length === 0) {
+        actList.innerHTML = `<li style="padding:12px; color:var(--text-soft); font-size:.85rem">Nenhuma atividade nos últimos 7 dias</li>`;
+      } else {
+        actList.innerHTML = atividades.slice(0, 8).map(a => {
+          const dias = Math.round((Date.now() - a.data) / 86400000);
+          const tempo = dias === 0 ? 'hoje' : dias === 1 ? 'ontem' : `${dias} dias`;
+          return `<li class="activity-item">
+            <span class="activity-chip ${a.tipo}">${h(a.label)}</span>
+            <span class="activity-text">${a.texto}</span>
+            <span class="activity-time">${tempo}</span>
+          </li>`;
+        }).join('');
+      }
     }
 
     // Alertas — vencimentos críticos e vencidos
