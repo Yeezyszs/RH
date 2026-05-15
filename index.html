@@ -3463,57 +3463,17 @@ Liderança de equipe ≥3 pessoas"></textarea>
   // Atualiza badge assim que tudo estiver montado
   setTimeout(() => { atualizarBadgeVencimentos(); }, 100);
 
-  let COLABORADORES = [
-    { id:1, nome:'Ana Paula Costa',        matricula:'001234', cargo:'Analista RH',           setor:'Administrativo', area:'RH',                       sexo:'F', escolaridade:'Superior',    admissao:'2021-03-15', status:'ferias',  nascimento:'1988-07-12', cpf:'123.456.789-00', telefone:'(11) 98765-4321', email:'ana.costa@empresa.com',        endereco:'Rua das Flores, 120 — São Paulo/SP' },
-    { id:2, nome:'Carlos Eduardo Mendes',  matricula:'001235', cargo:'Op. Produção',          setor:'Produção',       area:'Ensaques',                 sexo:'M', escolaridade:'Médio',       admissao:'2026-04-20', status:'ativo',   nascimento:'1995-02-08', cpf:'234.567.890-11', telefone:'(11) 99123-4567', email:'carlos.mendes@empresa.com',    endereco:'Av. Paulista, 2000 — São Paulo/SP' },
-    { id:3, nome:'José Silva Ramos',       matricula:'000412', cargo:'Mecânico Industrial',   setor:'Produção',       area:'Manutenção',               sexo:'M', escolaridade:'Técnico',     admissao:'2018-08-02', status:'ativo',   nascimento:'1979-11-30', cpf:'345.678.901-22', telefone:'(11) 98888-1111', email:'jose.silva@empresa.com',       endereco:'Rua do Porto, 15 — São Paulo/SP' },
-    { id:4, nome:'Maria Santos Oliveira',  matricula:'000765', cargo:'Coord. Administrativo', setor:'Administrativo', area:'Diretoria',                sexo:'F', escolaridade:'Superior',    admissao:'2019-11-18', status:'ativo',   nascimento:'1985-04-22', cpf:'456.789.012-33', telefone:'(11) 97777-2222', email:'maria.santos@empresa.com',     endereco:'Rua XV de Novembro, 200 — São Paulo/SP' },
-    { id:5, nome:'Pedro Henrique Souza',   matricula:'001001', cargo:'Motorista',             setor:'Produção',       area:'Logística (carregamento)', sexo:'M', escolaridade:'Médio',       admissao:'2020-06-05', status:'afastado',nascimento:'1990-09-15', cpf:'567.890.123-44', telefone:'(11) 96666-3333', email:'pedro.souza@empresa.com',      endereco:'Rua das Palmeiras, 88 — São Paulo/SP' },
-    { id:6, nome:'Rafael Fernandes Lima',  matricula:'001102', cargo:'Motorista',             setor:'Produção',       area:'Logística (carregamento)', sexo:'M', escolaridade:'Médio',       admissao:'2022-01-12', status:'ativo',   nascimento:'1992-04-27', cpf:'678.901.234-55', telefone:'(11) 95555-4444', email:'rafael.lima@empresa.com',      endereco:'Av. Brasil, 450 — São Paulo/SP' },
-    { id:7, nome:'Marcela Pinto Oliveira', matricula:'001023', cargo:'Analista Financeiro',   setor:'Administrativo', area:'Financeiro',               sexo:'F', escolaridade:'Superior',    admissao:'2020-02-10', status:'ativo',   nascimento:'1993-04-25', cpf:'789.012.345-66', telefone:'(11) 94444-5555', email:'marcela.pinto@empresa.com',    endereco:'Rua do Sol, 77 — São Paulo/SP' },
-    { id:8, nome:'João Silveira Matos',    matricula:'000567', cargo:'Op. Máquina',           setor:'Produção',       area:'Ensaques',                 sexo:'M', escolaridade:'Fundamental', admissao:'2017-05-20', status:'ativo',   nascimento:'1982-04-23', cpf:'890.123.456-77', telefone:'(11) 93333-6666', email:'joao.silveira@empresa.com',    endereco:'Rua Lagoa Azul, 33 — São Paulo/SP' },
-    { id:9, nome:'Paulo Rocha Almeida',    matricula:'001188', cargo:'Op. Produção',          setor:'Produção',       area:'Ensaques',                 sexo:'M', escolaridade:'Médio',       admissao:'2023-07-14', status:'ativo',   nascimento:'1994-06-11', cpf:'901.234.567-88', telefone:'(11) 92222-7777', email:'paulo.rocha@empresa.com',      endereco:'Rua Verde, 900 — São Paulo/SP' },
-    { id:10,nome:'Luiz Araújo Pereira',    matricula:'000890', cargo:'Vendedor',              setor:'Administrativo', area:'Comercial',                sexo:'M', escolaridade:'Médio',       admissao:'2019-09-03', status:'inativo', nascimento:'1987-12-01', cpf:'012.345.678-99', telefone:'(11) 91111-8888', email:'luiz.araujo@empresa.com',      endereco:'Rua Amarela, 450 — São Paulo/SP' },
-    { id:11,nome:'Antônio Ferreira Lopes', matricula:'002001', cargo:'Trabalhador rural',     setor:'Área Externa',   area:'Gado',                     sexo:'M', escolaridade:'Fundamental', admissao:'2016-04-11', status:'ativo',   nascimento:'1975-03-18', cpf:'111.222.333-44', telefone:'(11) 90000-1000', email:'antonio.ferreira@empresa.com', endereco:'Sítio Boa Vista, s/n — Zona Rural' },
-    { id:12,nome:'Roberto Campos Alves',   matricula:'002002', cargo:'Médico Veterinário',    setor:'Área Externa',   area:'Gado',                     sexo:'M', escolaridade:'Superior',    admissao:'2022-09-05', status:'ativo',   nascimento:'1986-05-09', cpf:'222.333.444-55', telefone:'(11) 90000-2000', email:'roberto.campos@empresa.com',   endereco:'Rua do Campo, 12 — Zona Rural' },
-    { id:13,nome:'Cristina Moura Dias',    matricula:'002003', cargo:'Aux. Veterinária',      setor:'Área Externa',   area:'Gado',                     sexo:'F', escolaridade:'Técnico',     admissao:'2024-02-14', status:'ativo',   nascimento:'1996-08-22', cpf:'333.444.555-66', telefone:'(11) 90000-3000', email:'cristina.moura@empresa.com',   endereco:'Estrada Rural km 3 — Zona Rural' },
-    { id:14,nome:'Edivaldo Pereira Souza', matricula:'002004', cargo:'Tratorista',            setor:'Área Externa',   area:'Manutenção do pátio',      sexo:'M', escolaridade:'Fundamental', admissao:'2020-11-22', status:'ativo',   nascimento:'1980-01-30', cpf:'444.555.666-77', telefone:'(11) 90000-4000', email:'edivaldo.pereira@empresa.com', endereco:'Sítio Boa Vista, s/n — Zona Rural' },
-  ];
+  let COLABORADORES = [];
   function $(sel) { return document.querySelector(sel); }
   /* ════════════════════════════════════════════════
      DEPENDENTES
      ════════════════════════════════════════════════ */
-  let DEPENDENTES = [
-    { id:1,  colaborador_id:1,  nome:'Laura Costa',         parentesco:'Filho(a)', nascimento:'2015-03-10', cpf:'',              escola:'EMEF Professora Maria' },
-    { id:2,  colaborador_id:1,  nome:'Bruno Costa',         parentesco:'Filho(a)', nascimento:'2019-07-22', cpf:'',              escola:'CEI Girassol'          },
-    { id:3,  colaborador_id:3,  nome:'Fernanda Ramos',      parentesco:'Cônjuge',  nascimento:'1981-05-14', cpf:'321.654.987-00', escola:''                     },
-    { id:4,  colaborador_id:3,  nome:'Felipe Ramos',        parentesco:'Filho(a)', nascimento:'2013-11-02', cpf:'',              escola:'Escola Estadual Dom Pedro' },
-    { id:5,  colaborador_id:4,  nome:'Isabela Oliveira',    parentesco:'Filho(a)', nascimento:'2010-08-30', cpf:'',              escola:'Colégio Santa Cruz'    },
-    { id:6,  colaborador_id:5,  nome:'Carla Souza',         parentesco:'Cônjuge',  nascimento:'1991-04-19', cpf:'654.321.098-11', escola:''                     },
-    { id:7,  colaborador_id:7,  nome:'Helena Pinto',        parentesco:'Filho(a)', nascimento:'2018-02-05', cpf:'',              escola:'Escola Municipal Bela Vista' },
-    { id:8,  colaborador_id:8,  nome:'Ricardo Silveira',    parentesco:'Cônjuge',  nascimento:'1984-09-12', cpf:'789.456.123-22', escola:''                     },
-    { id:9,  colaborador_id:9,  nome:'Thiago Rocha',        parentesco:'Filho(a)', nascimento:'2020-06-18', cpf:'',              escola:'CEI Sol Nascente'      },
-    { id:10, colaborador_id:11, nome:'Cláudia Ferreira',    parentesco:'Cônjuge',  nascimento:'1977-10-03', cpf:'111.333.555-66', escola:''                     },
-    { id:11, colaborador_id:11, nome:'Anderson Ferreira',   parentesco:'Filho(a)', nascimento:'2008-04-25', cpf:'',              escola:'EMEF José de Anchieta' },
-    { id:12, colaborador_id:12, nome:'Priscila Campos',     parentesco:'Cônjuge',  nascimento:'1988-01-17', cpf:'222.444.666-77', escola:''                     },
-  ];
+  let DEPENDENTES = [];
 
   /* ════════════════════════════════════════════════
      CONTATOS DE EMERGÊNCIA
      ════════════════════════════════════════════════ */
-  let CONTATOS_EMERG = [
-    { id:1, colaborador_id:1, nome:'Roberto Costa',      telefone:'(11) 98100-1111', parentesco:'Cônjuge' },
-    { id:2, colaborador_id:2, nome:'Fernanda Mendes',    telefone:'(11) 97200-2222', parentesco:'Mãe'     },
-    { id:3, colaborador_id:3, nome:'Aparecida Ramos',    telefone:'(11) 96300-3333', parentesco:'Mãe'     },
-    { id:4, colaborador_id:3, nome:'Cláudio Ramos',      telefone:'(11) 95400-4444', parentesco:'Pai'     },
-    { id:5, colaborador_id:4, nome:'Marcos Oliveira',    telefone:'(11) 94500-5555', parentesco:'Cônjuge' },
-    { id:6, colaborador_id:5, nome:'Renata Souza',       telefone:'(11) 93600-6666', parentesco:'Irmã'    },
-    { id:7, colaborador_id:6, nome:'Patrícia Lima',      telefone:'(11) 92700-7777', parentesco:'Cônjuge' },
-    { id:8, colaborador_id:7, nome:'Beatriz Pinto',      telefone:'(11) 91800-8888', parentesco:'Mãe'     },
-    { id:9, colaborador_id:8, nome:'Eliane Silveira',    telefone:'(11) 90900-9999', parentesco:'Cônjuge' },
-    { id:10,colaborador_id:9, nome:'Vera Rocha',         telefone:'(11) 98010-0101', parentesco:'Mãe'     },
-    { id:11,colaborador_id:10,nome:'Carlos Araújo',      telefone:'(11) 97020-0202', parentesco:'Pai'     },
-  ];
+  let CONTATOS_EMERG = [];
 
   const PARENTESCO_OPTS = ['Cônjuge','Mãe','Pai','Filho(a)','Irmã','Irmão','Avó','Avô','Tio(a)','Amigo(a)','Outro'];
   /* ════════════════════════════════════════════════
@@ -3522,144 +3482,41 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
   // Mock de 12 meses (mais antigo → mais recente). Substituir por agregação do Supabase.
   const ROT_MOCK = {
-    labels:    ['Mai','Jun','Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr'],
-    admissoes: [  3,    2,    5,    4,    3,    6,    2,    4,    5,    3,    4,    6 ],
-    desligad:  [  2,    3,    4,    3,    5,    4,    3,    5,    3,    4,    6,    3 ],
-    // Taxa = média simples ((admissões+desligamentos)/2) / headcount * 100
-    taxa:      [ 1.8,  2.1,  3.2,  2.5,  2.8,  3.5,  1.8,  3.2,  2.8,  2.5,  3.6,  3.2 ],
-    motivos: [
-      { label: 'Pedido do colaborador', valor: 14 },
-      { label: 'Sem justa causa',       valor: 9  },
-      { label: 'Término de contrato',   valor: 5  },
-      { label: 'Justa causa',           valor: 2  },
-      { label: 'Aposentadoria',         valor: 1  },
-    ],
-    movimentacoesRecentes: [
-      { tipo:'admissao',    nome:'Carlos Eduardo Mendes', cargo:'Op. Produção',    setor:'Produção',       data:'2026-04-20', motivo:'—' },
-      { tipo:'desligamento',nome:'Luiz Araújo Pereira',   cargo:'Vendedor',        setor:'Administrativo',      data:'2026-04-17', motivo:'Pedido do colaborador' },
-      { tipo:'admissao',    nome:'Fernanda Batista',      cargo:'Aux. Logística',  setor:'Produção',      data:'2026-04-12', motivo:'—' },
-      { tipo:'desligamento',nome:'Roberto Cunha',         cargo:'Op. Produção',    setor:'Produção',       data:'2026-04-08', motivo:'Sem justa causa' },
-      { tipo:'admissao',    nome:'Amanda Teixeira',       cargo:'Analista Admin.', setor:'Administrativo', data:'2026-04-03', motivo:'—' },
-      { tipo:'desligamento',nome:'Sérgio Nunes',          cargo:'Motorista',       setor:'Produção',      data:'2026-03-28', motivo:'Término de contrato' },
-    ],
+    labels: [], admissoes: [], desligad: [], taxa: [], motivos: [], movimentacoesRecentes: [],
   };
 
   /* ════════════════════════════════════════════════
      DESLIGAMENTOS — mock + render + drawer + modais
      ════════════════════════════════════════════════ */
 
-  let DESLIGAMENTOS = [
-    { id:1, colaborador_id:10, nome:'Luiz Araújo Pereira', cargo:'Vendedor',     setor:'Administrativo',      admissao:'2019-09-03', data:'2026-04-17', ultimo_dia:'2026-04-17', motivo:'Pedido do colaborador', tipo:'voluntario',   aviso:'trabalhado', observacoes:'Nova oportunidade em outra empresa.',
-      entrevista: { realizada:true, data:'2026-04-18', responsavel:'Ana Paula Costa', satisfacao:4, clima:4, lideranca:5, recomendaria:true,  motivo_livre:'Proposta salarial melhor no concorrente.', feedback:'Ambiente positivo, lideranças acessíveis. Faltou plano de carreira claro.' } },
-    { id:2, colaborador_id:null, nome:'Roberto Cunha',      cargo:'Op. Produção', setor:'Produção',       admissao:'2023-02-14', data:'2026-04-08', ultimo_dia:'2026-04-08', motivo:'Sem justa causa',       tipo:'involuntario', aviso:'indenizado', observacoes:'Redução de quadro no setor.',
-      entrevista: { realizada:true, data:'2026-04-08', responsavel:'Maria Santos', satisfacao:3, clima:3, lideranca:4, recomendaria:true, motivo_livre:'Desligamento por parte da empresa.', feedback:'Equipe muito unida; escala pesada em épocas de pico.' } },
-    { id:3, colaborador_id:null, nome:'Sérgio Nunes',       cargo:'Motorista',    setor:'Produção',      admissao:'2022-03-28', data:'2026-03-28', ultimo_dia:'2026-03-28', motivo:'Término de contrato',   tipo:'involuntario', aviso:'dispensado', observacoes:'Contrato de experiência não renovado.',
-      entrevista: { realizada:false } },
-    { id:4, colaborador_id:null, nome:'Fernanda Monteiro',  cargo:'Aux. Administrativo', setor:'Administrativo', admissao:'2021-06-10', data:'2026-03-15', ultimo_dia:'2026-03-15', motivo:'Pedido do colaborador', tipo:'voluntario', aviso:'trabalhado', observacoes:'Mudança de cidade.',
-      entrevista: { realizada:true, data:'2026-03-16', responsavel:'Ana Paula Costa', satisfacao:5, clima:5, lideranca:5, recomendaria:true, motivo_livre:'Mudança de cidade por razões pessoais.', feedback:'Saí satisfeita, recomendo fortemente.' } },
-    { id:5, colaborador_id:null, nome:'Jean Carlos Faria',  cargo:'Op. Produção', setor:'Produção',       admissao:'2024-07-22', data:'2026-02-28', ultimo_dia:'2026-02-28', motivo:'Justa causa',           tipo:'involuntario', aviso:'dispensado', observacoes:'Faltas reiteradas sem justificativa.',
-      entrevista: { realizada:false } },
-    { id:6, colaborador_id:null, nome:'Helena Ribeiro',     cargo:'Analista Fiscal', setor:'Administrativo', admissao:'2017-11-04', data:'2026-02-10', ultimo_dia:'2026-02-10', motivo:'Aposentadoria',        tipo:'voluntario',   aviso:'dispensado', observacoes:'Aposentadoria por idade.',
-      entrevista: { realizada:true, data:'2026-02-10', responsavel:'Diretoria', satisfacao:5, clima:5, lideranca:5, recomendaria:true, motivo_livre:'Aposentadoria após longa trajetória.', feedback:'Empresa me acolheu por 8 anos. Gratidão.' } },
-    { id:7, colaborador_id:null, nome:'Diego Matos',        cargo:'Mecânico',     setor:'Produção',     admissao:'2023-11-05', data:'2026-01-22', ultimo_dia:'2026-01-22', motivo:'Acordo mútuo',          tipo:'voluntario',   aviso:'indenizado', observacoes:'Acordo por incompatibilidade com a função.',
-      entrevista: { realizada:true, data:'2026-01-22', responsavel:'Maria Santos', satisfacao:3, clima:4, lideranca:3, recomendaria:false, motivo_livre:'Função não era o que eu esperava.', feedback:'Faltou clareza nas atribuições no momento da contratação.' } },
-  ];
+  let DESLIGAMENTOS = [];
 
   /* ════════════════════════════════════════════════
      VENCIMENTOS — ASO + Documentos + Treinamentos
      ════════════════════════════════════════════════ */
 
   // Mock. colaborador_id referencia COLABORADORES.
-  let VENCIMENTOS = [
-    // ASOs
-    { id:1, colaborador_id:3, categoria:'ASO',         item:'ASO Periódico',         emissao:'2025-04-15', vencimento:'2026-04-15', observacoes:'' },
-    { id:2, colaborador_id:1, categoria:'ASO',         item:'ASO Periódico',         emissao:'2025-06-10', vencimento:'2026-06-10', observacoes:'' },
-    { id:3, colaborador_id:5, categoria:'ASO',         item:'ASO Periódico',         emissao:'2025-03-20', vencimento:'2026-03-20', observacoes:'Vencido — agendar renovação' },
-    { id:4, colaborador_id:8, categoria:'ASO',         item:'ASO Periódico',         emissao:'2025-05-02', vencimento:'2026-05-02', observacoes:'' },
-    { id:5, colaborador_id:9, categoria:'ASO',         item:'ASO Periódico',         emissao:'2025-07-18', vencimento:'2026-07-18', observacoes:'' },
-    // Documentos
-    { id:6, colaborador_id:5, categoria:'Documento',   item:'CNH',                   emissao:'2020-01-10', vencimento:'2025-01-10', observacoes:'' },
-    { id:7, colaborador_id:6, categoria:'Documento',   item:'CNH',                   emissao:'2022-03-22', vencimento:'2027-03-22', observacoes:'' },
-    { id:8, colaborador_id:4, categoria:'Documento',   item:'Carteira profissional', emissao:'2019-01-01', vencimento:'2029-01-01', observacoes:'' },
-    { id:9, colaborador_id:2, categoria:'Documento',   item:'RG',                    emissao:'2015-08-12', vencimento:'2030-08-12', observacoes:'' },
-    // Treinamentos
-    { id:10,colaborador_id:3, categoria:'Treinamento', item:'NR-10',                 emissao:'2024-04-29', vencimento:'2026-04-29', observacoes:'Reciclagem próxima' },
-    { id:11,colaborador_id:8, categoria:'Treinamento', item:'NR-35',                 emissao:'2024-08-22', vencimento:'2026-08-22', observacoes:'' },
-    { id:12,colaborador_id:9, categoria:'Treinamento', item:'NR-12',                 emissao:'2024-11-05', vencimento:'2026-11-05', observacoes:'' },
-    { id:13,colaborador_id:5, categoria:'Treinamento', item:'Direção defensiva',     emissao:'2024-10-15', vencimento:'2025-10-15', observacoes:'Vencido' },
-    { id:14,colaborador_id:6, categoria:'Treinamento', item:'Direção defensiva',     emissao:'2025-09-01', vencimento:'2026-09-01', observacoes:'' },
-    { id:15,colaborador_id:1, categoria:'Treinamento', item:'Primeiros socorros',    emissao:'2025-03-10', vencimento:'2026-05-01', observacoes:'' },
-  ];
+  let VENCIMENTOS = [];
 
   /* ════════════════════════════════════════════════
      EPI — catálogo + entregas
      ════════════════════════════════════════════════ */
 
-  let EPI_CATALOGO = [
-    { id:1, nome:'Botina de segurança',    ca:'12345', validade_ca:'2027-06-30', vida_util_meses:12, fabricante:'Marluvas' },
-    { id:2, nome:'Luva nitrílica',         ca:'87654', validade_ca:'2026-12-15', vida_util_meses:3,  fabricante:'Volk' },
-    { id:3, nome:'Óculos ampla visão',     ca:'33221', validade_ca:'2028-01-10', vida_util_meses:12, fabricante:'3M' },
-    { id:4, nome:'Protetor auricular',     ca:'55678', validade_ca:'2026-09-20', vida_util_meses:6,  fabricante:'3M' },
-    { id:5, nome:'Capacete classe B',      ca:'44556', validade_ca:'2029-03-05', vida_util_meses:60, fabricante:'MSA' },
-    { id:6, nome:'Respirador PFF2',        ca:'88990', validade_ca:'2026-08-18', vida_util_meses:1,  fabricante:'3M' },
-    { id:7, nome:'Cinto paraquedista',     ca:'77665', validade_ca:'2027-11-22', vida_util_meses:24, fabricante:'MG' },
-  ];
+  let EPI_CATALOGO = [];
 
-  let EPI_ENTREGAS = [
-    { id:1, colaborador_id:3, epi_tipo_id:1, data_entrega:'2026-03-03', quantidade:1, proxima_troca:'2027-03-03', recebido_por:'José Silva Ramos',    observacoes:'', devolvido:false },
-    { id:2, colaborador_id:3, epi_tipo_id:2, data_entrega:'2026-04-18', quantidade:1, proxima_troca:'2026-05-18', recebido_por:'José Silva Ramos',    observacoes:'', devolvido:false },
-    { id:3, colaborador_id:3, epi_tipo_id:3, data_entrega:'2026-01-12', quantidade:1, proxima_troca:'2027-01-12', recebido_por:'José Silva Ramos',    observacoes:'', devolvido:false },
-    { id:4, colaborador_id:2, epi_tipo_id:1, data_entrega:'2026-04-20', quantidade:1, proxima_troca:'2027-04-20', recebido_por:'Carlos Eduardo Mendes', observacoes:'Admissão', devolvido:false },
-    { id:5, colaborador_id:2, epi_tipo_id:4, data_entrega:'2026-04-20', quantidade:1, proxima_troca:'2026-10-20', recebido_por:'Carlos Eduardo Mendes', observacoes:'', devolvido:false },
-    { id:6, colaborador_id:8, epi_tipo_id:1, data_entrega:'2025-09-15', quantidade:1, proxima_troca:'2026-09-15', recebido_por:'João Silveira Matos', observacoes:'', devolvido:false },
-    { id:7, colaborador_id:8, epi_tipo_id:6, data_entrega:'2026-04-10', quantidade:10,proxima_troca:'2026-05-10', recebido_por:'João Silveira Matos', observacoes:'Caixa', devolvido:false },
-    { id:8, colaborador_id:9, epi_tipo_id:1, data_entrega:'2025-10-02', quantidade:1, proxima_troca:'2026-04-02', recebido_por:'Paulo Rocha Almeida', observacoes:'', devolvido:false },
-    { id:9, colaborador_id:5, epi_tipo_id:7, data_entrega:'2025-05-01', quantidade:1, proxima_troca:'2027-05-01', recebido_por:'Pedro Henrique Souza',observacoes:'Uso em altura esporádico', devolvido:false },
-    { id:10,colaborador_id:6, epi_tipo_id:1, data_entrega:'2024-12-10', quantidade:1, proxima_troca:'2025-12-10', recebido_por:'Rafael Fernandes Lima',observacoes:'', devolvido:true  },
-  ];
+  let EPI_ENTREGAS = [];
 
   // --- Kits por setor ---
-  let EPI_KITS = {
-    'Produção':       [1, 2, 3, 4],   // Botina, Luva, Óculos, Protetor auricular
-    'Administrativo': [],
-    'Área Externa':   [1, 3, 7],      // Botina, Óculos, Cinto paraquedista (seed inicial)
-  };
+  let EPI_KITS = {};
 
   /* ════════════════════════════════════════════════
      VALE COMBUSTÍVEL — cotas, lançamentos, evolução
      ════════════════════════════════════════════════ */
 
   // Cota mensal de R$ por colaborador_id
-  let VALE_COTAS = {
-    1: 250, 2: 200, 3: 350, 4: 250, 5: 600, 6: 600, 7: 250, 8: 300, 9: 300, 10: 0,
-    11: 180, 12: 450, 13: 250, 14: 400,
-  };
+  let VALE_COTAS = {};
 
-  let VALE_LANCAMENTOS = [
-    // Abril 2026
-    { id:1,  colaborador_id:5, data:'2026-04-02', valor:180.00, litros:30.00, km_atual:142500, posto:'Ipiranga Centro', observacoes:'' },
-    { id:2,  colaborador_id:5, data:'2026-04-10', valor:210.00, litros:35.00, km_atual:143100, posto:'Shell Av. Paulista', observacoes:'' },
-    { id:3,  colaborador_id:5, data:'2026-04-18', valor:240.00, litros:40.00, km_atual:143800, posto:'Ipiranga Centro', observacoes:'' },
-    { id:4,  colaborador_id:6, data:'2026-04-05', valor:190.00, litros:31.70, km_atual:98200,  posto:'BR Rodoviária',    observacoes:'' },
-    { id:5,  colaborador_id:6, data:'2026-04-14', valor:215.00, litros:35.80, km_atual:98900,  posto:'Shell Av. Brasil', observacoes:'' },
-    { id:6,  colaborador_id:6, data:'2026-04-21', valor:180.00, litros:30.00, km_atual:99500,  posto:'BR Rodoviária',    observacoes:'' },
-    { id:7,  colaborador_id:3, data:'2026-04-08', valor:120.00, litros:20.00, km_atual:45200,  posto:'Ipiranga Vila',    observacoes:'Visita cliente' },
-    { id:8,  colaborador_id:3, data:'2026-04-19', valor:150.00, litros:25.00, km_atual:45800,  posto:'BR Rodoviária',    observacoes:'' },
-    { id:9,  colaborador_id:1, data:'2026-04-12', valor:100.00, litros:16.70, km_atual:22100,  posto:'Shell Av. Paulista', observacoes:'' },
-    { id:10, colaborador_id:7, data:'2026-04-07', valor:90.00,  litros:15.00, km_atual:31500,  posto:'Ipiranga Centro', observacoes:'' },
-    { id:11, colaborador_id:7, data:'2026-04-22', valor:170.00, litros:28.30, km_atual:32100,  posto:'Shell Av. Paulista', observacoes:'' },
-    // Março 2026
-    { id:12, colaborador_id:5, data:'2026-03-05', valor:200.00, litros:33.30, km_atual:141200, posto:'Ipiranga Centro', observacoes:'' },
-    { id:13, colaborador_id:5, data:'2026-03-19', valor:220.00, litros:36.70, km_atual:141900, posto:'Shell Av. Paulista', observacoes:'' },
-    { id:14, colaborador_id:6, data:'2026-03-08', valor:185.00, litros:30.80, km_atual:97100,  posto:'BR Rodoviária',    observacoes:'' },
-    { id:15, colaborador_id:6, data:'2026-03-22', valor:205.00, litros:34.20, km_atual:97800,  posto:'Shell Av. Brasil', observacoes:'' },
-    { id:16, colaborador_id:3, data:'2026-03-15', valor:130.00, litros:21.70, km_atual:44600,  posto:'Ipiranga Vila',    observacoes:'' },
-    { id:17, colaborador_id:1, data:'2026-03-18', valor:110.00, litros:18.30, km_atual:21800,  posto:'Shell Av. Paulista', observacoes:'' },
-    // Fevereiro 2026
-    { id:18, colaborador_id:5, data:'2026-02-10', valor:230.00, litros:38.30, km_atual:140000, posto:'Ipiranga Centro', observacoes:'' },
-    { id:19, colaborador_id:6, data:'2026-02-14', valor:195.00, litros:32.50, km_atual:96500,  posto:'BR Rodoviária',    observacoes:'' },
-    { id:20, colaborador_id:3, data:'2026-02-20', valor:140.00, litros:23.30, km_atual:44100,  posto:'Ipiranga Vila',    observacoes:'' },
-  ];
+  let VALE_LANCAMENTOS = [];
 
   // ── Helpers ──
   function fmtBRL(n) {
@@ -3671,53 +3528,16 @@ Liderança de equipe ≥3 pessoas"></textarea>
      ════════════════════════════════════════════════ */
 
   // VA_BENEFICIOS: cadastro por colaborador. Tipos: 'fixo' ou 'dia_util'.
-  let VA_BENEFICIOS = {
-    1:  { tipo:'fixo',     valor: 600.00, dias_uteis: null, data_alteracao:'2025-11-01', observacoes:'' },
-    2:  { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2026-04-20', observacoes:'Admissão' },
-    3:  { tipo:'dia_util', valor: 28.00,  dias_uteis: 22,   data_alteracao:'2025-08-01', observacoes:'Operacional — proporcional a presença' },
-    4:  { tipo:'fixo',     valor: 700.00, dias_uteis: null, data_alteracao:'2026-01-15', observacoes:'' },
-    5:  { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2025-06-01', observacoes:'' },
-    6:  { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2026-01-01', observacoes:'' },
-    7:  { tipo:'fixo',     valor: 600.00, dias_uteis: null, data_alteracao:'2025-10-01', observacoes:'' },
-    8:  { tipo:'dia_util', valor: 25.00,  dias_uteis: 22,   data_alteracao:'2025-09-01', observacoes:'Por dia trabalhado' },
-    9:  { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2026-02-01', observacoes:'' },
-    11: { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2025-12-01', observacoes:'' },
-    12: { tipo:'fixo',     valor: 700.00, dias_uteis: null, data_alteracao:'2025-09-01', observacoes:'' },
-    13: { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2024-02-14', observacoes:'' },
-    14: { tipo:'fixo',     valor: 500.00, dias_uteis: null, data_alteracao:'2025-11-01', observacoes:'' },
-  };
+  let VA_BENEFICIOS = {};
 
-  let FERIAS = [
-    { id:1, colaborador_id:4, inicio:'2026-07-15', fim:'2026-08-03', dias:20, abono:10, observacoes:'Tranche 1/1', status:'planejada' },
-    { id:2, colaborador_id:1, inicio:'2026-04-15', fim:'2026-04-30', dias:16, abono:0,  observacoes:'',            status:'em_curso' },
-    { id:3, colaborador_id:3, inicio:'2025-12-20', fim:'2026-01-18', dias:30, abono:0,  observacoes:'',            status:'concluida' },
-    { id:4, colaborador_id:8, inicio:'2026-09-01', fim:'2026-09-20', dias:20, abono:0,  observacoes:'',            status:'planejada' },
-    { id:5, colaborador_id:8, inicio:'2026-12-22', fim:'2026-12-31', dias:10, abono:0,  observacoes:'Tranche 2/2', status:'planejada' },
-    { id:6, colaborador_id:7, inicio:'2026-02-10', fim:'2026-03-01', dias:20, abono:0,  observacoes:'',            status:'concluida' },
-    { id:7, colaborador_id:6, inicio:'2026-05-20', fim:'2026-06-08', dias:20, abono:10, observacoes:'',            status:'planejada' },
-  ];
+  let FERIAS = [];
 
   /* ════════════════════════════════════════════════
      SALÁRIOS — valor atual por colaborador
      ════════════════════════════════════════════════ */
 
   // Mock. Só o valor atual. Sem histórico.
-  let SALARIOS = {
-    1:  { valor: 4800.00,  data_alteracao: '2025-11-01', observacoes: 'Reajuste anual' },
-    2:  { valor: 2400.00,  data_alteracao: '2026-04-20', observacoes: 'Admissão' },
-    3:  { valor: 3850.00,  data_alteracao: '2025-08-01', observacoes: '' },
-    4:  { valor: 7200.00,  data_alteracao: '2026-01-15', observacoes: 'Promoção' },
-    5:  { valor: 2900.00,  data_alteracao: '2025-06-01', observacoes: '' },
-    6:  { valor: 2900.00,  data_alteracao: '2026-01-01', observacoes: 'Acordo coletivo' },
-    7:  { valor: 4300.00,  data_alteracao: '2025-10-01', observacoes: '' },
-    8:  { valor: 3100.00,  data_alteracao: '2025-09-01', observacoes: '' },
-    9:  { valor: 2500.00,  data_alteracao: '2026-02-01', observacoes: '' },
-    // 10 (Luiz) inativo — sem cadastro salarial ativo
-    11: { valor: 2100.00,  data_alteracao: '2025-12-01', observacoes: 'Dissídio coletivo' },
-    12: { valor: 8500.00,  data_alteracao: '2025-09-01', observacoes: '' },
-    13: { valor: 3200.00,  data_alteracao: '2024-02-14', observacoes: 'Admissão' },
-    14: { valor: 2600.00,  data_alteracao: '2025-11-01', observacoes: '' },
-  };
+  let SALARIOS = {};
 
   const FAIXAS = [
     { min:      0, max:  2000, label:'Até R$ 2k',       short:'≤2k'     },
@@ -3727,15 +3547,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
     { min:   7500, max: 99999, label:'Acima R$ 7,5k',   short:'>7,5k'   },
   ];
 
-  let ADVERTENCIAS = [
-    { id:1, colaborador_id:9, data:'2026-04-21', tipo:'escrita',   categoria:'Atraso / falta',       descricao:'Chegou 1h15 atrasado sem justificativa. 3º atraso em 30 dias.', gestor:'Maria Santos Oliveira',   testemunhas:'Carlos Mendes', status:'pendente',  assinada_em:null,         dias_suspensao:null },
-    { id:2, colaborador_id:9, data:'2026-03-18', tipo:'escrita',   categoria:'Atraso / falta',       descricao:'Falta sem comunicação. 2º episódio.',                           gestor:'Maria Santos Oliveira',   testemunhas:'',              status:'assinada',  assinada_em:'2026-03-19', dias_suspensao:null },
-    { id:3, colaborador_id:9, data:'2026-02-12', tipo:'verbal',    categoria:'Atraso / falta',       descricao:'Atraso recorrente — 1ª advertência verbal.',                    gestor:'Maria Santos Oliveira',   testemunhas:'',              status:'assinada',  assinada_em:'2026-02-12', dias_suspensao:null },
-    { id:4, colaborador_id:5, data:'2026-04-14', tipo:'verbal',    categoria:'Uso indevido de EPI',  descricao:'Flagrado sem botina em área de produção.',                      gestor:'José Silva Ramos',        testemunhas:'',              status:'assinada',  assinada_em:'2026-04-14', dias_suspensao:null },
-    { id:5, colaborador_id:3, data:'2026-03-22', tipo:'verbal',    categoria:'Segurança do trabalho',descricao:'Realizou manutenção sem travamento do painel elétrico.',        gestor:'Supervisor Industrial',   testemunhas:'Ana Paula Costa',status:'assinada', assinada_em:'2026-03-22', dias_suspensao:null },
-    { id:6, colaborador_id:8, data:'2026-01-28', tipo:'verbal',    categoria:'Conduta / postura',    descricao:'Discussão verbal com colega.',                                  gestor:'Maria Santos Oliveira',   testemunhas:'',              status:'assinada',  assinada_em:'2026-01-29', dias_suspensao:null },
-    { id:7, colaborador_id:2, data:'2026-04-25', tipo:'suspensao', categoria:'Conduta / postura',    descricao:'Acúmulo de ocorrências — suspensão de 1 dia.',                  gestor:'Maria Santos Oliveira',   testemunhas:'Ana Paula Costa',status:'pendente',  assinada_em:null,         dias_suspensao:1 },
-  ];
+  let ADVERTENCIAS = [];
 
   /* ════════════════════════════════════════════════
      Sub-abas de página (view-tabs)
@@ -3753,60 +3565,20 @@ Liderança de equipe ≥3 pessoas"></textarea>
      FEEDBACK — avaliações 1:1
      ════════════════════════════════════════════════ */
 
-  let FEEDBACK = [
-    { id:1, colaborador_id:1, avaliador:'Maria Santos Oliveira', data:'2026-04-10', nota_entrega:5, nota_comportamento:5, nota_colaboracao:5, pontos_fortes:'Organização e proatividade excepcionais.',        pontos_desenvolver:'Delegar mais atividades operacionais.', plano_acao:'Iniciar mentoria para 2 analistas juniores em maio.' },
-    { id:2, colaborador_id:3, avaliador:'Supervisor Industrial', data:'2026-03-20', nota_entrega:4, nota_comportamento:5, nota_colaboracao:5, pontos_fortes:'Conhecimento técnico sólido e postura ética.',    pontos_desenvolver:'Documentar melhor intervenções realizadas.', plano_acao:'Aderir ao check-list após cada manutenção.' },
-    { id:3, colaborador_id:4, avaliador:'Diretoria',              data:'2026-02-15', nota_entrega:5, nota_comportamento:5, nota_colaboracao:4, pontos_fortes:'Liderança e capacidade de decisão.',              pontos_desenvolver:'Dar feedback individual com mais frequência.', plano_acao:'Agendar 1:1 mensal com cada subordinado direto.' },
-    { id:4, colaborador_id:6, avaliador:'Líder de Logística',     data:'2026-01-30', nota_entrega:4, nota_comportamento:4, nota_colaboracao:4, pontos_fortes:'Pontual e cuidadoso com a frota.',                pontos_desenvolver:'Usar app de roteirização em todas as rotas.',  plano_acao:'Treinamento no app na 1ª semana de fevereiro.' },
-    { id:5, colaborador_id:8, avaliador:'Supervisor de Produção', data:'2025-12-12', nota_entrega:4, nota_comportamento:3, nota_colaboracao:3, pontos_fortes:'Produtividade consistente.',                      pontos_desenvolver:'Melhorar relação com os colegas de turno.',     plano_acao:'Mediação com colegas em dezembro.' },
-    { id:6, colaborador_id:7, avaliador:'Diretoria',              data:'2026-04-05', nota_entrega:5, nota_comportamento:5, nota_colaboracao:5, pontos_fortes:'Atenção aos detalhes e domínio técnico.',         pontos_desenvolver:'Desenvolver visão estratégica do setor.',       plano_acao:'Participar de 2 reuniões de direção/mês.' },
-  ];
+  let FEEDBACK = [];
 
 
-  let CLIMA = [
-    { id:1, titulo:'Clima Q4 2024', inicio:'2024-11-01', fim:'2024-11-30', convidados:128, responderam:94,  score_lideranca:7.2, score_ambiente:7.5, score_reconhecimento:6.1, score_carreira:5.8, score_comunicacao:7.0, score_remuneracao:6.4 },
-    { id:2, titulo:'Pulso Q1 2025', inicio:'2025-03-01', fim:'2025-03-14', convidados:132, responderam:101, score_lideranca:7.6, score_ambiente:7.8, score_reconhecimento:6.5, score_carreira:6.2, score_comunicacao:7.4, score_remuneracao:6.6 },
-    { id:3, titulo:'Clima Anual 2025',inicio:'2025-10-01', fim:'2025-10-20', convidados:140, responderam:118, score_lideranca:7.9, score_ambiente:8.1, score_reconhecimento:7.0, score_carreira:6.8, score_comunicacao:7.7, score_remuneracao:7.0 },
-    { id:4, titulo:'Pulso Q1 2026', inicio:'2026-03-01', fim:'2026-03-14', convidados:142, responderam:113, score_lideranca:8.0, score_ambiente:8.2, score_reconhecimento:7.2, score_carreira:7.0, score_comunicacao:7.8, score_remuneracao:7.1 },
-  ];
+  let CLIMA = [];
 
 
 
   // Cargos cadastrados — cada um pertence a uma trilha + nível
-  let PC_CARGOS = [
-    { id:1, trilha:'Operacional',  nivel:0, nome:'Aux. de Produção',          salario_min:1800, salario_max:2200, competencias:'Pontualidade\nDisciplina com EPI\nLeitura e escrita basicas',           descricao:'Apoio em linha de producao.' },
-    { id:2, trilha:'Operacional',  nivel:1, nome:'Op. de Produção Jr',        salario_min:2200, salario_max:2700, competencias:'Operar 1 linha\nIdentificar paradas comuns\nChecklist 5S',                  descricao:'Operacao de uma linha sob supervisao.' },
-    { id:3, trilha:'Operacional',  nivel:2, nome:'Op. de Produção Pl',        salario_min:2700, salario_max:3300, competencias:'Operar todas as linhas\nDiagnostico de falhas simples\nRegistros em planilha',descricao:'Multifuncional na operacao.' },
-    { id:4, trilha:'Operacional',  nivel:3, nome:'Op. de Produção Sr',        salario_min:3300, salario_max:4200, competencias:'Treinar novos\nAjustes de processo\nPropor melhorias',                       descricao:'Referencia tecnica do turno.' },
-    { id:5, trilha:'Técnica',      nivel:2, nome:'Mecânico Industrial Pl',    salario_min:3500, salario_max:4500, competencias:'Hidraulica\nPneumatica\nLeitura de eletrica basica\nNR-10\nNR-12',          descricao:'Manutencao corretiva e preventiva.' },
-    { id:6, trilha:'Técnica',      nivel:3, nome:'Mecânico Industrial Sr',    salario_min:4500, salario_max:6000, competencias:'CLP basico\nDiagnostico avancado\nLideranca de paradas\nProgramacao preventiva',descricao:'Referencia tecnica da manutencao.' },
-    { id:7, trilha:'Gestão',       nivel:5, nome:'Coord. Administrativo',     salario_min:6500, salario_max:8500, competencias:'Liderar equipe ≥3\nGestao orcamentaria\nReporting mensal\nExcel avancado',     descricao:'Coordenacao do administrativo.' },
-    { id:8, trilha:'Gestão',       nivel:6, nome:'Gerente Administrativo',    salario_min:9000, salario_max:14000,competencias:'Gestao 360\nNegociacao\nVisao estrategica\nPlanejamento anual',                descricao:'Gerencia de toda a area administrativa.' },
-    { id:9, trilha:'Especialista', nivel:4, nome:'Médico Veterinário',        salario_min:7000, salario_max:11000,competencias:'Diagnostico clinico\nPrescricao\nSanidade do rebanho\nReproducao bovina',     descricao:'Saude e reproducao do rebanho.' },
-    { id:10,trilha:'Operacional',  nivel:1, nome:'Trabalhador Rural Jr',      salario_min:1800, salario_max:2300, competencias:'Manejo basico\nRotina de cocho\nIdentificacao de reses',                      descricao:'Apoio nas atividades de campo.' },
-  ];
+  let PC_CARGOS = [];
 
   // Planos individuais — colaborador → cargo atual + cargo alvo + plano
-  let PC_PLANOS = {
-    1:  { cargo_atual_id:7, cargo_alvo_id:8,  prazo:'2027-12-31', progresso:35, plano_acao:'MBA em RH ate dez/2026.\nLiderar projeto de digitalizacao em Q3.' },
-    3:  { cargo_atual_id:6, cargo_alvo_id:null, prazo:null,        progresso:80, plano_acao:'Aprofundar em CLPs (curso Siemens em andamento).' },
-    4:  { cargo_atual_id:7, cargo_alvo_id:8,  prazo:'2026-12-31', progresso:50, plano_acao:'Cursos: Negociacao Avancada (jul/26), Gestao Estrategica (set/26).' },
-    8:  { cargo_atual_id:3, cargo_alvo_id:4,  prazo:'2026-08-31', progresso:60, plano_acao:'Treinamento de melhoria continua + acompanhamento de 2 paradas/mes.' },
-    9:  { cargo_atual_id:2, cargo_alvo_id:3,  prazo:'2026-09-30', progresso:25, plano_acao:'Operar 2 linhas adicionais com supervisor ate set/26.' },
-    12: { cargo_atual_id:9, cargo_alvo_id:null, prazo:null,        progresso:90, plano_acao:'Especializacao em reproducao bovina (mar/27).' },
-  };
+  let PC_PLANOS = {};
 
-  let EVENTOS = [
-    { id:1, titulo:'Treinamento NR-35 (turma A)', tipo:'treinamento', data:'2026-04-24', hora_inicio:'08:00', hora_fim:'12:00', local:'Sala de treinamento',   participantes:'José Silva, João Silveira, Paulo Rocha', descricao:'Reciclagem obrigatória.', status:'agendado' },
-    { id:2, titulo:'Reunião mensal de lideranças', tipo:'reuniao',   data:'2026-04-28', hora_inicio:'14:00', hora_fim:'15:30', local:'Sala de reuniões',      participantes:'Maria Santos, Ana Paula Costa, Diretoria', descricao:'Fechamento de abril e metas para maio.', status:'agendado' },
-    { id:3, titulo:'Admissão — Fernanda Batista',  tipo:'admissao',  data:'2026-04-12', hora_inicio:'09:00', hora_fim:'11:00', local:'RH',                    participantes:'Fernanda Batista, Ana Paula Costa', descricao:'Integração e documentação.', status:'concluido' },
-    { id:4, titulo:'1:1 Trimestral — João Silveira',tipo:'avaliacao', data:'2026-04-22', hora_inicio:'10:00', hora_fim:'10:30', local:'Sala 2',                participantes:'João Silveira, Maria Santos', descricao:'Revisão trimestral.', status:'concluido' },
-    { id:5, titulo:'Feriado — Tiradentes',         tipo:'feriado',   data:'2026-04-21', hora_inicio:'',      hora_fim:'',      local:'',                      participantes:'', descricao:'Expediente suspenso.', status:'concluido' },
-    { id:6, titulo:'Integração — Carlos Mendes',   tipo:'admissao',  data:'2026-04-20', hora_inicio:'09:00', hora_fim:'11:00', local:'RH',                    participantes:'Carlos Mendes, Ana Paula Costa', descricao:'Integração admissional.', status:'concluido' },
-    { id:7, titulo:'Treinamento NR-12 (refrescamento)', tipo:'treinamento', data:'2026-05-08', hora_inicio:'08:00', hora_fim:'17:00', local:'Sala de treinamento', participantes:'Equipe Manutenção', descricao:'Turma de 6 colaboradores.', status:'agendado' },
-    { id:8, titulo:'Pesquisa de clima Q2/2026',    tipo:'avaliacao', data:'2026-06-01', hora_inicio:'',      hora_fim:'',      local:'Online',                participantes:'Todos os ativos', descricao:'Abertura da pesquisa semestral.', status:'agendado' },
-    { id:9, titulo:'Reunião DP — fechamento folha',tipo:'reuniao',   data:'2026-04-30', hora_inicio:'16:00', hora_fim:'17:00', local:'DP',                    participantes:'Marcela Pinto, Ana Paula Costa', descricao:'Fechamento folha de abril.', status:'agendado' },
-  ];
+  let EVENTOS = [];
 
   // ─── Expor dados para src/app.js (helpers importados de utils/formatting.js)
   window.COLABORADORES      = COLABORADORES;
