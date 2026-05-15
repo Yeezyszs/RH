@@ -244,6 +244,7 @@ export class VencimentosModule {
     }
     this.fecharModalVencimento();
     this.render();
+    if (typeof window.atualizarBadgeVencimentos === 'function') window.atualizarBadgeVencimentos();
   }
 
   renovarVencimento(id) {
@@ -283,6 +284,7 @@ export class VencimentosModule {
       this.VENCIMENTOS = this.VENCIMENTOS.filter(x => x.id !== id);
     }
     this.render();
+    if (typeof window.atualizarBadgeVencimentos === 'function') window.atualizarBadgeVencimentos();
   }
 
   urgentes() {

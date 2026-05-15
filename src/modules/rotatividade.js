@@ -9,9 +9,9 @@ export class RotatividadeModule {
     this.fmtDate = deps.fmtDate;
     this.faixaIdx = deps.faixaIdx;
     this.COLABORADORES = deps.COLABORADORES;
+    this.DESLIGAMENTOS = deps.DESLIGAMENTOS || [];
     this.SALARIOS = deps.SALARIOS;
     this.CHART_COLORS = deps.CHART_COLORS;
-    this.ROT_MOCK = deps.ROT_MOCK;
 
     this._chartRotMov    = null;
     this._chartRotTaxa   = null;
@@ -40,10 +40,11 @@ export class RotatividadeModule {
     const periodoEl = this.$('#rot-periodo');
     const n = parseInt(periodoEl?.value || '12', 10);
 
-    const labels    = this.ROT_MOCK.labels.slice(-n);
-    const admissoes = this.ROT_MOCK.admissoes.slice(-n);
-    const desligad  = this.ROT_MOCK.desligad.slice(-n);
-    const taxa      = this.ROT_MOCK.taxa.slice(-n);
+    const rotData   = this._buildRotData(n);
+    const labels    = rotData.labels;
+    const admissoes = rotData.admissoes;
+    const desligad  = rotData.desligados;
+    const taxa      = rotData.taxa;
 
     const fSetor = this.$('#rot-filter-setor')?.value        || '';
     const fSexo  = this.$('#rot-filter-sexo')?.value         || '';
@@ -94,11 +95,77 @@ export class RotatividadeModule {
       this.$('#rot-kpi-perm').innerHTML = `—<span class="unit">sem dados</span>`;
     }
 
-    this._renderCharts(labels, admissoes, desligad, taxa);
-    this._renderTabela(fSetor);
+    this._renderCharts(labels, admissoes, desligad, taxa, rotData);
+    this._renderTabela(fSetor, rotData);
   }
 
-  _renderCharts(labels, admissoes, desligad, taxa) {
+  _buildRotData(n) {
+    const agora = new Date();
+    const labels = [], admissoes = [], desligados = [], taxa = [];
+
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
+      const chave = d.getFullYear() * 100 + d.getMonth();
+      const mesLabel = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '');
+      labels.push(mesLabel);
+
+      const admMes = this.COLABORADORES.filter(c => {
+        if (!c.admissao) return false;
+        const da = new Date(c.admissao);
+        return da.getFullYear() * 100 + da.getMonth() === chave;
+      }).length;
+
+      const desMes = this.DESLIGAMENTOS.filter(dl => {
+        if (!dl.data) return false;
+        const dd = new Date(dl.data);
+        return dd.getFullYear() * 100 + dd.getMonth() === chave;
+      }).length;
+
+      const hc = this.COLABORADORES.filter(c => c.status !== 'inativo').length || 1;
+      const taxaMes = ((admMes + desMes) / 2 / hc * 100);
+
+      admissoes.push(admMes);
+      desligados.push(desMes);
+      taxa.push(parseFloat(taxaMes.toFixed(1)));
+    }
+
+    const motivosCont = {};
+    this.DESLIGAMENTOS.forEach(dl => {
+      const motivo = dl.tipo_saida || 'Outros';
+      motivosCont[motivo] = (motivosCont[motivo] || 0) + 1;
+    });
+    const motivos = Object.entries(motivosCont).map(([label, valor]) => ({ label, valor }));
+
+    const movimentacoes = [];
+    this.COLABORADORES.filter(c => c.admissao).slice(0, 20).forEach(c => {
+      movimentacoes.push({
+        tipo: 'admissao',
+        nome: c.nome,
+        setor: c.setor,
+        cargo: c.cargo,
+        data: c.admissao,
+        motivo: '—',
+      });
+    });
+    this.DESLIGAMENTOS.slice(0, 20).forEach(dl => {
+      const col = this.COLABORADORES.find(c => c.id === dl.colaborador_id);
+      if (col) {
+        movimentacoes.push({
+          tipo: 'desligamento',
+          nome: col.nome,
+          setor: col.setor,
+          cargo: col.cargo,
+          data: dl.data,
+          motivo: dl.tipo_saida || '—',
+        });
+      }
+    });
+    movimentacoes.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    return { labels, admissoes, desligados, taxa, motivos, movimentacoes };
+  }
+
+  _renderCharts(labels, admissoes, desligad, taxa, rotData) {
     if (typeof Chart === 'undefined') return;
 
     this._chartRotMov?.destroy();
@@ -152,8 +219,8 @@ export class RotatividadeModule {
       },
     });
 
-    const motLabels = this.ROT_MOCK.motivos.map(m => m.label);
-    const motData   = this.ROT_MOCK.motivos.map(m => m.valor);
+    const motLabels = rotData.motivos.map(m => m.label);
+    const motData   = rotData.motivos.map(m => m.valor);
     const totalMot  = motData.reduce((a, b) => a + b, 0);
     const motBadge = this.$('#rot-motivos-badge');
     if (motBadge) motBadge.textContent = `${totalMot} saídas`;
@@ -190,11 +257,11 @@ export class RotatividadeModule {
     });
   }
 
-  _renderTabela(fSetor) {
+  _renderTabela(fSetor, rotData) {
     const tb = this.$('#tb-rot-movimentacoes');
     if (!tb) return;
 
-    const movFiltradas = this.ROT_MOCK.movimentacoesRecentes.filter(m => {
+    const movFiltradas = rotData.movimentacoes.filter(m => {
       if (fSetor && m.setor !== fSetor) return false;
       return true;
     });

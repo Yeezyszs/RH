@@ -121,7 +121,7 @@ function bootstrap() {
 
   const rotatividade = new RotatividadeModule({
     $, h, iniciais, fmtDate, faixaIdx,
-    COLABORADORES, SALARIOS, CHART_COLORS, ROT_MOCK,
+    COLABORADORES, DESLIGAMENTOS, SALARIOS, CHART_COLORS,
   });
 
   const salarios = new SalariosModule({
