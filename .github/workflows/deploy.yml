@@ -40,11 +40,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurar GitHub Pages
-        uses: actions/configure-pages@v4
-        with:
-          enablement: true
-
       - name: Preparar artefato de deploy
         run: |
           mkdir -p _site
