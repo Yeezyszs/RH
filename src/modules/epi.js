@@ -353,7 +353,7 @@ export class EpiModule {
           await this.Epis.criar(payload);
         }
       } catch (err) {
-        alert('Erro ao salvar: ' + err.message);
+        window.showToast?.('Erro ao salvar: ' + err.message, 'err');
         return;
       }
     } else {
@@ -379,7 +379,7 @@ export class EpiModule {
       try {
         await this.Epis.atualizar(id, { devolvido: true, data_devolucao: new Date().toISOString().slice(0,10) });
       } catch (err) {
-        alert('Erro ao registrar devolução: ' + err.message);
+        window.showToast?.('Erro ao registrar devolução: ' + err.message, 'err');
         return;
       }
     } else {
@@ -396,7 +396,7 @@ export class EpiModule {
       try {
         await this.Epis.excluir(id);
       } catch (err) {
-        alert('Erro ao excluir: ' + err.message);
+        window.showToast?.('Erro ao excluir: ' + err.message, 'err');
         return;
       }
     } else {

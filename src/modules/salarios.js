@@ -234,9 +234,23 @@ export class SalariosModule {
     const data = Object.fromEntries(new FormData(form));
     const colabId = parseInt(data.colaborador_id, 10);
 
+    const valor = parseFloat(data.valor);
+    if (!data.valor || isNaN(valor) || valor <= 0 || valor > 9999999.99) {
+      window.showToast?.('Salário inválido (deve ser entre R$ 0,01 e R$ 9.999.999,99)', 'err');
+      return;
+    }
+    if (!data.data_alteracao || !/^\d{4}-\d{2}-\d{2}$/.test(data.data_alteracao)) {
+      window.showToast?.('Data de alteração obrigatória', 'err');
+      return;
+    }
+    if ((data.observacoes || '').length > 500) {
+      window.showToast?.('Observações muito longas (máx. 500 caracteres)', 'err');
+      return;
+    }
+
     const payload = {
       colaborador_id: colabId,
-      valor:          parseFloat(data.valor) || 0,
+      valor:          Math.round(valor * 100) / 100,
       data_alteracao: data.data_alteracao,
       observacoes:    data.observacoes || '',
     };
@@ -251,7 +265,7 @@ export class SalariosModule {
           await this.Salarios.criar(payload);
         }
       } catch (err) {
-        alert('Erro ao salvar: ' + err.message);
+        window.showToast?.('Erro ao salvar: ' + err.message, 'err');
         return;
       }
     } else {

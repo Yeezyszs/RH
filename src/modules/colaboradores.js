@@ -142,13 +142,21 @@ export class ColaboradoresModule {
       const deps = await this.Departamentos.listar();
       sel.innerHTML = `<option value="">Todos os setores</option>` +
         deps.map(d => `<option value="${d.id}">${this.h(d.nome)}</option>`).join('');
-    } catch (_) {}
+    } catch (err) {
+      console.error('Erro ao carregar setores:', err);
+      this.showToast?.('Erro ao carregar setores', 'err');
+    }
   }
 
-  irPagina(p) {
-    if (p < 1 || p > this.state.totalPages) return;
+  async irPagina(p) {
+    if (p < 1 || p > this.state.totalPages || this._loading) return;
+    this._loading = true;
     this.state.page = p;
-    this.render();
+    try {
+      await this.render();
+    } finally {
+      this._loading = false;
+    }
   }
 
   _renderLinhas(lista) {

@@ -67,9 +67,9 @@ export class AdvertenciasModule {
     const fC = this.$('#adv-filter-categoria')?.value || '';
     const fS = this.$('#adv-filter-status')?.value    || '';
 
+    const colabMap = new Map(this.COLABORADORES.map(c => [c.id, c]));
     const enriched = this.ADVERTENCIAS.map(a => {
-      const c = this.COLABORADORES.find(x => x.id === a.colaborador_id);
-      return { ...a, _colab: c, _reinc: this._contarAdvertenciasUltimoAno(a.colaborador_id) };
+      return { ...a, _colab: colabMap.get(a.colaborador_id), _reinc: this._contarAdvertenciasUltimoAno(a.colaborador_id) };
     });
 
     const lista = enriched.filter(a => {
@@ -445,6 +445,22 @@ export class AdvertenciasModule {
     const data = Object.fromEntries(new FormData(form));
     const id = data.id ? parseInt(data.id, 10) : null;
 
+    if (!data.colaborador_id) {
+      window.showToast?.('Selecione um colaborador', 'err'); return;
+    }
+    if (!data.data || !/^\d{4}-\d{2}-\d{2}$/.test(data.data)) {
+      window.showToast?.('Data obrigatória', 'err'); return;
+    }
+    if (!['verbal', 'escrita', 'suspensao'].includes(data.tipo)) {
+      window.showToast?.('Tipo de advertência inválido', 'err'); return;
+    }
+    if (!data.descricao?.trim()) {
+      window.showToast?.('Descrição obrigatória', 'err'); return;
+    }
+    if (!data.gestor?.trim()) {
+      window.showToast?.('Gestor responsável obrigatório', 'err'); return;
+    }
+
     const payload = {
       colaborador_id: parseInt(data.colaborador_id, 10),
       data_advertencia: data.data,
@@ -466,7 +482,7 @@ export class AdvertenciasModule {
           await this.Advertencias.criar(payload);
         }
       } catch (err) {
-        alert('Erro ao salvar: ' + err.message);
+        window.showToast?.('Erro ao salvar: ' + err.message, 'err');
         return;
       }
     } else {
@@ -489,7 +505,7 @@ export class AdvertenciasModule {
       try {
         await this.Advertencias.excluir(id);
       } catch (err) {
-        alert('Erro ao excluir: ' + err.message);
+        window.showToast?.('Erro ao excluir: ' + err.message, 'err');
         return;
       }
     } else {

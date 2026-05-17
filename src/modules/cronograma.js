@@ -218,7 +218,7 @@ export class CronogramaModule {
           await this.Cronograma.criar(payload);
         }
       } catch (err) {
-        alert('Erro ao salvar: ' + err.message);
+        window.showToast?.('Erro ao salvar: ' + err.message, 'err');
         return;
       }
     } else {
@@ -244,7 +244,7 @@ export class CronogramaModule {
       try {
         await this.Cronograma.excluir(id);
       } catch (err) {
-        alert('Erro ao excluir: ' + err.message);
+        window.showToast?.('Erro ao excluir: ' + err.message, 'err');
         return;
       }
     } else {

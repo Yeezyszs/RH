@@ -246,7 +246,7 @@ export class DesligamentosModule {
         });
         await window.Colaboradores?.atualizar(c.id, { status: 'inativo' }).catch(() => null);
       } catch (err) {
-        alert('Erro ao salvar: ' + err.message);
+        window.showToast?.('Erro ao salvar: ' + err.message, 'err');
         return;
       }
     } else {
@@ -269,7 +269,7 @@ export class DesligamentosModule {
       try {
         await this.Desligamentos.excluir(id);
       } catch (err) {
-        alert('Erro ao excluir: ' + err.message);
+        window.showToast?.('Erro ao excluir: ' + err.message, 'err');
         return;
       }
     } else {

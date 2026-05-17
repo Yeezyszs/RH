@@ -230,7 +230,7 @@ export class VencimentosModule {
         const saved = await this.Vencimentos.criar(payload);
         this.VENCIMENTOS.unshift({ ...frontendItem, id: saved.id, _tabela: saved._tabela });
       } catch (err) {
-        alert('Erro ao salvar: ' + err.message);
+        window.showToast?.('Erro ao salvar: ' + err.message, 'err');
         return;
       }
     } else {
@@ -279,7 +279,7 @@ export class VencimentosModule {
         // Remove do array local após sucesso no banco
         this.VENCIMENTOS = this.VENCIMENTOS.filter(x => x.id !== id);
       } catch (err) {
-        alert('Erro ao excluir: ' + err.message);
+        window.showToast?.('Erro ao excluir: ' + err.message, 'err');
         return;
       }
     } else {
