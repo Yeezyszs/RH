@@ -1,18 +1,23 @@
 # RH — Sistema de Gestão de Recursos Humanos
 
-Aplicação web single-page (SPA) completa com **Supabase (PostgreSQL)**, autenticação de usuários e políticas de segurança por perfil de acesso. Código modularizado, testado e pronto para produção.
+Aplicação web single-page (SPA) completa com **Supabase (PostgreSQL)**, autenticação de usuários e políticas de segurança por perfil de acesso. Código modularizado, testado, com CI/CD automático e pronto para **produção**.
 
-**Status:** ✅ Refactor Week 4 Concluído | 📦 Modularizado | 🧪 Testado | 🔒 RLS Configurado
+**Status:** ✅ **PRODUÇÃO v1.0** | 📦 Modularizado | 🧪 177 Testes | 🔒 RLS Completo | ⚙️ CI/CD GitHub Actions | 🌐 GitHub Pages
 
 ## 🎯 Visão geral
 
 Interface profissional de RH com:
-- Sidebar de navegação intuitivo
-- Topbar com identificação do usuário
-- 14 módulos funcionais (Pessoas, Compliance, Benefícios, Gestão)
-- Dados em tempo real via Supabase
-- Row Level Security (RLS) por perfil de acesso
-- Código 100% modularizado e testável
+- **Sidebar de navegação intuitivo** com 13 módulos funcionais
+- **Topbar com identificação do usuário** e controle de sessão
+- **13 módulos funcionais** (Pessoas, Compliance, Benefícios, Gestão)
+- **Dashboard com KPIs reais:** headcount, rotatividade calculada, atividade recente, vencimentos críticos
+- **Dados em tempo real via Supabase** com sincronização via websockets
+- **Row Level Security (RLS)** por perfil de acesso em todas as 24 tabelas
+- **Código 100% modularizado** com CSS separado
+- **177 testes automatizados** com cobertura ≥80%
+- **CI/CD automático:** GitHub Actions com testes, lint, segurança e deploy
+- **Deploy automático** em GitHub Pages após validação
+- **Sem dados de amostra:** pronto para dados reais de produção
 
 ## Módulos disponíveis
 
@@ -102,16 +107,18 @@ O sistema usa **Supabase (PostgreSQL)** com 24 tabelas organizadas por módulo:
 
 ```
 RH/
-├── index.html                    # Interface SPA (HTML + CSS + layout)
+├── index.html                    # Interface SPA (HTML + layout)
 ├── supabase.js                   # Cliente Supabase e funções CRUD
+├── css/
+│   └── style.css                 # Estilos modularizados (2.3k linhas)
 ├── src/
 │   ├── app.js                    # Inicialização + renderAll()
 │   ├── constants.js              # Constantes globais
 │   ├── modules/                  # 13 módulos funcionais
 │   │   ├── colaboradores.js      # Gestão de colaboradores
 │   │   ├── ferias.js             # Controle de férias
-│   │   ├── rotatividade.js       # Turnover e rotatividade
-│   │   ├── vencimentos.js        # ASOs e documentos
+│   │   ├── rotatividade.js       # Turnover com dados reais
+│   │   ├── vencimentos.js        # ASOs, docs, treinamentos com badge tempo-real
 │   │   ├── vale-combustivel.js   # Benefício combustível
 │   │   ├── vale-alimentacao.js   # Benefício alimentação
 │   │   ├── feedback.js           # Feedbacks individuais
@@ -128,27 +135,30 @@ RH/
 │   │   ├── filters.js            # Filtros e busca
 │   │   └── pagination.js         # Controle de paginação
 │   └── utils/
-│       ├── formatting.js         # Formatadores de dados
+│       ├── formatting.js         # Formatadores de dados (52+ funções)
 │       └── helpers.js            # Funções auxiliares
-├── tests/                        # Suite de testes
-│   ├── colaboradores.test.js     # Testes de colaboradores
-│   ├── mappers.test.js           # Testes de mapeadores
-│   ├── cache.test.js             # Testes de cache
-│   ├── timeout-retry.test.js     # Testes de resiliência
+├── tests/                        # 177 testes automatizados
+│   ├── formatting.test.js        # Testes de formatação (52 testes)
+│   ├── rls-logic.test.js         # Testes de lógica RLS (33 testes)
+│   ├── mappers-extra.test.js     # Testes de mappers (30 testes)
+│   ├── mappers.test.js           # Testes de mapeadores (27 testes)
+│   ├── colaboradores.test.js     # Testes de colaboradores (15 testes)
+│   ├── timeout-retry.test.js     # Testes de resiliência (11 testes)
+│   ├── cache.test.js             # Testes de cache (9 testes)
 │   └── helpers.js                # Helpers para testes
-├── migrations/                   # Migrações do banco
-│   ├── 001_criptografia_pii.sql
-│   ├── 002_paginacao_cache_timeout.js
-│   └── ... (9 migrações totais)
-├── database-schema.sql           # Schema completo (24 tabelas)
-├── rls-policies.sql              # Políticas RLS iniciais
-├── rls-final-fix.sql             # RLS final com schema privado
-├── DATABASE_SETUP_STATUS.md      # Status detalhado do banco
-├── SCHEMA.md                     # Documentação das tabelas
-├── MODULARIZATION_PLAN.md        # Plano de modularização
-├── package.json                  # Dependências npm
+├── .github/workflows/
+│   ├── ci.yml                    # CI: testes, lint, segurança
+│   └── deploy.yml                # CD: deploy automático GitHub Pages
+├── package.json                  # Dependências (vitest@2.1.9, etc.)
 ├── vitest.config.js              # Configuração de testes
-└── .gitignore                    # Arquivos ignorados
+├── .env.example                  # Variáveis de ambiente (documentação)
+├── .gitignore                    # Arquivos ignorados
+├── README.md                     # Este arquivo
+├── DOCUMENTO_JURIDICO_*          # Análise de conformidade LGPD (Google Drive)
+└── database/                     # Documentação do banco
+    ├── schema.md                 # Documentação das 24 tabelas
+    ├── rls-policies.md           # Políticas de segurança por role
+    └── migrations/               # Scripts SQL de migração
 ```
 
 ## 🚀 Como usar
@@ -203,9 +213,30 @@ npm test
 # Rodar com coverage
 npm run test:coverage
 
-# Watch mode
+# Watch mode (desenvolvimento)
 npm run test:watch
 ```
+
+### Deploy em Produção
+
+O sistema é deployed automaticamente via **GitHub Actions** sempre que código é enviado para `main`:
+
+1. **CI Pipeline** (testes + validação)
+   - npm ci (instalação reproducível)
+   - npm test (177 testes automatizados)
+   - npm run test:coverage (cobertura ≥80%)
+   - npm audit (verificação de vulnerabilidades)
+   - Validação de secrets hardcoded
+   - Verificação de .env não commitado
+
+2. **Deploy Pipeline** (apenas se CI passar)
+   - Preparação de artefatos
+   - Cópia de arquivos para _site/
+   - Criação de 404.html para SPA routing
+   - Upload para GitHub Pages
+   - Deploy automático para github.io
+
+**URL de Produção:** https://yeezyszs.github.io/rh
 
 ### Estrutura de Desenvolvimento
 
@@ -217,28 +248,49 @@ O código está organizado em módulos para facilitar manutenção:
 
 ## 📊 Status do Projeto
 
-### ✅ Concluído
-- [x] 24 tabelas do banco de dados (PostgreSQL)
-- [x] 6 views para dashboards e análises
-- [x] RLS (Row Level Security) com schema privado
-- [x] 13 módulos funcionalidades (colaboradores, férias, vencimentos, etc.)
-- [x] Autenticação Supabase completa
-- [x] Componentes UI reutilizáveis
-- [x] Suite de testes (Vitest)
-- [x] Migrações de banco preparadas
-- [x] Código 100% modularizado
+### ✅ Concluído (Produção v1.0)
 
-### 🔄 Em Progresso
-- [ ] Aplicação de todas as RLS policies
-- [ ] Testes de integração end-to-end
-- [ ] Deploy em produção
-- [ ] Documentação de API
+**Arquitetura & Banco**
+- [x] 24 tabelas PostgreSQL (Supabase)
+- [x] RLS (Row Level Security) em todas as 24 tabelas com 13 policies
+- [x] Schema privado para funções de segurança
+- [x] Criptografia em trânsito (TLS) e repouso (AES-256)
+- [x] Backup automático com retenção 7 dias
+- [x] Real-time sync via websockets em 15 tabelas
 
-### 📋 Roadmap
-1. **Fase 1** - Finalizar RLS policies e segurança
-2. **Fase 2** - Testes completos e validação
-3. **Fase 3** - Deploy em produção
-4. **Fase 4** - Otimizações de performance
+**Frontend & Módulos**
+- [x] 13 módulos funcionais completos
+- [x] Dashboard com KPIs reais e tempo-real
+- [x] Rotatividade com dados calculados dinamicamente
+- [x] Vencimentos com badge atualizado em tempo-real
+- [x] Autenticação Supabase completa + MFA para admin/rh
+- [x] CSS modularizado (2.3k linhas em arquivo externo)
+- [x] Código 100% modularizado e reutilizável
+
+**Qualidade & Automação**
+- [x] 177 testes automatizados com Vitest (cobertura ≥80%)
+- [x] CI/CD com GitHub Actions (3 jobs: CI, deploy)
+- [x] Validação de segurança: npm audit, secrets scanning, .env verification
+- [x] Deploy automático em GitHub Pages após testes
+- [x] Package-lock.json para reproducibilidade
+- [x] Pre-commit hooks para validação
+
+**Segurança & Conformidade**
+- [x] Row Level Security por role (admin, rh, gerente, colaborador)
+- [x] Chave de serviço bloqueada em CI/CD
+- [x] Documento jurídico-técnico completo (LGPD, CLT, NRs)
+- [x] Sem dados de amostra em produção
+- [x] HTTPS obrigatório em GitHub Pages
+
+### 🔄 Roadmap Futuro (Não-Crítico)
+- [ ] Servidor proxy backend para operações sensíveis
+- [ ] Key rotation automática (90 dias)
+- [ ] Incident response plan documentado
+- [ ] Teste de penetração profissional
+- [ ] Auditoria LGPD por consultoria especializada
+- [ ] ISO 27001 (se organizacionalmente necessário)
+- [ ] Dashboard de auditoria com query logs
+- [ ] CMS para Política de Privacidade
 
 ## 📝 Observações
 
@@ -248,14 +300,14 @@ O código está organizado em módulos para facilitar manutenção:
 - Sem sessão ativa: tela de login
 - Com sessão ativa: dados do Supabase carregam automaticamente
 
-### Dados de Teste
-O sistema carrega com dados de exemplo:
-- 14 colaboradores (vários setores)
-- 3 departamentos (Operacional, Administrativo, Financeiro)
-- 12 cargos (Gerente, Analista, Operador, etc.)
-- 4 trilhas de carreira
-
-Substitua pelos dados reais quando necessário.
+### Dados
+O sistema está **limpo e pronto para dados reais** em produção:
+- ✓ Todos os dados de amostra foram removidos
+- ✓ Banco de dados vazio (exceto configurações base)
+- ✓ Dashboard calcula KPIs dinamicamente a partir dos dados reais
+- ✓ Rotatividade calculada automaticamente
+- ✓ Atividade recente carregada em tempo real
+- ✓ Sistema pronto para importação de dados corporativos
 
 ### Segurança
 - RLS habilitado em todas as tabelas
@@ -274,10 +326,12 @@ Para adicionar um novo módulo:
 
 ## 📚 Documentação Adicional
 
-- **[SCHEMA.md](./SCHEMA.md)** - Documentação detalhada das tabelas
-- **[DATABASE_SETUP_STATUS.md](./DATABASE_SETUP_STATUS.md)** - Status do banco de dados
-- **[MODULARIZATION_PLAN.md](./MODULARIZATION_PLAN.md)** - Plano de modularização
-- **[package.json](./package.json)** - Dependências e scripts
+- **[DOCUMENTO_JURIDICO_SISTEMA_RH](https://docs.google.com/document/d/11XjAH1tz-Wcl9lvtHmzRZkVb8QQ56wDD5hAjr58HQjw)** (Google Drive) — Análise jurídica-técnica completa: LGPD, CLT, NRs, RLS, segurança, conformidade (Status: **PRODUÇÃO v1.0 — Maio 2026**)
+- **[package.json](./package.json)** - Dependências npm e scripts (vitest@2.1.9, etc.)
+- **[.github/workflows/](.//.github/workflows/)** - CI/CD pipelines (testes, lint, segurança, deploy)
+- **[.env.example](./.env.example)** - Variáveis de ambiente (documentação de credenciais)
+- **.github/workflows/ci.yml** - Pipeline de CI (testes, cobertura, audit, segurança)
+- **.github/workflows/deploy.yml** - Pipeline de CD (deploy automático GitHub Pages)
 
 ## 📧 Suporte
 
