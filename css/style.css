@@ -83,7 +83,7 @@ body {
   align-items: center;
   gap: 12px;
   color: var(--on-dark);
-  width: calc(var(--sidebar-w) - 24px);
+  flex-shrink: 0;
 }
 
 .topbar-brand .logo-mark {
@@ -91,11 +91,12 @@ body {
   display: grid;
   place-items: center;
   background: var(--phthalo-bright);
-  color: var(--phthalo-deep);
+  color: #fff;
   border-radius: 8px;
   font-weight: 800;
   font-size: .9rem;
   letter-spacing: .04em;
+  flex-shrink: 0;
 }
 
 .topbar-brand .logo-text {
