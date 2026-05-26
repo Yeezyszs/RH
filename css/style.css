@@ -87,14 +87,14 @@ body {
 }
 
 .topbar-brand .logo-mark {
-  width: 32px; height: 32px;
+  width: 40px; height: 40px;
   display: grid;
   place-items: center;
   background: var(--phthalo-bright);
   color: #fff;
   border-radius: 8px;
   font-weight: 800;
-  font-size: .9rem;
+  font-size: 1rem;
   letter-spacing: .04em;
   flex-shrink: 0;
 }
