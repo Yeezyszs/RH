@@ -103,6 +103,7 @@ body {
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .topbar-brand .logo-text span {
@@ -143,6 +144,8 @@ body {
   border-radius: 24px;
   color: var(--on-dark);
   font-size: .82rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .user-chip .avatar {
@@ -156,7 +159,10 @@ body {
   font-size: .75rem;
 }
 
-.user-chip .user-name { font-weight: 600; }
+.user-chip .user-name {
+  font-weight: 600;
+  white-space: nowrap;
+}
 
 .user-chip .user-role {
   font-family: var(--mono);
@@ -164,6 +170,7 @@ body {
   color: var(--on-dark-dim);
   text-transform: uppercase;
   letter-spacing: .08em;
+  white-space: nowrap;
 }
 
 .btn-logout {
