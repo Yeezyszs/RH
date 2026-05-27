@@ -185,8 +185,8 @@
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-label">Headcount ativo</div>
-          <div class="kpi-value" id="dash-kpi-headcount">142</div>
-          <div class="kpi-trend up" id="dash-kpi-headcount-trend">↑ 3 vs. mês anterior</div>
+          <div class="kpi-value" id="dash-kpi-headcount">—</div>
+          <div class="kpi-trend up" id="dash-kpi-headcount-trend">carregando…</div>
         </div>
         <div class="kpi-card kpi-warn">
           <div class="kpi-label">Rotatividade 30d</div>
@@ -195,13 +195,13 @@
         </div>
         <div class="kpi-card kpi-success">
           <div class="kpi-label">Aniversariantes do mês</div>
-          <div class="kpi-value" id="dash-kpi-aniv">9</div>
-          <div class="kpi-trend" id="dash-kpi-aniv-trend">3 nesta semana</div>
+          <div class="kpi-value" id="dash-kpi-aniv">—</div>
+          <div class="kpi-trend" id="dash-kpi-aniv-trend">carregando…</div>
         </div>
         <div class="kpi-card kpi-danger">
           <div class="kpi-label">Vencimentos críticos</div>
-          <div class="kpi-value" id="dash-kpi-venc">7</div>
-          <div class="kpi-trend down" id="dash-kpi-venc-trend">2 já vencidos</div>
+          <div class="kpi-value" id="dash-kpi-venc">—</div>
+          <div class="kpi-trend down" id="dash-kpi-venc-trend">carregando…</div>
         </div>
       </div>
 
@@ -214,31 +214,7 @@
             <span class="widget-badge danger" id="dash-alerts-badge">7 itens</span>
           </div>
           <ul class="alert-list" id="dash-alerts-list">
-            <li class="alert-item">
-              <span class="alert-dot danger"></span>
-              <span class="alert-text"><strong>ASO de José Silva</strong> venceu há 3 dias</span>
-              <span class="alert-meta">19/04</span>
-            </li>
-            <li class="alert-item">
-              <span class="alert-dot danger"></span>
-              <span class="alert-text"><strong>CNH de Pedro Souza</strong> vencida</span>
-              <span class="alert-meta">14/04</span>
-            </li>
-            <li class="alert-item">
-              <span class="alert-dot warn"></span>
-              <span class="alert-text"><strong>ASO de Maria Santos</strong> vence em 4 dias</span>
-              <span class="alert-meta">26/04</span>
-            </li>
-            <li class="alert-item">
-              <span class="alert-dot warn"></span>
-              <span class="alert-text"><strong>Treinamento NR-10</strong> de 3 colaboradores vence em 7 dias</span>
-              <span class="alert-meta">29/04</span>
-            </li>
-            <li class="alert-item">
-              <span class="alert-dot info"></span>
-              <span class="alert-text"><strong>Retorno de férias</strong> de Ana Costa</span>
-              <span class="alert-meta">25/04</span>
-            </li>
+            <li style="padding:12px; color:var(--text-soft); font-size:.85rem">Carregando…</li>
           </ul>
         </div>
 
@@ -248,30 +224,7 @@
             <span class="widget-badge success" id="dash-bday-badge">3</span>
           </div>
           <ul class="bday-list" id="dash-bday-list">
-            <li class="bday-item">
-              <div class="bday-avatar">JS</div>
-              <div class="bday-name">
-                João Silveira
-                <div class="bday-role">Produção · Op. Máquina</div>
-              </div>
-              <div class="bday-date">23/04</div>
-            </li>
-            <li class="bday-item">
-              <div class="bday-avatar">MP</div>
-              <div class="bday-name">
-                Marcela Pinto
-                <div class="bday-role">Administrativo · Analista</div>
-              </div>
-              <div class="bday-date">25/04</div>
-            </li>
-            <li class="bday-item">
-              <div class="bday-avatar">RF</div>
-              <div class="bday-name">
-                Rafael Fernandes
-                <div class="bday-role">Produção · Motorista</div>
-              </div>
-              <div class="bday-date">27/04</div>
-            </li>
+            <li style="padding:12px; color:var(--text-soft); font-size:.85rem">Carregando…</li>
           </ul>
         </div>
 
@@ -457,9 +410,6 @@
       <div class="toolbar">
         <select id="rot-filter-setor">
           <option value="">Todos os setores</option>
-          <option>Produção</option>
-          <option>Administrativo</option>
-          <option>Área Externa</option>
         </select>
         <select id="rot-filter-sexo">
           <option value="">Ambos os sexos</option>
@@ -929,9 +879,6 @@
         </div>
         <select id="vale-filter-setor">
           <option value="">Todos os setores</option>
-          <option>Produção</option>
-          <option>Administrativo</option>
-          <option>Área Externa</option>
         </select>
         <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalCotas()">⚙ Cotas</button>
         <button class="btn" type="button" onclick="abrirModalValeLancamento()">+ Novo lançamento</button>
@@ -1009,9 +956,6 @@
         </div>
         <select id="va-filter-setor">
           <option value="">Todos os setores</option>
-          <option>Produção</option>
-          <option>Administrativo</option>
-          <option>Área Externa</option>
         </select>
         <select id="va-filter-tipo">
           <option value="">Todos os tipos</option>
@@ -1092,9 +1036,6 @@
         </div>
         <select id="fer-filter-setor">
           <option value="">Todos os setores</option>
-          <option>Produção</option>
-          <option>Administrativo</option>
-          <option>Área Externa</option>
         </select>
         <select id="fer-filter-status">
           <option value="">Qualquer status</option>
@@ -1205,9 +1146,6 @@
         </div>
         <select id="sal-filter-setor">
           <option value="">Todos os setores</option>
-          <option>Produção</option>
-          <option>Administrativo</option>
-          <option>Área Externa</option>
         </select>
         <select id="sal-filter-faixa">
           <option value="">Todas as faixas</option>
@@ -1419,9 +1357,6 @@
           </div>
           <select id="fb-filter-setor">
             <option value="">Todos os setores</option>
-            <option>Produção</option>
-            <option>Administrativo</option>
-            <option>Área Externa</option>
           </select>
           <button class="btn" type="button" onclick="abrirModalFeedback()">+ Registrar feedback</button>
         </div>

@@ -177,6 +177,8 @@ async function inicializarSupabase() {
       }
     }
 
+    popularFiltrosSetor();
+
     if (typeof renderColaboradores  === 'function') renderColaboradores();
     if (typeof renderDesligamentos  === 'function') renderDesligamentos();
     if (typeof renderAdvertencias   === 'function') renderAdvertencias();
@@ -195,6 +197,17 @@ async function inicializarSupabase() {
   } catch (err) {
     console.warn('[RH] Erro ao carregar dados, usando mock:', err.message);
   }
+}
+
+function popularFiltrosSetor() {
+  const setores = [...new Set(COLABORADORES.map(c => c.setor).filter(Boolean))].sort();
+  const opts = setores.map(s => `<option value="${s}">${s}</option>`).join('');
+  const ids = ['rot-filter-setor', 'fer-filter-setor',
+               'vale-filter-setor', 'va-filter-setor', 'sal-filter-setor', 'fb-filter-setor'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<option value="">Todos os setores</option>${opts}`;
+  });
 }
 
 function setupRealTimeListeners() {
