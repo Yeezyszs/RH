@@ -58,8 +58,7 @@ function bootstrap() {
   const EPI_KITS         = window.EPI_KITS;
   const SALARIOS         = window.SALARIOS;
   const FAIXAS           = window.FAIXAS;
-  const ROT_MOCK         = window.ROT_MOCK;
-  const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
+const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const VALE_COTAS       = window.VALE_COTAS;
   const VA_BENEFICIOS    = window.VA_BENEFICIOS;
   const FEEDBACK         = window.FEEDBACK;

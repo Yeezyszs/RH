@@ -109,56 +109,56 @@ O sistema usa **Supabase (PostgreSQL)** com 24 tabelas organizadas por módulo:
 RH/
 ├── index.html                    # Interface SPA (HTML + layout)
 ├── supabase.js                   # Cliente Supabase e funções CRUD
+├── privacidade.html              # Página de Política de Privacidade
 ├── css/
-│   └── style.css                 # Estilos modularizados (2.3k linhas)
+│   └── style.css                 # Estilos (2.3k linhas)
 ├── src/
-│   ├── app.js                    # Inicialização + renderAll()
+│   ├── app.js                    # Bootstrap + injeção de dependências
 │   ├── constants.js              # Constantes globais
 │   ├── modules/                  # 13 módulos funcionais
-│   │   ├── colaboradores.js      # Gestão de colaboradores
-│   │   ├── ferias.js             # Controle de férias
-│   │   ├── rotatividade.js       # Turnover com dados reais
-│   │   ├── vencimentos.js        # ASOs, docs, treinamentos com badge tempo-real
-│   │   ├── vale-combustivel.js   # Benefício combustível
-│   │   ├── vale-alimentacao.js   # Benefício alimentação
-│   │   ├── feedback.js           # Feedbacks individuais
-│   │   ├── pesquisas_clima.js    # Pesquisas de clima
-│   │   ├── advertencias.js       # Registro de advertências
-│   │   ├── cronograma.js         # Calendário de eventos
-│   │   ├── epi.js                # EPIs e equipamentos
-│   │   ├── desligamentos.js      # Registro de desligamentos
-│   │   ├── salarios.js           # Folha de pagamento
-│   │   └── plano-carreiras.js    # Plano de carreiras
+│   │   ├── colaboradores.js
+│   │   ├── advertencias.js
+│   │   ├── ferias.js
+│   │   ├── desligamentos.js
+│   │   ├── vencimentos.js
+│   │   ├── epi.js
+│   │   ├── rotatividade.js
+│   │   ├── salarios.js
+│   │   ├── vale-combustivel.js
+│   │   ├── vale-alimentacao.js
+│   │   ├── feedback.js
+│   │   ├── cronograma.js
+│   │   └── plano-carreiras.js
 │   ├── ui/                       # Componentes reutilizáveis
-│   │   ├── modal.js              # Modais genéricos
-│   │   ├── table.js              # Tabelas paginadas
-│   │   ├── filters.js            # Filtros e busca
-│   │   └── pagination.js         # Controle de paginação
+│   │   ├── modal.js
+│   │   ├── table.js
+│   │   ├── filters.js
+│   │   └── pagination.js
 │   └── utils/
-│       ├── formatting.js         # Formatadores de dados (52+ funções)
-│       └── helpers.js            # Funções auxiliares
+│       └── formatting.js         # 52+ funções utilitárias
 ├── tests/                        # 177 testes automatizados
-│   ├── formatting.test.js        # Testes de formatação (52 testes)
-│   ├── rls-logic.test.js         # Testes de lógica RLS (33 testes)
-│   ├── mappers-extra.test.js     # Testes de mappers (30 testes)
-│   ├── mappers.test.js           # Testes de mapeadores (27 testes)
-│   ├── colaboradores.test.js     # Testes de colaboradores (15 testes)
-│   ├── timeout-retry.test.js     # Testes de resiliência (11 testes)
-│   ├── cache.test.js             # Testes de cache (9 testes)
-│   └── helpers.js                # Helpers para testes
+│   ├── formatting.test.js        # 52 testes
+│   ├── rls-logic.test.js         # 33 testes
+│   ├── mappers-extra.test.js     # 30 testes
+│   ├── mappers.test.js           # 27 testes
+│   ├── colaboradores.test.js     # 15 testes
+│   ├── timeout-retry.test.js     # 11 testes
+│   ├── cache.test.js             # 9 testes
+│   └── helpers.js
+├── database/
+│   ├── schema.sql                # Schema completo (24 tabelas)
+│   ├── schema.md                 # Documentação das tabelas
+│   └── migrations/               # 12 migrações SQL históricas
+├── docs/
+│   ├── POLITICA_PRIVACIDADE.md   # Política de Privacidade LGPD
+│   └── CHECKLIST_PROTECAO_DADOS.md
 ├── .github/workflows/
 │   ├── ci.yml                    # CI: testes, lint, segurança
 │   └── deploy.yml                # CD: deploy automático GitHub Pages
-├── package.json                  # Dependências (vitest@2.1.9, etc.)
-├── vitest.config.js              # Configuração de testes
-├── .env.example                  # Variáveis de ambiente (documentação)
-├── .gitignore                    # Arquivos ignorados
-├── README.md                     # Este arquivo
-├── DOCUMENTO_JURIDICO_*          # Análise de conformidade LGPD (Google Drive)
-└── database/                     # Documentação do banco
-    ├── schema.md                 # Documentação das 24 tabelas
-    ├── rls-policies.md           # Políticas de segurança por role
-    └── migrations/               # Scripts SQL de migração
+├── package.json
+├── vitest.config.js
+├── .env.example
+└── README.md
 ```
 
 ## 🚀 Como usar
@@ -327,11 +327,13 @@ Para adicionar um novo módulo:
 ## 📚 Documentação Adicional
 
 - **[DOCUMENTO_JURIDICO_SISTEMA_RH](https://docs.google.com/document/d/11XjAH1tz-Wcl9lvtHmzRZkVb8QQ56wDD5hAjr58HQjw)** (Google Drive) — Análise jurídica-técnica completa: LGPD, CLT, NRs, RLS, segurança, conformidade (Status: **PRODUÇÃO v1.0 — Maio 2026**)
-- **[package.json](./package.json)** - Dependências npm e scripts (vitest@2.1.9, etc.)
-- **[.github/workflows/](.//.github/workflows/)** - CI/CD pipelines (testes, lint, segurança, deploy)
-- **[.env.example](./.env.example)** - Variáveis de ambiente (documentação de credenciais)
-- **.github/workflows/ci.yml** - Pipeline de CI (testes, cobertura, audit, segurança)
-- **.github/workflows/deploy.yml** - Pipeline de CD (deploy automático GitHub Pages)
+- **[docs/POLITICA_PRIVACIDADE.md](./docs/POLITICA_PRIVACIDADE.md)** — Política de Privacidade LGPD completa (21 seções)
+- **[docs/CHECKLIST_PROTECAO_DADOS.md](./docs/CHECKLIST_PROTECAO_DADOS.md)** — Checklist de implementação LGPD (7 fases)
+- **[database/schema.md](./database/schema.md)** — Documentação das 24 tabelas
+- **[database/schema.sql](./database/schema.sql)** — Schema completo do banco
+- **[database/migrations/](./database/migrations/)** — 12 migrações SQL
+- **[.github/workflows/ci.yml](./.github/workflows/ci.yml)** — Pipeline de CI (testes, cobertura, audit, segurança)
+- **[.github/workflows/deploy.yml](./.github/workflows/deploy.yml)** — Pipeline de CD (deploy automático GitHub Pages)
 
 ## 📧 Suporte
 

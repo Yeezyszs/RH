@@ -3472,15 +3472,6 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
   const PARENTESCO_OPTS = ['Cônjuge','Mãe','Pai','Filho(a)','Irmã','Irmão','Avó','Avô','Tio(a)','Amigo(a)','Outro'];
   /* ════════════════════════════════════════════════
-     ROTATIVIDADE — mock + charts + tabela
-     ════════════════════════════════════════════════ */
-
-  // Mock de 12 meses (mais antigo → mais recente). Substituir por agregação do Supabase.
-  const ROT_MOCK = {
-    labels: [], admissoes: [], desligad: [], taxa: [], motivos: [], movimentacoesRecentes: [],
-  };
-
-  /* ════════════════════════════════════════════════
      DESLIGAMENTOS — mock + render + drawer + modais
      ════════════════════════════════════════════════ */
 
@@ -3589,8 +3580,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
   window.EPI_KITS           = EPI_KITS;
   window.SALARIOS           = SALARIOS;
   window.FAIXAS             = FAIXAS;
-  window.ROT_MOCK           = ROT_MOCK;
-  window.PC_PLANOS          = PC_PLANOS;
+window.PC_PLANOS          = PC_PLANOS;
   window.PC_CARGOS          = PC_CARGOS;
   window.VALE_LANCAMENTOS   = VALE_LANCAMENTOS;
   window.VALE_COTAS         = VALE_COTAS;
