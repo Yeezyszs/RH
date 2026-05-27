@@ -4,25 +4,9 @@
 /* global Chart, COLABORADORES, DESLIGAMENTOS, ADVERTENCIAS, FERIAS, VENCIMENTOS, CHART_COLORS */
 
 // ─── Helpers locais ──────────────────────────────────────────────────────────
+// h(), diasAte(), fmtBRL() vêm de src/utils/base.js (carregado antes)
 
 function $(sel) { return document.querySelector(sel); }
-
-// Inline duplicate de h() de formatting.js — necessário antes de app.js carregar
-function h(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
-  );
-}
-
-// Inline duplicate de diasAte() de formatting.js — necessário antes de app.js carregar
-function diasAte(isoVenc) {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  return Math.round((new Date(isoVenc + 'T00:00:00') - hoje) / 86400000);
-}
-
-function fmtBRL(n) {
-  return (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
 
 // ─── Navegação SPA ───────────────────────────────────────────────────────────
 

@@ -13,7 +13,7 @@ Interface profissional de RH com:
 - **Dashboard com KPIs reais:** headcount, rotatividade calculada, atividade recente, vencimentos críticos
 - **Dados em tempo real via Supabase** com sincronização via websockets
 - **Row Level Security (RLS)** por perfil de acesso em todas as 24 tabelas
-- **Código 100% modularizado** com CSS separado
+- **Código 100% modularizado** — JS por domínio (`src/api/`), CSS por responsabilidade (`css/`)
 - **177 testes automatizados** com cobertura ≥80%
 - **CI/CD automático:** GitHub Actions com testes, lint, segurança e deploy
 - **Deploy automático** em GitHub Pages após validação
@@ -108,14 +108,28 @@ O sistema usa **Supabase (PostgreSQL)** com 24 tabelas organizadas por módulo:
 ```
 RH/
 ├── index.html                    # Interface SPA (HTML + layout)
-├── supabase.js                   # Cliente Supabase e funções CRUD
+├── supabase.js                   # Cliente Supabase, Auth e mappers (~200 linhas)
 ├── privacidade.html              # Página de Política de Privacidade
 ├── css/
-│   └── style.css                 # Estilos (2.3k linhas)
+│   ├── style.css                 # Entry point — importa os 5 módulos abaixo
+│   ├── tokens.css                # Variáveis CSS (:root) + reset + body
+│   ├── layout.css                # Topbar, sidebar, main, sistema de páginas
+│   ├── components.css            # Dashboard KPIs, toolbar, botões, tabela, modal, drawer, formulários
+│   ├── pages.css                 # Quadro, cronograma, férias, toast, popup, abas
+│   └── login.css                 # Tela de login
 ├── src/
-│   ├── app.js                    # Bootstrap + injeção de dependências
+│   ├── app.js                    # Bootstrap + injeção de dependências (ES module)
+│   ├── data-store.js             # Arrays e objetos globais compartilhados (var)
+│   ├── dashboard.js              # Navegação SPA, renderização do dashboard, toast
+│   ├── auth.js                   # Login, logout, verificação de sessão
+│   ├── api/                      # Camada de dados Supabase (plain scripts)
+│   │   ├── pessoas.js            # Colaboradores, Departamentos, Cargos, Histórico, Desligamentos, Rotatividade
+│   │   ├── compliance.js         # Vencimentos, Epis, Treinamentos
+│   │   ├── beneficios.js         # Férias, Salários, ValeCombustível, ValeAlimentação
+│   │   ├── gestao.js             # Advertências, FeedbackClima, RespostasPesquisa, Cronograma, Dashboard, PlanoCarreiras
+│   │   └── init.js               # inicializarSupabase, setupRealTimeListeners, window.*
 │   ├── constants.js              # Constantes globais
-│   ├── modules/                  # 13 módulos funcionais
+│   ├── modules/                  # 13 módulos de renderização (ES modules)
 │   │   ├── colaboradores.js
 │   │   ├── advertencias.js
 │   │   ├── ferias.js
@@ -135,7 +149,8 @@ RH/
 │   │   ├── filters.js
 │   │   └── pagination.js
 │   └── utils/
-│       └── formatting.js         # 52+ funções utilitárias
+│       ├── base.js               # h(), diasAte(), fmtBRL() — plain script (pré-módulo)
+│       └── formatting.js         # 52+ funções utilitárias (ES module)
 ├── tests/                        # 177 testes automatizados
 │   ├── formatting.test.js        # 52 testes
 │   ├── rls-logic.test.js         # 33 testes
