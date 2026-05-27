@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ── Phthalo Blue ── */
+  --phthalo-deep:   #061A30;   /* mais escuro — topbar sombra */
+  --phthalo-dark:   #0A2540;   /* sidebar base */
+  --phthalo:        #123E6B;   /* primário — topbar, botões */
+  --phthalo-mid:    #1C558F;   /* hover ativo */
+  --phthalo-light:  #2E7AB8;   /* acento */
+  --phthalo-bright: #4A9FD6;   /* highlight, focus */
+
+  /* ── Bluish White ── */
+  --bluish-bg:      #EEF3F8;   /* fundo body */
+  --bluish-soft:    #E3EBF3;   /* hover linha */
+  --bluish-card:    #F7FAFC;   /* card elevado */
+  --white:          #FFFFFF;   /* surface pura */
+
+  /* ── Texto ── */
+  --text:           #0A1929;
+  --text-muted:     #5A6B7C;
+  --text-soft:      #8A98A8;
+  --on-dark:        #EEF3F8;           /* texto sobre sidebar */
+  --on-dark-dim:    rgba(238,243,248,.62);
+  --on-dark-faint:  rgba(238,243,248,.08);
+
+  /* ── Borders ── */
+  --border:         #D8E2EC;
+  --border-soft:    #E8EEF4;
+  --border-dark:    rgba(255,255,255,.08);
+
+  /* ── Status ── */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger:  #EF4444;
+  --info:    #3B82F6;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 2px rgba(10,37,64,.06);
+  --shadow:    0 4px 12px rgba(10,37,64,.08);
+  --shadow-lg: 0 10px 30px rgba(10,37,64,.12);
+
+  /* ── Fontes ── */
+  --font: 'Syne', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ── Sizes ── */
+  --topbar-h:  60px;
+  --sidebar-w: 248px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font);
+  background: var(--bluish-bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
