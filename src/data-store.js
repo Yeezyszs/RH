@@ -19,10 +19,12 @@ var VALE_COTAS     = {};
 var VALE_LANCAMENTOS = [];
 var VA_BENEFICIOS  = {};
 var SALARIOS       = {};
-var FEEDBACK       = [];
-var CLIMA          = [];
-var PC_CARGOS      = [];
-var PC_PLANOS      = {};
+var FEEDBACK         = [];
+var CLIMA            = [];
+var PC_CARGOS        = [];
+var PC_PLANOS        = {};
+var ROTATIVIDADE     = [];
+var VALE_ALIMENTACAO = [];
 
 var PARENTESCO_OPTS = ['Cônjuge','Mãe','Pai','Filho(a)','Irmã','Irmão','Avó','Avô','Tio(a)','Amigo(a)','Outro'];
 
@@ -64,5 +66,7 @@ window.FEEDBACK         = FEEDBACK;
 window.CLIMA            = CLIMA;
 window.PC_CARGOS        = PC_CARGOS;
 window.PC_PLANOS        = PC_PLANOS;
+window.ROTATIVIDADE     = ROTATIVIDADE;
+window.VALE_ALIMENTACAO = VALE_ALIMENTACAO;
 window.CHART_COLORS     = CHART_COLORS;
 window.PARENTESCO_OPTS  = PARENTESCO_OPTS;
