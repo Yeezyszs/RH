@@ -143,6 +143,16 @@
       line-height: 1.5;
     }
 
+    /* Reseta o estilo de code inline quando dentro de um bloco pre,
+       senão o fundo claro do code se sobrepõe ao texto claro do pre. */
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+
     .diagram {
       background: white;
       border: 2px solid #667eea;
@@ -652,19 +662,19 @@ window.COLABORADORES = COLABORADORES;</code></pre>
   const filtroSetor = document.getElementById('colab-filter-setor').value || '';
 
   // 2. Filtrar
-  const filtered = window.COLABORADORES.filter(c => {
-    if (filtroSetor && c.setor !== filtroSetor) return false;
+  const filtered = window.COLABORADORES.filter(c =&gt; {
+    if (filtroSetor &amp;&amp; c.setor !== filtroSetor) return false;
     return true;
   });
 
   // 3. Renderizar tabela
   const tbody = document.getElementById('tb-colaboradores');
-  tbody.innerHTML = filtered.map(c => `
-    <tr onclick="abrirDrawerColab(${c.id})">
-      <td>${this.h(c.nome)}</td>
-      <td>${this.h(c.setor)}</td>
-      <td>${this.fmtDate(c.data_admissao)}</td>
-    </tr>
+  tbody.innerHTML = filtered.map(c =&gt; `
+    &lt;tr onclick="abrirDrawerColab(${c.id})"&gt;
+      &lt;td&gt;${this.h(c.nome)}&lt;/td&gt;
+      &lt;td&gt;${this.h(c.setor)}&lt;/td&gt;
+      &lt;td&gt;${this.fmtDate(c.data_admissao)}&lt;/td&gt;
+    &lt;/tr&gt;
   `).join('');
 }</code></pre>
     </section>
