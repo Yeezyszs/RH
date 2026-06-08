@@ -1,7 +1,68 @@
-// API — Pessoas
-// Depende de: sb, withTimeout, withRetry, Cache, mapColaborador, mapDesligamento (supabase.js)
+/**
+ * API — Pessoas
+ *
+ * Módulo de CRUD para todas as operações relacionadas a colaboradores, departamentos,
+ * cargos, histórico de colaboradores e desligamentos.
+ *
+ * Depende de: sb, withTimeout, withRetry, Cache (supabase.js)
+ *
+ * 📚 GUIA DE USO:
+ *
+ * 1. LISTAR colaboradores
+ *    const resultado = await Colaboradores.listar({ page: 1, limit: 50 });
+ *    resultado.data = array de colaboradores
+ *    resultado.total = quantos colaboradores existem no total
+ *
+ * 2. BUSCAR um colaborador por ID
+ *    const colab = await Colaboradores.buscar(42);
+ *
+ * 3. CRIAR um novo colaborador
+ *    const novo = await Colaboradores.criar({ nome: 'João', email: 'joao@...' });
+ *    novo.id = novo ID gerado no banco
+ *
+ * 4. ATUALIZAR um colaborador
+ *    const atualizado = await Colaboradores.atualizar(42, { setor: 'Produção' });
+ *
+ * 5. DELETAR um colaborador
+ *    await Colaboradores.excluir(42);
+ */
 
+/**
+ * Colaboradores — Gerencia dados de colaboradores (funcionários)
+ *
+ * @typedef {Object} Colaborador
+ * @property {number} id
+ * @property {string} nome
+ * @property {string} cpf
+ * @property {string} email
+ * @property {string} setor — Nome do setor (Produção, Admin, etc)
+ * @property {string} cargo — Nome do cargo
+ * @property {string} status — 'ativo', 'férias', 'afastado', 'inativo'
+ * @property {string} data_admissao — ISO format: '2024-01-15'
+ */
 const Colaboradores = {
+  /**
+   * LISTAR colaboradores com paginação e filtros
+   *
+   * @param {Object} options
+   * @param {number} options.page - Página (padrão: 1)
+   * @param {number} options.limit - Itens por página (padrão: 100)
+   * @param {string} options.busca - Filtro por nome (ex: 'João')
+   * @param {string} options.status - Filtro por status (ex: 'ativo')
+   * @param {string} options.setor - Filtro por setor
+   *
+   * @returns {Promise<{data: Colaborador[], total: number, totalPages: number}>}
+   *
+   * @example
+   * // Listar primeira página com 50 colaboradores
+   * const resultado = await Colaboradores.listar({ page: 1, limit: 50 });
+   * console.log(resultado.data);     // [{ id: 1, nome: 'João', ... }, ...]
+   * console.log(resultado.total);    // 250 (total de colaboradores)
+   * console.log(resultado.totalPages); // 5 (250 / 50)
+   *
+   * // Buscar colaboradores de um setor
+   * const produção = await Colaboradores.listar({ setor: 'Produção' });
+   */
   async listar({ page = 1, limit = 100, busca = '', status = '', setor = '' } = {}) {
     const cacheKey = `colaboradores_${page}_${limit}_${busca}_${status}_${setor}`;
     const cached = Cache.get(cacheKey);
@@ -39,6 +100,24 @@ const Colaboradores = {
     return result;
   },
 
+  /**
+   * BUSCAR um colaborador por ID
+   *
+   * Traz TODOS os dados de um único colaborador, incluindo relacionamentos.
+   * Resultado é cacheado localmente (localStorage) para evitar requisições repetidas.
+   *
+   * @param {number} id - ID do colaborador a buscar
+   * @returns {Promise<Colaborador>} Dados completos do colaborador
+   *
+   * @example
+   * // Buscar colaborador com ID 42
+   * const joao = await Colaboradores.buscar(42);
+   * console.log(joao.nome);     // 'João Silva'
+   * console.log(joao.email);    // 'joao@empresa.com'
+   * console.log(joao.setor);    // 'Produção'
+   *
+   * @throws {Error} Se colaborador não encontrado
+   */
   async buscar(id) {
     const cacheKey = `colaborador_${id}`;
     const cached = Cache.get(cacheKey);
@@ -57,6 +136,44 @@ const Colaboradores = {
     return result;
   },
 
+  /**
+   * CRIAR um novo colaborador
+   *
+   * Envia dados para o Supabase e retorna o novo colaborador com ID gerado.
+   *
+   * 🔄 FLUXO:
+   * 1. Dados enviados via HTTP POST para o Supabase
+   * 2. PostgreSQL executa INSERT
+   * 3. Novo ID é gerado automaticamente
+   * 4. Registro completo retorna ao JavaScript
+   * 5. Array global COLABORADORES é atualizado
+   * 6. Tabela re-renderizada
+   *
+   * @param {Object} payload - Dados do novo colaborador
+   * @param {string} payload.nome - Nome completo
+   * @param {string} payload.cpf - CPF (formato: '123.456.789-00')
+   * @param {string} payload.email - Email corporativo
+   * @param {string} payload.setor - Setor (ex: 'Produção')
+   * @param {string} payload.cargo - Cargo
+   * @param {string} payload.data_admissao - Data de admissão (ISO: '2024-01-15')
+   *
+   * @returns {Promise<Colaborador>} Novo colaborador com ID gerado
+   *
+   * @example
+   * // Criar novo colaborador
+   * const novo = await Colaboradores.criar({
+   *   nome: 'João Silva',
+   *   cpf: '123.456.789-00',
+   *   email: 'joao@empresa.com',
+   *   setor: 'Produção',
+   *   cargo: 'Operador',
+   *   data_admissao: '2026-01-15'
+   * });
+   * console.log(novo.id);    // 42 (novo ID gerado pelo banco)
+   * console.log(novo.nome);  // 'João Silva'
+   *
+   * @throws {Error} Se validação falhar (ex: email duplicado)
+   */
   async criar(payload) {
     const { data, error } = await withTimeout(
       sb.from('colaboradores').insert(payload).select().single()
@@ -66,6 +183,43 @@ const Colaboradores = {
     return mapColaborador(data);
   },
 
+  /**
+   * ATUALIZAR um colaborador
+   *
+   * Modifica um ou mais campos de um colaborador existente.
+   *
+   * 🔄 FLUXO:
+   * 1. Dados enviados via HTTP PATCH para o Supabase
+   * 2. PostgreSQL executa UPDATE com WHERE id=X
+   * 3. Registro atualizado retorna ao JavaScript
+   * 4. Array global COLABORADORES tem item substituído
+   * 5. Tabela re-renderizada
+   *
+   * @param {number} id - ID do colaborador a atualizar
+   * @param {Object} payload - Campos a atualizar (apenas os que mudam)
+   * @param {string} [payload.setor] - Novo setor
+   * @param {string} [payload.cargo] - Novo cargo
+   * @param {string} [payload.status] - Novo status (ativo/férias/inativo/afastado)
+   * @param {string} [payload.email] - Novo email
+   *
+   * @returns {Promise<Colaborador>} Colaborador atualizado
+   *
+   * @example
+   * // Atualizar setor de um colaborador
+   * const atualizado = await Colaboradores.atualizar(42, {
+   *   setor: 'Administrativo'
+   * });
+   * console.log(atualizado.setor); // 'Administrativo'
+   *
+   * // Atualizar múltiplos campos de uma vez
+   * const multi = await Colaboradores.atualizar(42, {
+   *   setor: 'Administrativo',
+   *   cargo: 'Supervisor',
+   *   status: 'ativo'
+   * });
+   *
+   * @throws {Error} Se colaborador não encontrado
+   */
   async atualizar(id, payload) {
     const { data, error } = await withTimeout(
       sb.from('colaboradores').update(payload).eq('id', id).select().single()
@@ -76,6 +230,32 @@ const Colaboradores = {
     return mapColaborador(data);
   },
 
+  /**
+   * EXCLUIR um colaborador
+   *
+   * Remove permanentemente um colaborador do banco de dados.
+   * Esta é uma operação irreversível — confirme com o usuário antes de executar!
+   *
+   * 🔄 FLUXO:
+   * 1. Dados enviados via HTTP DELETE para o Supabase
+   * 2. PostgreSQL executa DELETE WHERE id=X
+   * 3. Linha é removida do banco (sem retorno)
+   * 4. Array global COLABORADORES tem item removido (filter)
+   * 5. Tabela re-renderizada (linha desaparece)
+   *
+   * @param {number} id - ID do colaborador a deletar
+   * @returns {Promise<void>} Sem retorno (apenas confirma sucesso)
+   *
+   * @example
+   * // Deletar um colaborador
+   * if (confirm('Tem certeza que deseja deletar?')) {
+   *   await Colaboradores.excluir(42);
+   *   // Colaborador 42 foi removido do banco
+   *   // Tabela atualiza automaticamente
+   * }
+   *
+   * @throws {Error} Se colaborador não encontrado ou erro na operação
+   */
   async excluir(id) {
     const { error } = await withTimeout(
       sb.from('colaboradores').delete().eq('id', id)
