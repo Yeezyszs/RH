@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎓 Aula Completa - Sistema RH</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.8;
+      color: #333;
+      background: #f5f5f5;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 60px 40px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 3em;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      font-size: 1.2em;
+      opacity: 0.9;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      background: white;
+      border-bottom: 3px solid #667eea;
+      padding: 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    nav a {
+      display: block;
+      padding: 15px 20px;
+      text-decoration: none;
+      color: #667eea;
+      font-weight: 500;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    nav a:hover {
+      border-bottom-color: #667eea;
+      background: #f5f5f5;
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+
+    section {
+      margin-bottom: 50px;
+      page-break-inside: avoid;
+    }
+
+    h2 {
+      color: #667eea;
+      font-size: 2em;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+
+    h3 {
+      color: #764ba2;
+      font-size: 1.4em;
+      margin-top: 25px;
+      margin-bottom: 15px;
+    }
+
+    .card {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+
+    .card.success {
+      border-left-color: #28a745;
+      background: #e8f5e9;
+    }
+
+    .card.warning {
+      border-left-color: #ffc107;
+      background: #fff8e1;
+    }
+
+    .card.danger {
+      border-left-color: #dc3545;
+      background: #ffebee;
+    }
+
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+
+    pre {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin-bottom: 20px;
+      font-size: 0.85em;
+      line-height: 1.5;
+    }
+
+    .diagram {
+      background: white;
+      border: 2px solid #667eea;
+      padding: 20px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-family: monospace;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    th {
+      background: #667eea;
+      color: white;
+      padding: 12px;
+      text-align: left;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    tr:hover {
+      background: #f5f5f5;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      nav ul {
+        flex-direction: column;
+      }
+
+      header {
+        padding: 40px 20px;
+      }
+
+      header h1 {
+        font-size: 2em;
+      }
+
+      main {
+        padding: 20px;
+      }
+    }
+
+    @media print {
+      nav {
+        display: none;
+      }
+
+      section {
+        page-break-inside: avoid;
+      }
+
+      pre {
+        page-break-inside: avoid;
+      }
+
+      .card {
+        page-break-inside: avoid;
+      }
+    }
+
+    .icon {
+      font-size: 1.5em;
+      margin-right: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      margin-right: 5px;
+      margin-bottom: 10px;
+    }
+
+    .badge.success { background: #28a745; }
+    .badge.warning { background: #ffc107; }
+    .badge.danger { background: #dc3545; }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 15px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    strong {
+      color: #667eea;
+    }
+
+    .highlight {
+      background: #fff3cd;
+      padding: 20px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+
+    footer {
+      background: #f5f5f5;
+      text-align: center;
+      padding: 20px;
+      border-top: 1px solid #ddd;
+      margin-top: 50px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎓 AULA COMPLETA</h1>
+    <p>Sistema de Gestão de Recursos Humanos (SPA)</p>
+    <p style="font-size: 0.9em; margin-top: 10px;">Uma aula prática sobre JavaScript, Supabase e Arquitetura de Software</p>
+  </header>
+
+  <nav>
+    <ul>
+      <li><a href="#visao-geral">Visão Geral</a></li>
+      <li><a href="#conceitos">Conceitos</a></li>
+      <li><a href="#inicializacao">Inicialização</a></li>
+      <li><a href="#camadas">Camadas</a></li>
+      <li><a href="#padroes">Padrões</a></li>
+      <li><a href="#exemplos">Exemplos</a></li>
+      <li><a href="#fluxo">Fluxo de Dados</a></li>
+      <li><a href="#nova-funcionalidade">Nova Funcionalidade</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <!-- VISÃO GERAL -->
+    <section id="visao-geral">
+      <h2>🏛️ VISÃO GERAL E ARQUITETURA</h2>
+
+      <h3>O que é uma SPA?</h3>
+      <p><strong>SPA</strong> = <strong>Single Page Application</strong> (Aplicação de Página Única)</p>
+
+      <div class="card">
+        <ul>
+          <li>Um único arquivo HTML (<code>index.html</code>)</li>
+          <li>Todo conteúdo já está no HTML (oculto com CSS)</li>
+          <li>Não há recarga de página — tudo é feito com JavaScript</li>
+          <li>Navegação entre "páginas" é apenas CSS show/hide</li>
+        </ul>
+      </div>
+
+      <h3>Seu Sistema é Diferente?</h3>
+      <p><strong>Sim!</strong> Seu sistema é uma SPA <strong>sem framework</strong>:</p>
+
+      <div class="grid-2">
+        <div class="card danger">
+          <strong>❌ NÃO usa:</strong>
+          <ul style="margin-top: 10px;">
+            <li>React</li>
+            <li>Vue</li>
+            <li>Angular</li>
+            <li>Next.js</li>
+          </ul>
+        </div>
+
+        <div class="card success">
+          <strong>✅ USA:</strong>
+          <ul style="margin-top: 10px;">
+            <li>JavaScript vanilla (ES6+)</li>
+            <li>CSS Grid/Flexbox</li>
+            <li>Supabase (PostgreSQL + Auth)</li>
+            <li>Modules (import/export)</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Arquitetura em 3 Camadas</h3>
+
+      <div class="diagram">
+┌─────────────────────────────────────────────────────────────┐
+│              APRESENTAÇÃO (HTML + CSS + JS)                 │
+│  index.html (119 KB) + modules (13 files) + CSS (5 files)   │
+└─────────────────────────────────────────────────────────────┘
+                          △
+                          │
+                    window.* (globals)
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│              LÓGICA (Scripts)                               │
+│  app.js, dashboard.js, auth.js, api/                        │
+│  Gerencia estado, renderiza views, trata eventos            │
+└─────────────────────────────────────────────────────────────┘
+                          △
+                          │
+                   API REST (HTTP)
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│              DADOS (Supabase PostgreSQL)                    │
+│  18+ tabelas + RLS + Auth + Webhooks em tempo real          │
+└─────────────────────────────────────────────────────────────┘
+      </div>
+    </section>
+
+    <!-- CONCEITOS FUNDAMENTAIS -->
+    <section id="conceitos">
+      <h2>💡 CONCEITOS FUNDAMENTAIS</h2>
+
+      <h3>1. Scripts Plain vs. ES Modules</h3>
+
+      <p>Seu projeto tem <strong>dois tipos de scripts</strong>:</p>
+
+      <h4>Scripts Plain (sem import/export)</h4>
+      <p><strong>Carregam ANTES de app.js</strong> — se comunicam via <code>window.*</code></p>
+
+      <div class="card success">
+        <strong>Exemplos:</strong>
+        <ul style="margin-top: 10px;">
+          <li><code>data-store.js</code> — define variáveis globais</li>
+          <li><code>utils/base.js</code> — expõe <code>h()</code>, <code>diasAte()</code> ao window</li>
+          <li><code>dashboard.js</code> — expõe <code>goPage()</code>, <code>showToast()</code> ao window</li>
+          <li><code>auth.js</code> — carrega listeners de autenticação</li>
+        </ul>
+      </div>
+
+      <pre><code>// ✅ CORRETO - data-store.js (plain script)
+var COLABORADORES = [];
+var VENCIMENTOS = [];
+
+window.COLABORADORES = COLABORADORES;
+window.VENCIMENTOS = VENCIMENTOS;</code></pre>
+
+      <h4>ES Modules (import/export)</h4>
+      <p><strong>Carregam DEPOIS de app.js</strong> — se comunicam via parâmetros</p>
+
+      <pre><code>// ✅ CORRETO - modules/colaboradores.js (ES Module)
+export class ColaboradoresModule {
+  constructor(deps) {
+    this.COLABORADORES = deps.COLABORADORES;  // recebe do construtor
+  }
+}</code></pre>
+
+      <h3>2. Dependency Injection</h3>
+
+      <p>Padrão usado em todos os módulos para passar dependências:</p>
+
+      <pre><code>export class ColaboradoresModule {
+  constructor(deps) {
+    // deps = { $, h, fmtDate, COLABORADORES, Auth, API_OBJETO }
+    this.$ = deps.$;              // seletor DOM
+    this.h = deps.h;              // escapar HTML
+    this.COLABORADORES = deps.COLABORADORES;  // dados
+  }
+}</code></pre>
+
+      <div class="highlight">
+        <strong>Por que?</strong> Desacoplamento. Cada módulo não precisa saber de onde vem a dependência.
+      </div>
+
+      <h3>3. Armazenamento de Dados (Data Store)</h3>
+
+      <p>Seu app usa uma abordagem simples e poderosa:</p>
+
+      <pre><code>// data-store.js — UMA ÚNICA FONTE DE VERDADE
+var COLABORADORES = [];      // array de objetos
+var VENCIMENTOS = [];        // array de objetos
+var SALARIOS = {};           // objeto com key=colab_id
+var EPI_KITS = {};           // objeto com key=setor
+
+// Expõe globalmente
+window.COLABORADORES = COLABORADORES;</code></pre>
+
+      <div class="card">
+        <strong>Quando algo muda:</strong>
+        <ol style="margin-top: 10px;">
+          <li>API retorna novo dado</li>
+          <li>Array/objeto é atualizado: <code>window.COLABORADORES.push(novo)</code></li>
+          <li>Render é chamado: <code>renderColaboradores()</code></li>
+          <li>Todos os módulos veem o dado novo (mesma referência)</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- INICIALIZAÇÃO -->
+    <section id="inicializacao">
+      <h2>⏳ FLUXO DE INICIALIZAÇÃO</h2>
+
+      <h3>Timeline Completa</h3>
+
+      <div class="diagram">
+0ms  ├─ Browser abre index.html
+10ms ├─ data-store.js carrega (arrays vazios)
+15ms ├─ utils/base.js carrega (funções)
+20ms ├─ dashboard.js carrega
+25ms ├─ supabase.js carrega (cliente criado)
+30ms ├─ api/*.js carregam (CRUD objects)
+35ms ├─ api/init.js carrega
+40ms ├─ auth.js carrega
+45ms ├─ app.js carrega (módulos ES6)
+50ms ├─ inicializarSupabase() COMEÇA
+100ms ├─ Dados começam a chegar
+150ms ├─ window.COLABORADORES = [50]
+160ms ├─ window.VENCIMENTOS = [300]
+300ms ├─ renderAll() atualiza TUDO
+310ms ├─ setupRealTimeListeners() ativa
+320ms └─ APP PRONTO! ✅
+      </div>
+
+      <h3>Sequência Exata</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Passo</th>
+            <th>O que acontece</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1</strong></td>
+            <td>data-store.js carrega</td>
+            <td><span class="badge">Arrays = []</span></td>
+          </tr>
+          <tr>
+            <td><strong>2</strong></td>
+            <td>Utilitários carregam</td>
+            <td><span class="badge">window.h, window.fmtDate</span></td>
+          </tr>
+          <tr>
+            <td><strong>3</strong></td>
+            <td>Dashboard carrega listeners</td>
+            <td><span class="badge">Navegação registrada</span></td>
+          </tr>
+          <tr>
+            <td><strong>4</strong></td>
+            <td>Supabase conecta</td>
+            <td><span class="badge">Cliente sb pronto</span></td>
+          </tr>
+          <tr>
+            <td><strong>5</strong></td>
+            <td>API objects criam-se</td>
+            <td><span class="badge">CRUD objects prontos</span></td>
+          </tr>
+          <tr>
+            <td><strong>6</strong></td>
+            <td>app.js carrega módulos</td>
+            <td><span class="badge">bootstrap() executa</span></td>
+          </tr>
+          <tr>
+            <td><strong>7</strong></td>
+            <td>inicializarSupabase() executa</td>
+            <td><span class="badge success">Dados chegam! ✅</span></td>
+          </tr>
+          <tr>
+            <td><strong>8</strong></td>
+            <td>setupRealTimeListeners() ativa</td>
+            <td><span class="badge success">Websocket aberto ✅</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- CAMADAS -->
+    <section id="camadas">
+      <h2>🏗️ CAMADAS DA APLICAÇÃO</h2>
+
+      <h3>1. Data Store</h3>
+      <p><code>src/data-store.js</code> — Manter o estado global</p>
+      <div class="card">
+        <strong>Responsabilidade:</strong>
+        <ul style="margin-top: 10px;">
+          <li>Criar arrays vazios (<code>COLABORADORES = []</code>)</li>
+          <li>Expor globalmente (<code>window.COLABORADORES</code>)</li>
+          <li>Ser a única fonte de verdade</li>
+        </ul>
+      </div>
+
+      <h3>2. Utilitários</h3>
+      <p><code>src/utils/</code> — Funções compartilhadas</p>
+      <ul>
+        <li><strong>base.js</strong> — <code>h()</code>, <code>diasAte()</code>, <code>fmtBRL()</code> (scripts plain)</li>
+        <li><strong>formatting.js</strong> — Mais funções (módulo ES6)</li>
+      </ul>
+
+      <h3>3. Supabase Client</h3>
+      <p><code>supabase.js</code> — Conectar ao banco de dados</p>
+      <div class="card">
+        <strong>Exporta:</strong>
+        <ul style="margin-top: 10px;">
+          <li><code>Auth</code> — Login/logout/sessão</li>
+          <li><code>Cache</code> — localStorage</li>
+          <li><code>withRetry()</code> — Tentar novamente</li>
+          <li><code>withTimeout()</code> — Não ficar pendurado</li>
+          <li><code>Mappers</code> — Transformar dados</li>
+        </ul>
+      </div>
+
+      <h3>4. API Layer</h3>
+      <p><code>src/api/</code> — CRUD por tabela</p>
+      <div class="card">
+        <strong>Padrão:</strong>
+        <pre style="margin-top: 10px;"><code>export const Colaboradores = {
+  ler: async () => { /* SELECT */ },
+  criar: async (data) => { /* INSERT */ },
+  atualizar: async (id, data) => { /* UPDATE */ },
+  excluir: async (id) => { /* DELETE */ },
+};</code></pre>
+      </div>
+
+      <h3>5. Inicialização</h3>
+      <p><code>src/api/init.js</code> — Carregar dados e listeners</p>
+      <ul>
+        <li><code>inicializarSupabase()</code> — Carrega todas as 15 tabelas em paralelo</li>
+        <li><code>setupRealTimeListeners()</code> — Ativa websocket para atualizações em tempo real</li>
+      </ul>
+    </section>
+
+    <!-- PADRÕES -->
+    <section id="padroes">
+      <h2>🎨 PADRÕES DE DESIGN</h2>
+
+      <h3>1. Dependency Injection (DI)</h3>
+      <div class="card success">
+        <strong>Benefício:</strong> Desacoplamento, fácil testar, trocar implementação
+      </div>
+
+      <h3>2. Observer Pattern</h3>
+      <div class="card success">
+        <strong>Benefício:</strong> Múltiplas partes reagem a mudanças sem acoplamento
+      </div>
+
+      <h3>3. Module Pattern</h3>
+      <div class="card success">
+        <strong>Benefício:</strong> Cada módulo é auto-contido, mudanças isoladas
+      </div>
+
+      <h3>4. Active Record</h3>
+      <div class="card success">
+        <strong>Benefício:</strong> Lógica CRUD centralizada, não espalhada
+      </div>
+
+      <h3>5. Factory Pattern</h3>
+      <div class="card success">
+        <strong>Benefício:</strong> Criar múltiplos objetos com mesma fórmula
+      </div>
+    </section>
+
+    <!-- EXEMPLOS -->
+    <section id="exemplos">
+      <h2>💻 EXEMPLOS PRÁTICOS</h2>
+
+      <h3>Exemplo 1: Criar novo colaborador</h3>
+
+      <pre><code>async function salvarColaborador(event) {
+  event.preventDefault();
+
+  // 1. Ler dados do formulário
+  const form = document.getElementById('form-colaborador');
+  const dados = Object.fromEntries(new FormData(form));
+
+  // 2. Validar
+  if (!dados.nome || !dados.email) {
+    showToast('Preencha todos os campos', 'err');
+    return;
+  }
+
+  // 3. Enviar para o banco
+  try {
+    const novo = await Colaboradores.criar(dados);
+
+    // 4. Atualizar global
+    window.COLABORADORES.unshift(novo);
+
+    // 5. Re-renderizar
+    window.renderColaboradores();
+
+    // 6. Feedback
+    showToast(`${novo.nome} adicionado!`, 'ok');
+    fecharModalColaborador();
+
+  } catch (erro) {
+    showToast(`Erro: ${erro.message}`, 'err');
+  }
+}</code></pre>
+
+      <h3>Exemplo 2: Filtrar por setor</h3>
+
+      <pre><code>render() {
+  // 1. Ler filtro
+  const filtroSetor = document.getElementById('colab-filter-setor').value || '';
+
+  // 2. Filtrar
+  const filtered = window.COLABORADORES.filter(c => {
+    if (filtroSetor && c.setor !== filtroSetor) return false;
+    return true;
+  });
+
+  // 3. Renderizar tabela
+  const tbody = document.getElementById('tb-colaboradores');
+  tbody.innerHTML = filtered.map(c => `
+    <tr onclick="abrirDrawerColab(${c.id})">
+      <td>${this.h(c.nome)}</td>
+      <td>${this.h(c.setor)}</td>
+      <td>${this.fmtDate(c.data_admissao)}</td>
+    </tr>
+  `).join('');
+}</code></pre>
+    </section>
+
+    <!-- FLUXO DE DADOS -->
+    <section id="fluxo">
+      <h2>🔄 FLUXO DE DADOS</h2>
+
+      <h3>Uma Ação Completa do Usuário</h3>
+
+      <div class="diagram">
+┌─ USUÁRIO CLICA ─────────────────────────────────────────┐
+│ "Novo Colaborador"                                      │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─ MODAL ABRE ────────────────────────────────────────────┐
+│ Formulário vazio para preenchimento                     │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─ USUÁRIO PREENCHE ──────────────────────────────────────┐
+│ Nome, Email, Setor, Cargo                               │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─ USUÁRIO CLICA "SALVAR" ────────────────────────────────┐
+│ salvarColaborador(event) executada                      │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─ VALIDAÇÃO ─────────────────────────────────────────────┐
+│ Verifica: nome != '', email != ''                       │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+                   [Válido? SIM]
+                        ↓
+┌─ POST AO SUPABASE ──────────────────────────────────────┐
+│ Colaboradores.criar(dados)                              │
+│ INSERT INTO colaboradores VALUES (...)                  │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─ GLOBAL ATUALIZADO ─────────────────────────────────────┐
+│ window.COLABORADORES.unshift(novo)                      │
+│ Array tem +1 item agora                                 │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─ RENDERIZAR ────────────────────────────────────────────┐
+│ renderColaboradores()                                   │
+│ Gera HTML para cada item                                │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─ TABELA ATUALIZA ───────────────────────────────────────┐
+│ Nova linha aparece NO TOPO da tabela                    │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─ FEEDBACK ──────────────────────────────────────────────┐
+│ Toast verde: "João Silva adicionado!"                   │
+│ Modal fecha, form limpa                                 │
+└─────────────────────────────────────────────────────────┘
+      </div>
+    </section>
+
+    <!-- NOVA FUNCIONALIDADE -->
+    <section id="nova-funcionalidade">
+      <h2>🚀 COMO ADICIONAR NOVA FUNCIONALIDADE</h2>
+
+      <h3>7 Passos Práticos</h3>
+
+      <ol>
+        <li><strong>Design (SQL)</strong> — Criar tabela no Supabase</li>
+        <li><strong>API (CRUD)</strong> — Criar objeto com ler/criar/atualizar/excluir</li>
+        <li><strong>Data Store</strong> — Adicionar variável global</li>
+        <li><strong>HTML</strong> — Adicionar página, modal, tabela no index.html</li>
+        <li><strong>Módulo</strong> — Criar classe com lógica (render, listeners, etc)</li>
+        <li><strong>Integração</strong> — Importar em app.js, injetar dependências</li>
+        <li><strong>Inicialização</strong> — Adicionar carregamento em api/init.js</li>
+      </ol>
+
+      <div class="highlight">
+        <strong>Exemplo:</strong> Criar aba "Feedback Individual" com 7 passos (ver AULA_COMPLETA.md para detalhes)
+      </div>
+    </section>
+
+    <!-- TROUBLESHOOTING -->
+    <section id="troubleshooting">
+      <h2>🐛 TROUBLESHOOTING COMUM</h2>
+
+      <div class="card danger">
+        <h4>Problema 1: Dados não aparecem na tabela</h4>
+        <p><strong>Causa:</strong> window.DADOS não foi atualizado ou render() não foi chamado</p>
+        <p><strong>Solução:</strong></p>
+        <ol style="margin-top: 10px;">
+          <li>Verificar se api/init.js chama inicializarSupabase()</li>
+          <li>Verificar se window.DADOS é atualizado: <code>console.log(window.COLABORADORES)</code></li>
+          <li>Chamar render manualmente: <code>window.renderColaboradores()</code></li>
+        </ol>
+      </div>
+
+      <div class="card danger">
+        <h4>Problema 2: Modal não abre</h4>
+        <p><strong>Causa:</strong> ID errado, onclick errado, CSS errado</p>
+        <p><strong>Solução:</strong></p>
+        <ol style="margin-top: 10px;">
+          <li>Verificar HTML: <code>&lt;div class="modal" id="modal-colaborador"&gt;</code></li>
+          <li>Verificar onclick: <code>onclick="abrirModalColaborador()"</code></li>
+          <li>Verificar CSS: <code>.modal.active { display: block; }</code></li>
+        </ol>
+      </div>
+
+      <div class="card danger">
+        <h4>Problema 3: Filtro não funciona</h4>
+        <p><strong>Causa:</strong> addEventListener não registrado, render() não chamado</p>
+        <p><strong>Solução:</strong></p>
+        <ol style="margin-top: 10px;">
+          <li>Verificar setupEventListeners(): <code>if (e.target.id === 'colab-filter-setor') { this.render(); }</code></li>
+          <li>Debug: <code>console.log(this.$('#colab-filter-setor').value)</code></li>
+        </ol>
+      </div>
+
+      <div class="card danger">
+        <h4>Problema 4: Dados não sincronizam em tempo real</h4>
+        <p><strong>Causa:</strong> setupRealTimeListeners() não chamado, websocket não conectou</p>
+        <p><strong>Solução:</strong></p>
+        <ol style="margin-top: 10px;">
+          <li>Verificar se setupRealTimeListeners() é chamado em api/init.js</li>
+          <li>Abrir DevTools → Network → WS (WebSocket tab)</li>
+          <li>Deve haver conexão para "realtime"</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- RESUMO -->
+    <section>
+      <h2>📖 RESUMO EXECUTIVO</h2>
+
+      <h3>O que você criou:</h3>
+
+      <div class="grid-2">
+        <div class="card success">
+          <strong>✅ Uma SPA Completa</strong>
+          <ul style="margin-top: 10px;">
+            <li>15 páginas/abas</li>
+            <li>18 tabelas de dados</li>
+            <li>18 formulários CRUD</li>
+            <li>134 botões de ação</li>
+            <li>50+ campos de entrada</li>
+          </ul>
+        </div>
+
+        <div class="card success">
+          <strong>✅ Arquitetura Profissional</strong>
+          <ul style="margin-top: 10px;">
+            <li>Dependency Injection</li>
+            <li>Observer Pattern</li>
+            <li>Module Pattern</li>
+            <li>Factory Pattern</li>
+            <li>Active Record Pattern</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card success">
+          <strong>✅ Segurança & Performance</strong>
+          <ul style="margin-top: 10px;">
+            <li>RLS (Row Level Security)</li>
+            <li>XSS prevention</li>
+            <li>Websocket (tempo real)</li>
+            <li>Cache em localStorage</li>
+            <li>Retry automático</li>
+          </ul>
+        </div>
+
+        <div class="card success">
+          <strong>✅ Próximos Passos</strong>
+          <ul style="margin-top: 10px;">
+            <li>Leia GUIA_CODIGO.md</li>
+            <li>Abra DevTools (F12)</li>
+            <li>Modifique um módulo</li>
+            <li>Crie uma nova aba</li>
+            <li>Teste CRUD completo</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 4px; text-align: center;">
+        <h3 style="color: white; border: none; margin-bottom: 10px;">🎓 Parabéns por criar este sistema!</h3>
+        <p>Você aprendeu padrões profissionais de JavaScript e arquitetura de software.</p>
+        <p style="margin-top: 15px; font-size: 2em;">🚀</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>Sistema de Gestão RH</strong> — Aula Completa</p>
+    <p style="margin-top: 10px; color: #666;">Generated: June 2026 | © Seu Sistema</p>
+    <p style="margin-top: 20px; font-size: 0.9em;">💡 Dica: Pressione Ctrl+P para imprimir como PDF</p>
+  </footer>
+</body>
+</html>
