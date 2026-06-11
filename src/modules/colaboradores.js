@@ -16,6 +16,7 @@ export class ColaboradoresModule {
     this.showToast = deps.showToast;
     this.STATUS_LABEL = deps.STATUS_LABEL;
     this.SETOR_ICON = deps.SETOR_ICON;
+    this.PARENTESCO_OPTS = deps.PARENTESCO_OPTS;
     this.COLABORADORES = deps.COLABORADORES;
     this.DEPENDENTES = deps.DEPENDENTES;
     this.CONTATOS_EMERG = deps.CONTATOS_EMERG;
@@ -36,8 +37,6 @@ export class ColaboradoresModule {
     this._depSeq = 0;
     this._emergSeq = 0;
     this._editandoContatoId = null;
-
-    this._PARENTESCO_OPTS = ['Cônjuge','Mãe','Pai','Filho(a)','Irmã','Irmão','Avó','Avô','Tio(a)','Amigo(a)','Outro'];
 
     this.init();
   }
@@ -444,7 +443,7 @@ export class ColaboradoresModule {
           <div class="form-group">
             <label>Parentesco</label>
             <select onchange="window._emergUpdate(${c._sid},'parentesco',this.value)">
-              ${this._PARENTESCO_OPTS.map(p =>
+              ${this.PARENTESCO_OPTS.map(p =>
                 `<option value="${p}"${c.parentesco===p?' selected':''}>${p}</option>`).join('')}
             </select>
           </div>
@@ -648,7 +647,7 @@ export class ColaboradoresModule {
     form.reset();
 
     const sel = this.$('#contato-select-parentesco');
-    sel.innerHTML = this._PARENTESCO_OPTS.map(p => `<option value="${p}">${p}</option>`).join('');
+    sel.innerHTML = this.PARENTESCO_OPTS.map(p => `<option value="${p}">${p}</option>`).join('');
 
     if (id) {
       const c = this.CONTATOS_EMERG.find(x => x.id === id);

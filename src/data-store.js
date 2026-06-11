@@ -36,15 +36,6 @@ var FAIXAS = [
   { min:   7500, max: 99999, label: 'Acima R$ 7,5k',  short: '>7,5k'  },
 ];
 
-var CHART_COLORS = {
-  phthalo:       '#123E6B',
-  phthaloLight:  '#2E7AB8',
-  phthaloBright: '#4A9FD6',
-  muted:         '#8A98A8',
-  grid:          '#E3EBF3',
-  text:          '#5A6B7C',
-};
-
 // Expõe para src/app.js (que lê via window.*)
 window.COLABORADORES    = COLABORADORES;
 window.DEPENDENTES      = DEPENDENTES;
@@ -68,5 +59,4 @@ window.PC_CARGOS        = PC_CARGOS;
 window.PC_PLANOS        = PC_PLANOS;
 window.ROTATIVIDADE     = ROTATIVIDADE;
 window.VALE_ALIMENTACAO = VALE_ALIMENTACAO;
-window.CHART_COLORS     = CHART_COLORS;
 window.PARENTESCO_OPTS  = PARENTESCO_OPTS;

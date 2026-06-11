@@ -75,7 +75,7 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
     $, h, iniciais, fmtDate, fmtBRL, tempoCasa, showToast,
     COLABORADORES, DEPENDENTES, CONTATOS_EMERG,
     EPI_ENTREGAS, VENCIMENTOS,
-    STATUS_LABEL, SETOR_ICON,
+    STATUS_LABEL, SETOR_ICON, PARENTESCO_OPTS: window.PARENTESCO_OPTS,
     Colaboradores: window.Colaboradores,
     Departamentos: window.Departamentos,
     HistoricoColaboradores: window.HistoricoColaboradores,

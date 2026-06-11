@@ -152,7 +152,7 @@ export class EpiModule {
     const grid = this.$('#epi-kits-grid');
     if (!grid) return;
 
-    const setores = ['Produção', 'Administrativo', 'Área Externa'];
+    const setores = [...new Set(this.COLABORADORES.map(c => c.setor).filter(Boolean))].sort();
     const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo');
 
     const colabsPendencias = ativos.map(c => {
