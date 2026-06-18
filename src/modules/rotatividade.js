@@ -142,7 +142,7 @@ export class RotatividadeModule {
         tipo: 'admissao',
         nome: c.nome,
         setor: c.setor,
-        cargo: c.cargo,
+        area: c.area,
         data: c.admissao,
         motivo: '—',
       });
@@ -154,7 +154,7 @@ export class RotatividadeModule {
           tipo: 'desligamento',
           nome: col.nome,
           setor: col.setor,
-          cargo: col.cargo,
+          area: col.area,
           data: dl.data,
           motivo: dl.tipo_saida || '—',
         });
@@ -281,8 +281,8 @@ export class RotatividadeModule {
                 </div>
               </td>
               <td>
-                <div>${this.h(m.cargo)}</div>
-                <div class="cell-person-sub">${this.h(m.setor)}</div>
+                <div>${this.h(m.setor)}</div>
+                ${m.area ? `<div class="cell-person-sub">${this.h(m.area)}</div>` : ''}
               </td>
               <td class="cell-mono">${this.fmtDate(m.data)}</td>
               <td style="color:var(--text-muted)">${this.h(m.motivo)}</td>

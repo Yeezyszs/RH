@@ -498,8 +498,17 @@ export class ColaboradoresModule {
       document.getElementById('modal-colab-title').textContent = 'Editar colaborador';
       const c = this.COLABORADORES.find(x => x.id === id);
       if (c) {
+        // Mapeamento de nomes de colunas do banco para nomes de campos do form
+        const fieldMap = {
+          'data_admissao': 'admissao',
+          'data_nascimento': 'nascimento',
+          'data_desligamento': 'desligamento',
+          'numero_dependentes': 'numero_dependentes',
+          'genero': 'sexo',
+        };
         for (const [k, v] of Object.entries(c)) {
-          const f = form.elements[k];
+          const formFieldName = fieldMap[k] || k;
+          const f = form.elements[formFieldName];
           if (f) f.value = v ?? '';
         }
       }

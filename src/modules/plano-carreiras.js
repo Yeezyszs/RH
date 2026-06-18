@@ -159,7 +159,7 @@ export class PlanoCarreirasModule {
               <div class="cell-avatar">${this.h(this.iniciais(c.nome))}</div>
               <div>
                 <div class="cell-person-name">${this.h(c.nome)}</div>
-                <div class="cell-person-sub">${this.h(c.cargo)}</div>
+                <div class="cell-person-sub">${this.h(c.setor)}${c.area ? ' · ' + this.h(c.area) : ''}</div>
               </div>
             </div>
           </td>
@@ -264,7 +264,7 @@ export class PlanoCarreirasModule {
     const sal = this.SALARIOS[c.id]?.valor;
     this.$('#pc-plano-resumo').innerHTML = `
       <div class="info-item"><div class="info-label">Setor / Área</div><div class="info-value">${this.h(c.setor)}${c.area ? ` · ${this.h(c.area)}` : ''}</div></div>
-      <div class="info-item"><div class="info-label">Cargo (cadastro)</div><div class="info-value">${this.h(c.cargo || '—')}</div></div>
+      <div class="info-item"><div class="info-label">Departamento</div><div class="info-value">${this.h(c.setor || '—')}${c.area ? ` · ${this.h(c.area)}` : ''}</div></div>
       <div class="info-item"><div class="info-label">Salário atual</div><div class="info-value mono">${sal ? this.fmtBRL(sal) : '<span style="color:var(--text-soft)">—</span>'}</div></div>
       <div class="info-item"><div class="info-label">Tempo de casa</div><div class="info-value mono">${this.tempoCasa(c.admissao)}</div></div>
     `;
