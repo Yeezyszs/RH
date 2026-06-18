@@ -1,6 +1,24 @@
 // Inicialização Supabase + Real-time
 // Depende de: todos os objetos API, Auth, mappers, globais de data-store.js
 
+// ─── Helpers de mutação ───────────────────────────────────────────────────────
+// Os arrays globais (COLABORADORES, FERIAS, etc.) são compartilhados POR
+// REFERÊNCIA com os módulos (cada módulo guarda `this.X = deps.X` no bootstrap).
+// Por isso NÃO podemos reatribuir (`X = novo`) — isso criaria um array novo e os
+// módulos continuariam apontando para o array vazio antigo, deixando as telas
+// zeradas. As funções abaixo alteram o conteúdo MANTENDO a mesma referência.
+
+function _preencherArray(arr, novo) {
+  arr.length = 0;
+  arr.push(...novo);
+}
+
+function _filtrarArray(arr, manter) {
+  const mantidos = arr.filter(manter);
+  arr.length = 0;
+  arr.push(...mantidos);
+}
+
 async function inicializarSupabase() {
   try {
     const sessao = await Auth.sessaoAtual();
@@ -34,7 +52,7 @@ async function inicializarSupabase() {
     if (colaboradores.status === 'fulfilled') {
       const lista = colaboradores.value?.data ?? colaboradores.value;
       if (lista?.length > 0) {
-        COLABORADORES = lista;
+        _preencherArray(COLABORADORES, lista);
         console.info(`[RH] ${COLABORADORES.length} colaboradores carregados.`);
       }
     }
@@ -42,7 +60,7 @@ async function inicializarSupabase() {
     if (advertencias.status === 'fulfilled') {
       const lista = advertencias.value?.data ?? advertencias.value;
       if (lista?.length > 0) {
-        ADVERTENCIAS = lista;
+        _preencherArray(ADVERTENCIAS, lista);
         console.info(`[RH] ${ADVERTENCIAS.length} advertências carregadas.`);
       }
     }
@@ -50,7 +68,7 @@ async function inicializarSupabase() {
     if (ferias.status === 'fulfilled') {
       const lista = ferias.value?.data ?? ferias.value;
       if (lista?.length > 0) {
-        FERIAS = lista;
+        _preencherArray(FERIAS, lista);
         console.info(`[RH] ${FERIAS.length} férias carregadas.`);
       }
     }
@@ -58,7 +76,7 @@ async function inicializarSupabase() {
     if (desligamentos.status === 'fulfilled') {
       const lista = desligamentos.value?.data ?? desligamentos.value;
       if (lista?.length > 0) {
-        DESLIGAMENTOS = lista;
+        _preencherArray(DESLIGAMENTOS, lista);
         console.info(`[RH] ${DESLIGAMENTOS.length} desligamentos carregados.`);
       }
     }
@@ -66,7 +84,7 @@ async function inicializarSupabase() {
     if (eventos.status === 'fulfilled') {
       const lista = eventos.value?.data ?? eventos.value;
       if (lista?.length > 0) {
-        EVENTOS = lista;
+        _preencherArray(EVENTOS, lista);
         console.info(`[RH] ${EVENTOS.length} eventos carregados.`);
       }
     }
@@ -91,7 +109,7 @@ async function inicializarSupabase() {
     if (vencimentos.status === 'fulfilled') {
       const lista = vencimentos.value ?? [];
       if (lista.length > 0) {
-        VENCIMENTOS = lista;
+        _preencherArray(VENCIMENTOS, lista);
         console.info(`[RH] ${VENCIMENTOS.length} vencimentos carregados.`);
       }
     }
@@ -99,7 +117,7 @@ async function inicializarSupabase() {
     if (epis.status === 'fulfilled') {
       const lista = epis.value ?? [];
       if (lista.length > 0) {
-        EPI_ENTREGAS = lista;
+        _preencherArray(EPI_ENTREGAS, lista);
         console.info(`[RH] ${EPI_ENTREGAS.length} EPIs carregados.`);
       }
     }
@@ -122,7 +140,7 @@ async function inicializarSupabase() {
     if (feedbacks.status === 'fulfilled') {
       const lista = feedbacks.value ?? [];
       if (lista.length > 0) {
-        FEEDBACK = lista;
+        _preencherArray(FEEDBACK, lista);
         console.info(`[RH] ${FEEDBACK.length} feedbacks carregados.`);
       }
     }
@@ -130,7 +148,7 @@ async function inicializarSupabase() {
     if (pesquisas.status === 'fulfilled') {
       const lista = pesquisas.value ?? [];
       if (lista.length > 0) {
-        CLIMA = lista;
+        _preencherArray(CLIMA, lista);
         console.info(`[RH] ${CLIMA.length} pesquisas de clima carregadas.`);
       }
     }
@@ -138,7 +156,7 @@ async function inicializarSupabase() {
     if (valeComb.status === 'fulfilled') {
       const lista = valeComb.value ?? [];
       if (lista.length > 0) {
-        VALE_LANCAMENTOS = lista;
+        _preencherArray(VALE_LANCAMENTOS, lista);
         console.info(`[RH] ${VALE_LANCAMENTOS.length} lançamentos de vale carregados.`);
       }
     }
@@ -146,7 +164,7 @@ async function inicializarSupabase() {
     if (valeAlim.status === 'fulfilled') {
       const lista = valeAlim.value ?? [];
       if (lista.length > 0) {
-        VALE_ALIMENTACAO = lista;
+        _preencherArray(VALE_ALIMENTACAO, lista);
         console.info(`[RH] ${VALE_ALIMENTACAO.length} vale-alimentação carregados.`);
       }
     }
@@ -154,7 +172,7 @@ async function inicializarSupabase() {
     if (rotat.status === 'fulfilled') {
       const lista = rotat.value ?? [];
       if (lista.length > 0) {
-        ROTATIVIDADE = lista;
+        _preencherArray(ROTATIVIDADE, lista);
         console.info(`[RH] ${ROTATIVIDADE.length} registros de rotatividade carregados.`);
       }
     }
@@ -172,7 +190,7 @@ async function inicializarSupabase() {
           observacoes:    p.observacoes || '',
           _tabela:        'participantes_treinamento',
         }));
-        VENCIMENTOS = [...VENCIMENTOS.filter(v => v._tabela !== 'participantes_treinamento'), ...treinVencimentos];
+        _preencherArray(VENCIMENTOS, [...VENCIMENTOS.filter(v => v._tabela !== 'participantes_treinamento'), ...treinVencimentos]);
         console.info(`[RH] ${treinVencimentos.length} treinamentos carregados como vencimentos.`);
       }
     }
@@ -223,7 +241,7 @@ function setupRealTimeListeners() {
         const i = COLABORADORES.findIndex(x => x.id === id);
         if (i >= 0) COLABORADORES[i] = mapColaborador(novoReg);
       } else if (eventType === 'DELETE') {
-        COLABORADORES = COLABORADORES.filter(x => x.id !== id);
+        _filtrarArray(COLABORADORES, x => x.id !== id);
       }
       if (typeof renderColaboradores === 'function') renderColaboradores();
     }
@@ -235,7 +253,7 @@ function setupRealTimeListeners() {
         const i = ADVERTENCIAS.findIndex(x => x.id === id);
         if (i >= 0) ADVERTENCIAS[i] = mapAdvertencia(novoReg);
       } else if (eventType === 'DELETE') {
-        ADVERTENCIAS = ADVERTENCIAS.filter(x => x.id !== id);
+        _filtrarArray(ADVERTENCIAS, x => x.id !== id);
       }
       if (typeof renderAdvertencias === 'function') renderAdvertencias();
     }
@@ -247,7 +265,7 @@ function setupRealTimeListeners() {
         const i = FERIAS.findIndex(x => x.id === id);
         if (i >= 0) FERIAS[i] = mapFerias(novoReg);
       } else if (eventType === 'DELETE') {
-        FERIAS = FERIAS.filter(x => x.id !== id);
+        _filtrarArray(FERIAS, x => x.id !== id);
       }
       if (typeof renderFerias === 'function') renderFerias();
     }
@@ -259,7 +277,7 @@ function setupRealTimeListeners() {
         const i = DESLIGAMENTOS.findIndex(x => x.id === id);
         if (i >= 0) DESLIGAMENTOS[i] = mapDesligamento(novoReg);
       } else if (eventType === 'DELETE') {
-        DESLIGAMENTOS = DESLIGAMENTOS.filter(x => x.id !== id);
+        _filtrarArray(DESLIGAMENTOS, x => x.id !== id);
       }
       if (typeof renderDesligamentos === 'function') renderDesligamentos();
     }
@@ -271,7 +289,7 @@ function setupRealTimeListeners() {
         const i = EVENTOS.findIndex(x => x.id === id);
         if (i >= 0) EVENTOS[i] = mapEvento(novoReg);
       } else if (eventType === 'DELETE') {
-        EVENTOS = EVENTOS.filter(x => x.id !== id);
+        _filtrarArray(EVENTOS, x => x.id !== id);
       }
       if (typeof renderCronograma === 'function') renderCronograma();
     }
@@ -283,7 +301,7 @@ function setupRealTimeListeners() {
         const i = EPI_ENTREGAS.findIndex(x => x.id === id);
         if (i >= 0) EPI_ENTREGAS[i] = novoReg;
       } else if (eventType === 'DELETE') {
-        EPI_ENTREGAS = EPI_ENTREGAS.filter(x => x.id !== id);
+        _filtrarArray(EPI_ENTREGAS, x => x.id !== id);
       }
       if (typeof renderEpi === 'function') renderEpi();
     }
@@ -315,7 +333,7 @@ function setupRealTimeListeners() {
         const i = VENCIMENTOS.findIndex(x => x.id === id && x._tabela === table);
         if (i >= 0) VENCIMENTOS[i] = mapVenc(novoReg);
       } else if (eventType === 'DELETE') {
-        VENCIMENTOS = VENCIMENTOS.filter(x => !(x.id === id && x._tabela === table));
+        _filtrarArray(VENCIMENTOS, x => !(x.id === id && x._tabela === table));
       }
       if (typeof renderVencimentos === 'function') renderVencimentos();
     }
@@ -327,7 +345,7 @@ function setupRealTimeListeners() {
         const i = FEEDBACK.findIndex(x => x.id === id);
         if (i >= 0) FEEDBACK[i] = novoReg;
       } else if (eventType === 'DELETE') {
-        FEEDBACK = FEEDBACK.filter(x => x.id !== id);
+        _filtrarArray(FEEDBACK, x => x.id !== id);
       }
       if (typeof renderFeedback === 'function') renderFeedback();
     }
@@ -339,7 +357,7 @@ function setupRealTimeListeners() {
         const i = CLIMA.findIndex(x => x.id === id);
         if (i >= 0) CLIMA[i] = novoReg;
       } else if (eventType === 'DELETE') {
-        CLIMA = CLIMA.filter(x => x.id !== id);
+        _filtrarArray(CLIMA, x => x.id !== id);
       }
       if (typeof renderClima === 'function') renderClima();
     }
@@ -351,7 +369,7 @@ function setupRealTimeListeners() {
         const i = VALE_LANCAMENTOS.findIndex(x => x.id === id);
         if (i >= 0) VALE_LANCAMENTOS[i] = novoReg;
       } else if (eventType === 'DELETE') {
-        VALE_LANCAMENTOS = VALE_LANCAMENTOS.filter(x => x.id !== id);
+        _filtrarArray(VALE_LANCAMENTOS, x => x.id !== id);
       }
       if (typeof renderValeLancamentos === 'function') renderValeLancamentos();
     }
@@ -363,7 +381,7 @@ function setupRealTimeListeners() {
         const i = VALE_ALIMENTACAO.findIndex(x => x.id === id);
         if (i >= 0) VALE_ALIMENTACAO[i] = novoReg;
       } else if (eventType === 'DELETE') {
-        VALE_ALIMENTACAO = VALE_ALIMENTACAO.filter(x => x.id !== id);
+        _filtrarArray(VALE_ALIMENTACAO, x => x.id !== id);
       }
       if (typeof renderValeAlimentacao === 'function') renderValeAlimentacao();
     }
@@ -375,7 +393,7 @@ function setupRealTimeListeners() {
         const i = ROTATIVIDADE.findIndex(x => x.id === id);
         if (i >= 0) ROTATIVIDADE[i] = novoReg;
       } else if (eventType === 'DELETE') {
-        ROTATIVIDADE = ROTATIVIDADE.filter(x => x.id !== id);
+        _filtrarArray(ROTATIVIDADE, x => x.id !== id);
       }
       if (typeof renderRotatividade === 'function') renderRotatividade();
     }
@@ -398,7 +416,7 @@ function setupRealTimeListeners() {
         if (i >= 0) VENCIMENTOS[i] = mapTrein(novoReg);
         else if (novoReg.data_vencimento) VENCIMENTOS.unshift(mapTrein(novoReg));
       } else if (eventType === 'DELETE') {
-        VENCIMENTOS = VENCIMENTOS.filter(x => !(x.id === id && x._tabela === 'participantes_treinamento'));
+        _filtrarArray(VENCIMENTOS, x => !(x.id === id && x._tabela === 'participantes_treinamento'));
       }
       if (typeof renderVencimentos === 'function') renderVencimentos();
     }
