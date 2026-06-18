@@ -36,10 +36,33 @@
  * @property {string} cpf
  * @property {string} email
  * @property {string} setor — Nome do setor (Produção, Admin, etc)
- * @property {string} cargo — Nome do cargo
+ * @property {string} area — Área/especialidade (opcional)
  * @property {string} status — 'ativo', 'férias', 'afastado', 'inativo'
  * @property {string} data_admissao — ISO format: '2024-01-15'
  */
+
+// Transforma resposta do Supabase em objeto flat para UI
+function mapColaborador(raw) {
+  return {
+    ...raw,
+    setor: raw.departamentos?.nome || '',
+    cargo: raw.cargos?.nome || '',
+    matricula: raw.matricula || '',
+    sexo: raw.genero === 'Masculino' ? 'M' : raw.genero === 'Feminino' ? 'F' : raw.genero === 'Outro' ? 'O' : '',
+    escolaridade: raw.escolaridade || '',
+    telefone: raw.telefone || '',
+    nascimento: raw.data_nascimento || '',
+    admissao: raw.data_admissao || '',
+  };
+}
+
+function mapDesligamento(raw) {
+  return {
+    ...raw,
+    data: raw.data_desligamento,
+  };
+}
+
 const Colaboradores = {
   /**
    * LISTAR colaboradores com paginação e filtros

@@ -286,7 +286,7 @@ export class AdvertenciasModule {
 
     this.$('#dadv-avatar').textContent = c ? this.iniciais(c.nome) : '—';
     this.$('#dadv-name').textContent   = c?.nome || 'Colaborador removido';
-    this.$('#dadv-role').textContent   = c ? `${c.cargo} · ${c.setor}` : '—';
+    this.$('#dadv-role').textContent   = c ? `${c.setor}${c.area ? ` · ${c.area}` : ''}` : '—';
 
     const reinc = this._contarAdvertenciasUltimoAno(a.colaborador_id);
     this.$('#dadv-alerta').innerHTML = reinc >= 3

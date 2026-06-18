@@ -114,7 +114,7 @@ export class ValeCombustivelModule {
                 <div class="cell-avatar">${this.h(this.iniciais(c.nome))}</div>
                 <div>
                   <div class="cell-person-name">${this.h(c.nome)}</div>
-                  <div class="cell-person-sub">${this.h(c.cargo)}</div>
+                  <div class="cell-person-sub">${this.h(c.setor)}${c.area ? ' · ' + this.h(c.area) : ''}</div>
                 </div>
               </div>
             </td>

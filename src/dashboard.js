@@ -200,7 +200,7 @@ function renderDashboard() {
 
   COLABORADORES.filter(c => c.admissao && new Date(c.admissao) >= corte7).forEach(c => {
     atividades.push({ tipo: 'admissao', data: new Date(c.admissao), label: 'Admissão',
-      texto: `<strong>${h(c.nome)}</strong> admitido como ${h(c.cargo || '—')}` });
+      texto: `<strong>${h(c.nome)}</strong> admitido em ${h(c.setor)} ${c.area ? `· ${h(c.area)}` : ''}` });
   });
   DESLIGAMENTOS.filter(d => d.data && new Date(d.data) >= corte7).forEach(d => {
     const col = COLABORADORES.find(x => x.id === d.colaborador_id);
@@ -262,9 +262,10 @@ function renderDashboard() {
       ? anivSemana.map(c => {
           const d    = new Date(c.nascimento + 'T00:00:00');
           const dFmt = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+          const role = c.area ? `${h(c.setor)} · ${h(c.area)}` : h(c.setor);
           return `<li class="bday-item">
             <div class="bday-avatar">${h(window.iniciais ? window.iniciais(c.nome) : c.nome.charAt(0))}</div>
-            <div class="bday-name">${h(c.nome)}<div class="bday-role">${h(c.setor)} · ${h(c.cargo)}</div></div>
+            <div class="bday-name">${h(c.nome)}<div class="bday-role">${role}</div></div>
             <div class="bday-date">${dFmt}</div>
           </li>`;
         }).join('')
