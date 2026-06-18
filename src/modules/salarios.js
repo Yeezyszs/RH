@@ -68,7 +68,7 @@ export class SalariosModule {
         if (this.faixaIdx(r.valor) !== parseInt(fFx, 10)) return false;
       }
       if (q) {
-        const hay = [r.colab.nome, r.colab.cargo].join(' ').toLowerCase();
+        const hay = [r.colab.nome, r.colab.setor, r.colab.area].join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -110,8 +110,10 @@ export class SalariosModule {
                   </div>
                 </div>
               </td>
-              <td>${this.h(c.cargo)}</td>
-              <td>${this.h(c.setor)}</td>
+              <td>
+                <div>${this.h(c.setor)}</div>
+                ${c.area ? `<div class="cell-person-sub">${this.h(c.area)}</div>` : ''}
+              </td>
               <td style="text-align:right">${salDisp}</td>
               <td>${faixaDisp}</td>
               <td class="cell-mono">${r.data_alteracao ? this.fmtDate(r.data_alteracao) : '—'}</td>
@@ -121,7 +123,7 @@ export class SalariosModule {
             </tr>
           `;
         }).join('')
-      : `<tr><td colspan="7" class="empty">Nenhum colaborador encontrado</td></tr>`;
+      : `<tr><td colspan="6" class="empty">Nenhum colaborador encontrado</td></tr>`;
 
     this._renderCharts(linhas);
   }
@@ -210,7 +212,7 @@ export class SalariosModule {
     const form = this.$('#form-salario');
     form.reset();
     form.elements['colaborador_id'].value = colabId;
-    this.$('#sal-colab-nome').value = `${c.nome} — ${c.cargo}`;
+    this.$('#sal-colab-nome').value = `${c.nome} — ${c.setor}${c.area ? ` · ${c.area}` : ''}`;
     this.$('#sal-modal-title').textContent = s
       ? `Editar salário — ${c.nome}`
       : `Cadastrar salário — ${c.nome}`;

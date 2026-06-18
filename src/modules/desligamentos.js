@@ -66,7 +66,7 @@ export class DesligamentosModule {
       if (fEnt === 'realizada' && !d.entrevista?.realizada) return false;
       if (fEnt === 'pendente' && d.entrevista?.realizada) return false;
       if (q) {
-        const hay = [d.nome, d.cargo].join(' ').toLowerCase();
+        const hay = [d.nome, d.setor, d.area].join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -99,8 +99,8 @@ export class DesligamentosModule {
             </div>
           </td>
           <td>
-            <div>${this.h(d.cargo)}</div>
-            <div class="cell-person-sub">${this.h(d.setor)}</div>
+            <div>${this.h(d.setor)}</div>
+            ${d.area ? `<div class="cell-person-sub">${this.h(d.area)}</div>` : ''}
           </td>
           <td class="cell-mono">${this.fmtDate(d.data)}</td>
           <td>${this.h(d.motivo)}</td>
@@ -147,7 +147,7 @@ export class DesligamentosModule {
 
     this.$('#ddesl-avatar').textContent = this.iniciais(d.nome);
     this.$('#ddesl-name').textContent = d.nome;
-    this.$('#ddesl-role').textContent = `${d.cargo} · ${d.setor}`;
+    this.$('#ddesl-role').textContent = `${d.setor}${d.area ? ` · ${d.area}` : ''}`;
 
     const tipoChip = d.tipo === 'voluntario'
       ? `<span class="badge info">Voluntário</span>`
@@ -209,7 +209,7 @@ export class DesligamentosModule {
     sel.innerHTML = this.COLABORADORES
       .filter(c => c.status !== 'inativo')
       .sort((a, b) => a.nome.localeCompare(b.nome))
-      .map(c => `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.cargo)}</option>`)
+      .map(c => `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor)}${c.area ? ` · ${this.h(c.area)}` : ''}</option>`)
       .join('');
     this.$('#modal-desligamento').classList.add('active');
   }
@@ -242,7 +242,7 @@ export class DesligamentosModule {
         const saved = await this.Desligamentos.criar(payload);
         this.DESLIGAMENTOS.unshift({
           ...saved,
-          nome: c.nome, cargo: c.cargo, setor: c.setor, admissao: c.admissao,
+          nome: c.nome, cargo: c.cargo, setor: c.setor, area: c.area, admissao: c.admissao,
         });
         await window.Colaboradores?.atualizar(c.id, { status: 'inativo' }).catch(() => null);
       } catch (err) {
@@ -253,7 +253,7 @@ export class DesligamentosModule {
       const newId = Math.max(0, ...this.DESLIGAMENTOS.map(x => x.id)) + 1;
       this.DESLIGAMENTOS.unshift({
         id: newId, ...payload,
-        nome: c.nome, cargo: c.cargo, setor: c.setor, admissao: c.admissao,
+        nome: c.nome, cargo: c.cargo, setor: c.setor, area: c.area, admissao: c.admissao,
       });
       c.status = 'inativo';
     }
