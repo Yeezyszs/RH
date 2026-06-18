@@ -78,6 +78,7 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
     STATUS_LABEL, SETOR_ICON, PARENTESCO_OPTS: window.PARENTESCO_OPTS,
     Colaboradores: window.Colaboradores,
     Departamentos: window.Departamentos,
+    Cargos: window.Cargos,
     HistoricoColaboradores: window.HistoricoColaboradores,
     Auth: window.Auth,
   });

@@ -5,6 +5,7 @@ export class ColaboradoresModule {
   constructor(deps) {
     this.Colaboradores = deps.Colaboradores;
     this.Departamentos = deps.Departamentos;
+    this.Cargos = deps.Cargos;
     this.HistoricoColaboradores = deps.HistoricoColaboradores;
     this.Auth = deps.Auth;
     this.$ = deps.$;
@@ -469,13 +470,38 @@ export class ColaboradoresModule {
 
   // ─── Modal colaborador ────────────────────────────────────────────────────
 
-  abrirModalColaborador(id = null) {
+  // Carrega cargos e departamentos do banco e preenche os <select> do modal.
+  // O <option> mantém o id como value — é isso que o INSERT/UPDATE espera.
+  async _popularSelectsModal() {
+    const selCargo = document.querySelector('#form-colaborador [name="cargo_id"]');
+    const selDep   = document.querySelector('#form-colaborador [name="departamento_id"]');
+    if (!selCargo || !selDep) return;
+    try {
+      const [cargos, deptos] = await Promise.all([
+        this.Cargos.listar(),
+        this.Departamentos.listar(),
+      ]);
+      selCargo.innerHTML = `<option value="">—</option>` +
+        cargos.map(c => `<option value="${c.id}">${this.h(c.nome)}</option>`).join('');
+      selDep.innerHTML = `<option value="">—</option>` +
+        deptos.map(d => `<option value="${d.id}">${this.h(d.nome)}</option>`).join('');
+    } catch (err) {
+      console.error('Erro ao carregar cargos/departamentos:', err);
+      this.showToast?.('Erro ao carregar cargos/setores', 'err');
+    }
+  }
+
+  async abrirModalColaborador(id = null) {
     this._editandoColabId = id;
     this._depsModal   = [];
     this._emergsModal = [];
 
     const form = document.getElementById('form-colaborador');
     form.reset();
+
+    // Popula selects de cargo e setor com dados do banco (precisa vir antes
+    // do preenchimento, senão o .value de edição não encontra a <option>)
+    await this._popularSelectsModal();
 
     if (id != null) {
       document.getElementById('modal-colab-title').textContent = 'Editar colaborador';

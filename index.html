@@ -1757,16 +1757,15 @@
             <input type="date" name="nascimento">
           </div>
           <div class="form-group">
-            <label>Cargo</label>
-            <input type="text" name="cargo" placeholder="Ex.: Operador de Máquina">
+            <label>Cargo <span class="req">*</span></label>
+            <select name="cargo_id" required>
+              <option value="">—</option>
+            </select>
           </div>
           <div class="form-group">
-            <label>Setor</label>
-            <select name="setor">
+            <label>Setor <span class="req">*</span></label>
+            <select name="departamento_id" required>
               <option value="">—</option>
-              <option>Produção</option>
-              <option>Administrativo</option>
-              <option>Área Externa</option>
             </select>
           </div>
           <div class="form-group">
