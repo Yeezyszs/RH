@@ -79,7 +79,7 @@ const Colaboradores = {
           .range(from, to)
           .order('nome');
 
-        if (busca)  query = query.ilike('nome', `%${busca}%`);
+        if (busca)  query = query.or(`nome.ilike.%${busca}%,area.ilike.%${busca}%`);
         if (status) query = query.eq('status', status);
         if (setor)  query = query.eq('departamento_id', setor);
 

@@ -280,7 +280,7 @@
       <!-- Toolbar -->
       <div class="toolbar">
         <div class="toolbar-search">
-          <input type="text" id="col-search" placeholder="Buscar por nome, matrícula ou cargo…">
+          <input type="text" id="col-search" placeholder="Buscar por nome, matrícula ou área…">
         </div>
         <select id="col-filter-setor">
           <option value="">Todos os setores</option>
@@ -323,8 +323,7 @@
             <thead>
               <tr>
                 <th style="width: 30%">Colaborador</th>
-                <th>Cargo</th>
-                <th>Setor</th>
+                <th>Setor / Área</th>
                 <th>Admissão</th>
                 <th>Status</th>
                 <th style="width: 120px; text-align:right">Ações</th>
@@ -346,7 +345,7 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Quadro de Funcionários</h1>
-          <div class="page-subtitle">Organização por setor e cargo · clique em qualquer nome para ver detalhes</div>
+          <div class="page-subtitle">Organização por setor e área · clique em qualquer nome para ver detalhes</div>
         </div>
       </div>
 
@@ -355,9 +354,6 @@
         <div class="toolbar-search">
           <input type="text" id="quad-search" placeholder="Buscar colaborador…">
         </div>
-        <select id="quad-filter-cargo">
-          <option value="">Todos os cargos</option>
-        </select>
         <select id="quad-filter-status">
           <option value="">Todos os status</option>
           <option value="ativo">Ativo</option>
@@ -376,10 +372,6 @@
         <div class="stat">
           <div class="stat-label">Setores</div>
           <div class="stat-value" id="quad-stat-setores">—</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Cargos únicos</div>
-          <div class="stat-value" id="quad-stat-cargos">—</div>
         </div>
         <div class="stat">
           <div class="stat-label">Maior setor</div>
@@ -1757,12 +1749,6 @@
             <input type="date" name="nascimento">
           </div>
           <div class="form-group">
-            <label>Cargo <span class="req">*</span></label>
-            <select name="cargo_id" required>
-              <option value="">—</option>
-            </select>
-          </div>
-          <div class="form-group">
             <label>Setor <span class="req">*</span></label>
             <select name="departamento_id" required>
               <option value="">—</option>
@@ -2932,17 +2918,17 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260618"></script>
-<script src="src/utils/base.js?v=20260618"></script>
-<script src="src/dashboard.js?v=20260618"></script>
-<script src="supabase.js?v=20260618"></script>
-<script src="src/api/pessoas.js?v=20260618"></script>
-<script src="src/api/compliance.js?v=20260618"></script>
-<script src="src/api/beneficios.js?v=20260618"></script>
-<script src="src/api/gestao.js?v=20260618"></script>
-<script src="src/api/init.js?v=20260618"></script>
-<script src="src/auth.js?v=20260618"></script>
-<script type="module" src="src/app.js?v=20260618"></script>
+<script src="src/data-store.js?v=20260618b"></script>
+<script src="src/utils/base.js?v=20260618b"></script>
+<script src="src/dashboard.js?v=20260618b"></script>
+<script src="supabase.js?v=20260618b"></script>
+<script src="src/api/pessoas.js?v=20260618b"></script>
+<script src="src/api/compliance.js?v=20260618b"></script>
+<script src="src/api/beneficios.js?v=20260618b"></script>
+<script src="src/api/gestao.js?v=20260618b"></script>
+<script src="src/api/init.js?v=20260618b"></script>
+<script src="src/auth.js?v=20260618b"></script>
+<script type="module" src="src/app.js?v=20260618b"></script>
 
 </body>
 </html>

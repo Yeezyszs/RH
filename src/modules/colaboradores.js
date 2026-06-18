@@ -5,7 +5,6 @@ export class ColaboradoresModule {
   constructor(deps) {
     this.Colaboradores = deps.Colaboradores;
     this.Departamentos = deps.Departamentos;
-    this.Cargos = deps.Cargos;
     this.HistoricoColaboradores = deps.HistoricoColaboradores;
     this.Auth = deps.Auth;
     this.$ = deps.$;
@@ -63,7 +62,7 @@ export class ColaboradoresModule {
         this.state.page = 1;
         this.render();
       }
-      if (e.target.id === 'quad-filter-cargo' || e.target.id === 'quad-filter-status') {
+      if (e.target.id === 'quad-filter-status') {
         this.renderQuadro();
       }
     });
@@ -103,7 +102,7 @@ export class ColaboradoresModule {
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
 
     if (temSessao) {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty" style="color:var(--text-muted)">Carregando…</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="empty" style="color:var(--text-muted)">Carregando…</td></tr>`;
       try {
         const res = await this.Colaboradores.listar({
           page: this.state.page,
@@ -115,18 +114,18 @@ export class ColaboradoresModule {
 
         tbody.innerHTML = res.data.length
           ? this._renderLinhas(res.data)
-          : `<tr><td colspan="6" class="empty">Nenhum colaborador encontrado</td></tr>`;
+          : `<tr><td colspan="5" class="empty">Nenhum colaborador encontrado</td></tr>`;
 
         this._updateStats(res.data);
         this._renderPaginacao(res.page, res.totalPages, res.total);
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="empty">Erro ao carregar: ${this.h(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="empty">Erro ao carregar: ${this.h(err.message)}</td></tr>`;
       }
     } else {
       const lista = this._filtrarMock(busca, status, setor);
       tbody.innerHTML = lista.length
         ? this._renderLinhas(lista)
-        : `<tr><td colspan="6" class="empty">Nenhum colaborador encontrado</td></tr>`;
+        : `<tr><td colspan="5" class="empty">Nenhum colaborador encontrado</td></tr>`;
       this._updateStats(this.COLABORADORES);
       const bar = this.$('#col-pagination-bar');
       if (bar) bar.style.display = 'none';
@@ -173,7 +172,6 @@ export class ColaboradoresModule {
               </div>
             </div>
           </td>
-          <td>${this.h(c.cargo)}</td>
           <td>
             <div>${this.h(c.setor)}</div>
             ${c.area ? `<div class="cell-person-sub">${this.h(c.area)}</div>` : ''}
@@ -241,7 +239,7 @@ export class ColaboradoresModule {
       lista = lista.filter(x =>
         x.nome.toLowerCase().includes(q) ||
         x.matricula.includes(q) ||
-        x.cargo.toLowerCase().includes(q)
+        (x.area || '').toLowerCase().includes(q)
       );
     }
     if (status) lista = lista.filter(x => x.status === status);
@@ -258,7 +256,7 @@ export class ColaboradoresModule {
 
     this.$('#dcol-avatar').textContent = this.iniciais(c.nome);
     this.$('#dcol-name').textContent   = c.nome;
-    this.$('#dcol-role').textContent   = `${c.cargo} · ${c.setor}`;
+    this.$('#dcol-role').textContent   = c.area ? `${c.setor} · ${c.area}` : c.setor;
 
     const st = this.STATUS_LABEL[c.status] || this.STATUS_LABEL.ativo;
     const sexoLabel = { M:'Masculino', F:'Feminino', O:'Outro' }[c.sexo] || '—';
@@ -267,7 +265,6 @@ export class ColaboradoresModule {
       <div class="info-item"><div class="info-label">Matrícula</div><div class="info-value mono">${this.h(c.matricula)}</div></div>
       <div class="info-item"><div class="info-label">Status</div><div class="info-value"><span class="badge ${st.cls}">${st.t}</span></div></div>
       <div class="info-item"><div class="info-label">Setor · Área</div><div class="info-value">${this.h(c.setor)}${c.area ? ` · ${this.h(c.area)}` : ''}</div></div>
-      <div class="info-item"><div class="info-label">Cargo</div><div class="info-value">${this.h(c.cargo || '—')}</div></div>
       <div class="info-item"><div class="info-label">Sexo</div><div class="info-value">${sexoLabel}</div></div>
       <div class="info-item"><div class="info-label">Escolaridade</div><div class="info-value">${this.h(c.escolaridade || '—')}</div></div>
       <div class="info-sep"></div>
@@ -470,24 +467,18 @@ export class ColaboradoresModule {
 
   // ─── Modal colaborador ────────────────────────────────────────────────────
 
-  // Carrega cargos e departamentos do banco e preenche os <select> do modal.
+  // Carrega os departamentos (setores) do banco e preenche o <select> do modal.
   // O <option> mantém o id como value — é isso que o INSERT/UPDATE espera.
   async _popularSelectsModal() {
-    const selCargo = document.querySelector('#form-colaborador [name="cargo_id"]');
-    const selDep   = document.querySelector('#form-colaborador [name="departamento_id"]');
-    if (!selCargo || !selDep) return;
+    const selDep = document.querySelector('#form-colaborador [name="departamento_id"]');
+    if (!selDep) return;
     try {
-      const [cargos, deptos] = await Promise.all([
-        this.Cargos.listar(),
-        this.Departamentos.listar(),
-      ]);
-      selCargo.innerHTML = `<option value="">—</option>` +
-        cargos.map(c => `<option value="${c.id}">${this.h(c.nome)}</option>`).join('');
+      const deptos = await this.Departamentos.listar();
       selDep.innerHTML = `<option value="">—</option>` +
         deptos.map(d => `<option value="${d.id}">${this.h(d.nome)}</option>`).join('');
     } catch (err) {
-      console.error('Erro ao carregar cargos/departamentos:', err);
-      this.showToast?.('Erro ao carregar cargos/setores', 'err');
+      console.error('Erro ao carregar setores:', err);
+      this.showToast?.('Erro ao carregar setores', 'err');
     }
   }
 
@@ -499,8 +490,8 @@ export class ColaboradoresModule {
     const form = document.getElementById('form-colaborador');
     form.reset();
 
-    // Popula selects de cargo e setor com dados do banco (precisa vir antes
-    // do preenchimento, senão o .value de edição não encontra a <option>)
+    // Popula o select de setor com dados do banco (precisa vir antes do
+    // preenchimento, senão o .value de edição não encontra a <option>)
     await this._popularSelectsModal();
 
     if (id != null) {
@@ -560,8 +551,8 @@ export class ColaboradoresModule {
       celular:         data.celular || null,
       genero:          data.sexo === 'M' ? 'Masculino' : data.sexo === 'F' ? 'Feminino' : 'Outro',
       status:          data.status || 'ativo',
-      cargo_id:        data.cargo_id ? parseInt(data.cargo_id, 10) : null,
       departamento_id: data.departamento_id ? parseInt(data.departamento_id, 10) : null,
+      area:            data.area || null,
     };
 
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
@@ -734,22 +725,10 @@ export class ColaboradoresModule {
     const grid = this.$('#setor-grid');
     if (!grid) return;
 
-    const cargosAll = [...new Set(this.COLABORADORES.map(c => c.cargo))].sort();
-    const filtroCargo = this.$('#quad-filter-cargo');
-    if (filtroCargo && filtroCargo.options.length <= 1) {
-      cargosAll.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c; opt.textContent = c;
-        filtroCargo.appendChild(opt);
-      });
-    }
-
     const q       = (this.$('#quad-search')?.value || '').trim().toLowerCase();
-    const fCargo  = this.$('#quad-filter-cargo')?.value  || '';
     const fStatus = this.$('#quad-filter-status')?.value || '';
 
     const filtrados = this.COLABORADORES.filter(c => {
-      if (fCargo  && c.cargo  !== fCargo)  return false;
       if (fStatus && c.status !== fStatus) return false;
       if (q && !c.nome.toLowerCase().includes(q)) return false;
       return true;
@@ -759,19 +738,16 @@ export class ColaboradoresModule {
     const porSetor = {};
     filtrados.forEach(c => {
       const area = c.area || SEM_AREA;
-      if (!porSetor[c.setor])                porSetor[c.setor] = {};
-      if (!porSetor[c.setor][area])          porSetor[c.setor][area] = {};
-      if (!porSetor[c.setor][area][c.cargo]) porSetor[c.setor][area][c.cargo] = [];
-      porSetor[c.setor][area][c.cargo].push(c);
+      if (!porSetor[c.setor])       porSetor[c.setor] = {};
+      if (!porSetor[c.setor][area]) porSetor[c.setor][area] = [];
+      porSetor[c.setor][area].push(c);
     });
 
     const setoresAtivos = Object.keys(porSetor);
     this.$('#quad-stat-total').textContent   = filtrados.length;
     this.$('#quad-stat-setores').textContent = setoresAtivos.length;
-    this.$('#quad-stat-cargos').textContent  = [...new Set(filtrados.map(c => c.cargo))].length;
 
-    const totalSetor = (s) => Object.values(porSetor[s]).reduce((acc, areas) =>
-      acc + Object.values(areas).reduce((a, b) => a + b.length, 0), 0);
+    const totalSetor = (s) => Object.values(porSetor[s]).reduce((a, b) => a + b.length, 0);
 
     let maior = '—', maiorN = 0;
     setoresAtivos.forEach(s => {
@@ -797,40 +773,25 @@ export class ColaboradoresModule {
       });
 
       const areasHtml = areasOrdenadas.map(area => {
-        const cargos = areas[area];
-        const cargosOrdenados = Object.keys(cargos).sort();
-        const totalArea = Object.values(cargos).reduce((a, b) => a + b.length, 0);
-
-        const cargosHtml = cargosOrdenados.map(cargo => {
-          const pessoas = cargos[cargo];
-          const pessoasHtml = pessoas
-            .sort((a, b) => a.nome.localeCompare(b.nome))
-            .map(p => `
-              <div class="func-mini" onclick="abrirDrawerColab(${p.id})">
-                <div class="cell-avatar">${this.h(this.iniciais(p.nome))}</div>
-                <div class="func-mini-name">${this.h(p.nome)}</div>
-                <div class="func-mini-status ${this.h(p.status)}" title="${this.h(this.STATUS_LABEL[p.status]?.t || p.status)}"></div>
-              </div>
-            `).join('');
-          return `
-            <div class="cargo-group">
-              <div class="cargo-header">
-                <span>${this.h(cargo)}</span>
-                <span class="cargo-count">${pessoas.length}</span>
-              </div>
-              <div class="func-list">${pessoasHtml}</div>
+        const pessoas = areas[area];
+        const pessoasHtml = pessoas
+          .sort((a, b) => a.nome.localeCompare(b.nome))
+          .map(p => `
+            <div class="func-mini" onclick="abrirDrawerColab(${p.id})">
+              <div class="cell-avatar">${this.h(this.iniciais(p.nome))}</div>
+              <div class="func-mini-name">${this.h(p.nome)}</div>
+              <div class="func-mini-status ${this.h(p.status)}" title="${this.h(this.STATUS_LABEL[p.status]?.t || p.status)}"></div>
             </div>
-          `;
-        }).join('');
+          `).join('');
 
         const isSemArea = area === SEM_AREA;
         return `
           <div class="area-block">
             <div class="area-header">
               <span class="area-name${isSemArea ? ' sem-area' : ''}">${this.h(area)}</span>
-              <span class="area-count">${totalArea}</span>
+              <span class="area-count">${pessoas.length}</span>
             </div>
-            <div class="area-body">${cargosHtml}</div>
+            <div class="area-body"><div class="func-list">${pessoasHtml}</div></div>
           </div>
         `;
       }).join('');
