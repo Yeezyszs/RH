@@ -40,8 +40,8 @@
   --shadow-lg: 0 10px 30px rgba(10,37,64,.12);
 
   /* ── Fontes ── */
-  --font: 'Syne', system-ui, sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font: 'Work Sans', system-ui, sans-serif;
+  --mono: 'Courier New', ui-monospace, monospace;
 
   /* ── Sizes ── */
   --topbar-h:  60px;
