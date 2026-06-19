@@ -421,7 +421,7 @@ export class ColaboradoresModule {
           <div class="form-group">
             <label>Data de nascimento <span style="color:var(--text-muted);font-size:.8rem;">(dd/mm/yyyy)</span></label>
             <input type="date" value="${dataNascimento}"
-              oninput="window._depUpdate(${d._sid},'nascimento',this.value);window.renderDepsModal()">
+              onchange="window._depUpdate(${d._sid},'nascimento',this.value);window.renderDepsModal()">
           </div>
           <div class="form-group">
             <label>CPF do dependente</label>
