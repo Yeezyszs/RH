@@ -72,6 +72,8 @@ function mapDesligamento(raw) {
   return {
     ...raw,
     data: raw.data_desligamento,
+    nome: raw.colaboradores?.nome || raw.nome || '',
+    admissao: raw.colaboradores?.data_admissao || raw.admissao || '',
   };
 }
 

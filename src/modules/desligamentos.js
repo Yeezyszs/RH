@@ -264,17 +264,25 @@ export class DesligamentosModule {
 
   async excluirDesligamento(id) {
     if (!confirm('Excluir este registro de desligamento?')) return;
+    const desl = this.DESLIGAMENTOS.find(x => x.id === id);
+    if (!desl) return;
+
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
       try {
         await this.Desligamentos.excluir(id);
+        await window.Colaboradores?.atualizar(desl.colaborador_id, { status: 'ativo' }).catch(() => null);
       } catch (err) {
         window.showToast?.('Erro ao excluir: ' + err.message, 'err');
         return;
       }
     } else {
       this.DESLIGAMENTOS = this.DESLIGAMENTOS.filter(x => x.id !== id);
+      const colab = this.COLABORADORES.find(c => c.id === desl.colaborador_id);
+      if (colab) colab.status = 'ativo';
     }
+
+    this.fecharDrawer();
     await this.render();
   }
 
