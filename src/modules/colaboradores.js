@@ -282,18 +282,43 @@ export class ColaboradoresModule {
 
     const docsColab = this.VENCIMENTOS.filter(v => v.colaborador_id === id);
     const hoje = new Date().toISOString().slice(0, 10);
-    this.$('#dcol-docs').innerHTML = docsColab.length ? `
-      <table class="data" style="margin: -6px 0;">
-        <thead><tr><th>Documento</th><th>Emissão</th><th>Validade</th><th>Status</th></tr></thead>
-        <tbody>
-          ${docsColab.map(v => {
-            const diasR = v.vencimento ? Math.ceil((new Date(v.vencimento) - new Date(hoje)) / 86400000) : null;
-            const badge = diasR === null ? '' : diasR < 0 ? `<span class="badge danger">Vencido</span>` : diasR <= 30 ? `<span class="badge warn">Vence em ${diasR}d</span>` : `<span class="badge ok">Válido</span>`;
-            return `<tr><td>${this.h(v.item)}</td><td class="cell-mono">${this.fmtDate(v.emissao)}</td><td class="cell-mono">${this.fmtDate(v.vencimento)}</td><td>${badge}</td></tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    ` : `<p class="empty" style="padding:12px 0">Nenhum documento cadastrado</p>`;
+
+    const docsPessoaisHtml = c.rg || c.pis || c.ctps || c.cnh || c.titulo_eleitor || c.reservista ? `
+      <div class="info-grid" style="margin-bottom: 20px;">
+        ${c.rg ? `<div class="info-item"><div class="info-label">RG</div><div class="info-value mono">${this.h(c.rg)}</div></div>` : ''}
+        ${c.rg_orgao ? `<div class="info-item"><div class="info-label">Órgão emissor</div><div class="info-value">${this.h(c.rg_orgao)}</div></div>` : ''}
+        ${c.rg_emissao ? `<div class="info-item"><div class="info-label">Emissão RG</div><div class="info-value mono">${this.fmtDate(c.rg_emissao)}</div></div>` : ''}
+        ${c.pis ? `<div class="info-item"><div class="info-label">PIS</div><div class="info-value mono">${this.h(c.pis)}</div></div>` : ''}
+        ${c.ctps ? `<div class="info-item"><div class="info-label">CTPS</div><div class="info-value mono">${this.h(c.ctps)}</div></div>` : ''}
+        ${c.ctps_serie ? `<div class="info-item"><div class="info-label">CTPS série</div><div class="info-value">${this.h(c.ctps_serie)}</div></div>` : ''}
+        ${c.cnh ? `<div class="info-item"><div class="info-label">CNH</div><div class="info-value mono">${this.h(c.cnh)}</div></div>` : ''}
+        ${c.cnh_categoria ? `<div class="info-item"><div class="info-label">Categoria CNH</div><div class="info-value">${this.h(c.cnh_categoria)}</div></div>` : ''}
+        ${c.cnh_validade ? `<div class="info-item"><div class="info-label">Validade CNH</div><div class="info-value mono">${this.fmtDate(c.cnh_validade)}</div></div>` : ''}
+        ${c.titulo_eleitor ? `<div class="info-item"><div class="info-label">Título de eleitor</div><div class="info-value mono">${this.h(c.titulo_eleitor)}</div></div>` : ''}
+        ${c.titulo_zona ? `<div class="info-item"><div class="info-label">Zona / Seção</div><div class="info-value">${this.h(c.titulo_zona)}</div></div>` : ''}
+        ${c.reservista ? `<div class="info-item"><div class="info-label">Nº reservista</div><div class="info-value mono">${this.h(c.reservista)}</div></div>` : ''}
+        ${c.banco ? `<div class="info-item"><div class="info-label">Banco</div><div class="info-value">${this.h(c.banco)}</div></div>` : ''}
+        ${c.agencia ? `<div class="info-item"><div class="info-label">Agência</div><div class="info-value mono">${this.h(c.agencia)}</div></div>` : ''}
+        ${c.conta ? `<div class="info-item"><div class="info-label">Conta</div><div class="info-value mono">${this.h(c.conta)}</div></div>` : ''}
+        ${c.conta_tipo ? `<div class="info-item"><div class="info-label">Tipo de conta</div><div class="info-value">${this.h(c.conta_tipo)}</div></div>` : ''}
+      </div>
+    ` : '';
+
+    this.$('#dcol-docs').innerHTML = docsPessoaisHtml + (docsColab.length ? `
+      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-soft);">
+        <div style="font-size: .85rem; font-weight: 500; color: var(--text-soft); margin-bottom: 10px;">Documentos com validade</div>
+        <table class="data" style="margin: -6px 0;">
+          <thead><tr><th>Documento</th><th>Emissão</th><th>Validade</th><th>Status</th></tr></thead>
+          <tbody>
+            ${docsColab.map(v => {
+              const diasR = v.vencimento ? Math.ceil((new Date(v.vencimento) - new Date(hoje)) / 86400000) : null;
+              const badge = diasR === null ? '' : diasR < 0 ? `<span class="badge danger">Vencido</span>` : diasR <= 30 ? `<span class="badge warn">Vence em ${diasR}d</span>` : `<span class="badge ok">Válido</span>`;
+              return `<tr><td>${this.h(v.item)}</td><td class="cell-mono">${this.fmtDate(v.emissao)}</td><td class="cell-mono">${this.fmtDate(v.vencimento)}</td><td>${badge}</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    ` : (docsPessoaisHtml ? '' : `<p class="empty" style="padding:12px 0">Nenhum documento cadastrado</p>`));
 
     const episColab = this.EPI_ENTREGAS.filter(e => e.colaborador_id === id && !e.devolvido);
     this.$('#dcol-epi').innerHTML = episColab.length ? `
@@ -551,6 +576,25 @@ export class ColaboradoresModule {
       return;
     }
 
+    const documentacao = {
+      rg: data.rg || '',
+      rg_orgao: data.rg_orgao || '',
+      rg_emissao: data.rg_emissao || '',
+      pis: data.pis || '',
+      ctps: data.ctps || '',
+      ctps_serie: data.ctps_serie || '',
+      cnh: data.cnh || '',
+      cnh_categoria: data.cnh_categoria || '',
+      cnh_validade: data.cnh_validade || '',
+      titulo_eleitor: data.titulo_eleitor || '',
+      titulo_zona: data.titulo_zona || '',
+      reservista: data.reservista || '',
+      banco: data.banco || '',
+      agencia: data.agencia || '',
+      conta: data.conta || '',
+      conta_tipo: data.conta_tipo || '',
+    };
+
     const payload = {
       nome:            data.nome,
       data_admissao:   data.admissao,
@@ -562,6 +606,12 @@ export class ColaboradoresModule {
       status:          data.status || 'ativo',
       departamento_id: data.departamento_id ? parseInt(data.departamento_id, 10) : null,
       area:            data.area || null,
+      matricula:       data.matricula || null,
+      escolaridade:    data.escolaridade || null,
+      estado_civil:    data.estado_civil || null,
+      telefone:        data.telefone || null,
+      endereco:        data.endereco || null,
+      documentacao:    JSON.stringify(documentacao),
     };
 
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);

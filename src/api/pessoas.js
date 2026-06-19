@@ -43,6 +43,7 @@
 
 // Transforma resposta do Supabase em objeto flat para UI
 function mapColaborador(raw) {
+  const doc = (typeof raw.documentacao === 'string' ? JSON.parse(raw.documentacao || '{}') : raw.documentacao) || {};
   return {
     ...raw,
     setor: raw.departamentos?.nome || '',
@@ -53,6 +54,22 @@ function mapColaborador(raw) {
     telefone: raw.telefone || '',
     nascimento: raw.data_nascimento || '',
     admissao: raw.data_admissao || '',
+    rg: doc.rg || '',
+    rg_orgao: doc.rg_orgao || '',
+    rg_emissao: doc.rg_emissao || '',
+    pis: doc.pis || '',
+    ctps: doc.ctps || '',
+    ctps_serie: doc.ctps_serie || '',
+    cnh: doc.cnh || '',
+    cnh_categoria: doc.cnh_categoria || '',
+    cnh_validade: doc.cnh_validade || '',
+    titulo_eleitor: doc.titulo_eleitor || '',
+    titulo_zona: doc.titulo_zona || '',
+    reservista: doc.reservista || '',
+    banco: doc.banco || '',
+    agencia: doc.agencia || '',
+    conta: doc.conta || '',
+    conta_tipo: doc.conta_tipo || '',
   };
 }
 
@@ -87,39 +104,56 @@ const Colaboradores = {
    * const produção = await Colaboradores.listar({ setor: 'Produção' });
    */
   async listar({ page = 1, limit = 100, busca = '', status = '', setor = '' } = {}) {
-    const cacheKey = `colaboradores_${page}_${limit}_${busca}_${status}_${setor}`;
+    const cacheKey = `colabs_full`;
     const cached = Cache.get(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      let filtered = cached;
+      if (busca) {
+        const q = busca.toLowerCase();
+        filtered = filtered.filter(x => x.nome.toLowerCase().includes(q) || (x.area || '').toLowerCase().includes(q));
+      }
+      if (status) filtered = filtered.filter(x => x.status === status);
+      if (setor) filtered = filtered.filter(x => String(x.departamento_id) === String(setor));
+
+      const start = (page - 1) * limit;
+      const end = start + limit;
+      return {
+        data: filtered.slice(start, end),
+        total: filtered.length,
+        page,
+        limit,
+        totalPages: Math.ceil(filtered.length / limit),
+      };
+    }
 
     const result = await withRetry(() =>
       withTimeout((async () => {
-        const from = (page - 1) * limit;
-        const to = from + limit - 1;
-
-        let query = sb
-          .from('colaboradores')
-          .select('*, cargos(nome), departamentos(nome)', { count: 'exact' })
-          .range(from, to)
-          .order('nome');
-
-        if (busca)  query = query.or(`nome.ilike.%${busca}%,area.ilike.%${busca}%`);
-        if (status) query = query.eq('status', status);
-        if (setor)  query = query.eq('departamento_id', setor);
-
-        const { data, error, count } = await query;
+        const { data, error } = await sb.rpc('listar_colaboradores_seguro');
         if (error) throw error;
 
+        const all = data.map(mapColaborador);
+        Cache.set(cacheKey, all);
+
+        let filtered = all;
+        if (busca) {
+          const q = busca.toLowerCase();
+          filtered = filtered.filter(x => x.nome.toLowerCase().includes(q) || (x.area || '').toLowerCase().includes(q));
+        }
+        if (status) filtered = filtered.filter(x => x.status === status);
+        if (setor) filtered = filtered.filter(x => String(x.departamento_id) === String(setor));
+
+        const start = (page - 1) * limit;
+        const end = start + limit;
         return {
-          data:       data.map(mapColaborador),
-          total:      count,
+          data: filtered.slice(start, end),
+          total: filtered.length,
           page,
           limit,
-          totalPages: Math.ceil(count / limit),
+          totalPages: Math.ceil(filtered.length / limit),
         };
       })())
     );
 
-    Cache.set(cacheKey, result);
     return result;
   },
 
