@@ -553,6 +553,14 @@ export class ColaboradoresModule {
       return;
     }
 
+    // Documentos extras → JSON único (criptografado no banco pelo trigger).
+    const docCampos = ['rg_orgao','rg_emissao','pis','ctps','ctps_serie','cnh',
+      'cnh_categoria','cnh_validade','titulo_eleitor','titulo_zona','reservista',
+      'banco','agencia','conta','conta_tipo'];
+    const documentacao = {};
+    docCampos.forEach(k => { documentacao[k] = data[k] || ''; });
+    const temDoc = Object.values(documentacao).some(v => v !== '');
+
     const payload = {
       nome:            data.nome,
       matricula:       data.matricula || null,
@@ -570,6 +578,7 @@ export class ColaboradoresModule {
       status:          data.status || 'ativo',
       departamento_id: data.departamento_id ? parseInt(data.departamento_id, 10) : null,
       area:            data.area || null,
+      documentacao:    temDoc ? JSON.stringify(documentacao) : null,
     };
 
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);

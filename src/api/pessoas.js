@@ -46,8 +46,13 @@
 // cargo e os campos de PII descriptografados) quanto o retorno cru de um
 // INSERT/UPDATE (com joins aninhados e PII zerada pelo trigger).
 function mapColaborador(raw) {
+  // documentacao é um objeto JSON (vindo descriptografado da RPC) com os campos
+  // extras (pis, ctps, cnh, dados bancários, etc.). Espalhamos no nível raiz
+  // para que o formulário/drawer leiam c.pis, c.ctps, … diretamente.
+  const doc = (raw.documentacao && typeof raw.documentacao === 'object') ? raw.documentacao : {};
   return {
     ...raw,
+    ...doc,
     setor: raw.setor || raw.departamentos?.nome || '',
     cargo: raw.cargo || raw.cargos?.nome || '',
     matricula: raw.matricula || '',
