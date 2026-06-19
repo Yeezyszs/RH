@@ -419,26 +419,35 @@ export class ColaboradoresModule {
             </select>
           </div>
           <div class="form-group">
-            <label>Data de nascimento <span style="color:var(--text-muted);font-size:.8rem;">(dd/mm/yyyy)</span></label>
+            <label>Data de nascimento <span style="color:var(--text-muted);font-size:.8rem;">(dd/mm/aaaa)</span></label>
             <input type="date" value="${dataNascimento}"
-              onchange="window._depUpdate(${d._sid},'nascimento',this.value);window.renderDepsModal()">
+              oninput="window._depDataNasc(${d._sid},this.value)">
           </div>
           <div class="form-group">
             <label>CPF do dependente</label>
             <input type="text" value="${this.h(d.cpf||'')}" placeholder="000.000.000-00"
               oninput="window._depUpdate(${d._sid},'cpf',this.value)">
           </div>
-          ${menor14 ? `
-          <div class="form-group full">
+          <div class="form-group full" id="dep-escola-${d._sid}" style="${menor14 ? '' : 'display:none'}">
             <label>Escola (obrigatório — menor de 14 anos)</label>
             <input type="text" value="${this.h(d.escola||'')}" placeholder="Nome da escola / creche"
               oninput="window._depUpdate(${d._sid},'escola',this.value)">
             <div class="inline-card-hint">📚 Dependente com menos de 14 anos — campo de escola exigido para fins de declaração e benefícios.</div>
-          </div>` : ''}
+          </div>
         </div>
         <button type="button" class="inline-card-remove" title="Remover" onclick="window.removerDepModal(${d._sid})">×</button>
       </div>`;
     }).join('');
+  }
+
+  // Atualiza a data de nascimento do dependente SEM re-renderizar a lista
+  // inteira (isso recriava o <input type=date> a cada tecla e impedia digitar
+  // o ano). Apenas mostra/esconde o campo de escola conforme a idade.
+  _depDataNasc(sid, val) {
+    this._depUpdate(sid, 'nascimento', val);
+    const menor14 = val && this._idadeAnos(val) < 14;
+    const escolaEl = document.getElementById(`dep-escola-${sid}`);
+    if (escolaEl) escolaEl.style.display = menor14 ? '' : 'none';
   }
 
   adicionarDepModal() {
