@@ -498,15 +498,17 @@ export class ColaboradoresModule {
       document.getElementById('modal-colab-title').textContent = 'Editar colaborador';
       const c = this.COLABORADORES.find(x => x.id === id);
       if (c) {
-        // Mapeamento de nomes de colunas do banco para nomes de campos do form
+        // Mapeamento de nomes de colunas do banco para nomes de campos do form.
+        // 'genero' fica de fora de propósito: o mapColaborador já fornece
+        // 'sexo' (M/F/O), que casa com as <option> do select.
         const fieldMap = {
           'data_admissao': 'admissao',
           'data_nascimento': 'nascimento',
           'data_desligamento': 'desligamento',
-          'numero_dependentes': 'numero_dependentes',
-          'genero': 'sexo',
         };
+        const ignorar = new Set(['genero']);
         for (const [k, v] of Object.entries(c)) {
+          if (ignorar.has(k)) continue;
           const formFieldName = fieldMap[k] || k;
           const f = form.elements[formFieldName];
           if (f) f.value = v ?? '';
@@ -553,11 +555,17 @@ export class ColaboradoresModule {
 
     const payload = {
       nome:            data.nome,
+      matricula:       data.matricula || null,
       data_admissao:   data.admissao,
       data_nascimento: data.nascimento || null,
       cpf:             data.cpf || null,
+      rg:              data.rg || null,
       email:           data.email || null,
+      telefone:        data.telefone || null,
       celular:         data.celular || null,
+      endereco:        data.endereco || null,
+      escolaridade:    data.escolaridade || null,
+      estado_civil:    data.estado_civil || null,
       genero:          data.sexo === 'M' ? 'Masculino' : data.sexo === 'F' ? 'Feminino' : 'Outro',
       status:          data.status || 'ativo',
       departamento_id: data.departamento_id ? parseInt(data.departamento_id, 10) : null,
@@ -578,6 +586,13 @@ export class ColaboradoresModule {
           colabId = novo.id;
           this.showToast('Colaborador cadastrado', 'ok');
         }
+        // Recarrega a lista completa (com PII descriptografada) para o array
+        // global, que alimenta drawer, quadro e dashboard.
+        const todos = await this.Colaboradores.listar({ limit: 100000 });
+        this.COLABORADORES.length = 0;
+        this.COLABORADORES.push(...todos.data);
+        if (window.renderQuadro)    window.renderQuadro();
+        if (window.renderDashboard) window.renderDashboard();
       } catch (err) {
         this.showToast('Erro ao salvar: ' + err.message, 'err');
         return;

@@ -41,16 +41,23 @@
  * @property {string} data_admissao — ISO format: '2024-01-15'
  */
 
-// Transforma resposta do Supabase em objeto flat para UI
+// Transforma resposta do Supabase em objeto flat para UI.
+// Aceita tanto o formato da RPC listar_colaboradores_seguro (que já traz setor,
+// cargo e os campos de PII descriptografados) quanto o retorno cru de um
+// INSERT/UPDATE (com joins aninhados e PII zerada pelo trigger).
 function mapColaborador(raw) {
   return {
     ...raw,
-    setor: raw.departamentos?.nome || '',
-    cargo: raw.cargos?.nome || '',
+    setor: raw.setor || raw.departamentos?.nome || '',
+    cargo: raw.cargo || raw.cargos?.nome || '',
     matricula: raw.matricula || '',
     sexo: raw.genero === 'Masculino' ? 'M' : raw.genero === 'Feminino' ? 'F' : raw.genero === 'Outro' ? 'O' : '',
     escolaridade: raw.escolaridade || '',
+    estado_civil: raw.estado_civil || '',
     telefone: raw.telefone || '',
+    endereco: raw.endereco || '',
+    rg: raw.rg || '',
+    cpf: raw.cpf || '',
     nascimento: raw.data_nascimento || '',
     admissao: raw.data_admissao || '',
   };
@@ -87,40 +94,36 @@ const Colaboradores = {
    * const produção = await Colaboradores.listar({ setor: 'Produção' });
    */
   async listar({ page = 1, limit = 100, busca = '', status = '', setor = '' } = {}) {
-    const cacheKey = `colaboradores_${page}_${limit}_${busca}_${status}_${setor}`;
-    const cached = Cache.get(cacheKey);
-    if (cached) return cached;
+    // Busca a lista completa (com PII descriptografada) via RPC segura e
+    // mantém em cache; a paginação e os filtros são aplicados no cliente.
+    // Isso é necessário porque as colunas sensíveis (cpf, telefone, etc.) só
+    // são legíveis através da função listar_colaboradores_seguro().
+    let todos = Cache.get('colabs_full');
+    if (!todos) {
+      const { data, error } = await withRetry(() =>
+        withTimeout(sb.rpc('listar_colaboradores_seguro'))
+      );
+      if (error) throw error;
+      todos = (data || []).map(mapColaborador);
+      Cache.set('colabs_full', todos);
+    }
 
-    const result = await withRetry(() =>
-      withTimeout((async () => {
-        const from = (page - 1) * limit;
-        const to = from + limit - 1;
+    let filtrados = todos;
+    if (busca) {
+      const q = busca.toLowerCase();
+      filtrados = filtrados.filter(c =>
+        (c.nome || '').toLowerCase().includes(q) ||
+        (c.area || '').toLowerCase().includes(q));
+    }
+    if (status) filtrados = filtrados.filter(c => c.status === status);
+    if (setor)  filtrados = filtrados.filter(c => String(c.departamento_id) === String(setor));
 
-        let query = sb
-          .from('colaboradores')
-          .select('*, cargos(nome), departamentos(nome)', { count: 'exact' })
-          .range(from, to)
-          .order('nome');
+    const total      = filtrados.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const from       = (page - 1) * limit;
+    const dataPage   = filtrados.slice(from, from + limit);
 
-        if (busca)  query = query.or(`nome.ilike.%${busca}%,area.ilike.%${busca}%`);
-        if (status) query = query.eq('status', status);
-        if (setor)  query = query.eq('departamento_id', setor);
-
-        const { data, error, count } = await query;
-        if (error) throw error;
-
-        return {
-          data:       data.map(mapColaborador),
-          total:      count,
-          page,
-          limit,
-          totalPages: Math.ceil(count / limit),
-        };
-      })())
-    );
-
-    Cache.set(cacheKey, result);
-    return result;
+    return { data: dataPage, total, page, limit, totalPages };
   },
 
   /**
@@ -142,21 +145,12 @@ const Colaboradores = {
    * @throws {Error} Se colaborador não encontrado
    */
   async buscar(id) {
-    const cacheKey = `colaborador_${id}`;
-    const cached = Cache.get(cacheKey);
-    if (cached) return cached;
-
-    const { data, error } = await withTimeout(
-      sb.from('colaboradores')
-        .select('*, cargos(nome), departamentos(nome)')
-        .eq('id', id)
-        .single()
-    );
-    if (error) throw error;
-
-    const result = mapColaborador(data);
-    Cache.set(cacheKey, result);
-    return result;
+    // Usa a lista segura (com PII descriptografada) para obter o registro
+    // completo, em vez de ler a tabela direto (onde a PII fica zerada/cifrada).
+    const res = await Colaboradores.listar({ limit: 100000 });
+    const found = res.data.find(c => c.id === id);
+    if (!found) throw new Error('Colaborador não encontrado');
+    return found;
   },
 
   /**

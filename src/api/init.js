@@ -234,16 +234,23 @@ function setupRealTimeListeners() {
     const id = novoReg?.id ?? regAnterior?.id;
 
     if (table === 'colaboradores') {
-      if (eventType === 'INSERT') {
-        const novo = mapColaborador(novoReg);
-        COLABORADORES.unshift(novo);
-      } else if (eventType === 'UPDATE') {
-        const i = COLABORADORES.findIndex(x => x.id === id);
-        if (i >= 0) COLABORADORES[i] = mapColaborador(novoReg);
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(COLABORADORES, x => x.id !== id);
+        if (typeof renderColaboradores === 'function') renderColaboradores();
+        if (typeof renderQuadro        === 'function') renderQuadro();
+        if (typeof renderDashboard     === 'function') renderDashboard();
+      } else {
+        // INSERT/UPDATE: o payload do realtime traz a PII zerada pelo trigger
+        // de criptografia, então recarregamos a lista já descriptografada
+        // através da RPC segura (listar usa Cache 'colabs_full').
+        Cache.invalidate('colabs_full');
+        Colaboradores.listar({ limit: 100000 }).then(res => {
+          _preencherArray(COLABORADORES, res.data);
+          if (typeof renderColaboradores === 'function') renderColaboradores();
+          if (typeof renderQuadro        === 'function') renderQuadro();
+          if (typeof renderDashboard     === 'function') renderDashboard();
+        }).catch(() => {});
       }
-      if (typeof renderColaboradores === 'function') renderColaboradores();
     }
 
     if (table === 'advertencias') {
