@@ -22,7 +22,12 @@ function goPage(name) {
 }
 
 document.querySelectorAll('.nav-item[data-page]').forEach(el => {
-  el.addEventListener('click', () => goPage(el.dataset.page));
+  el.addEventListener('click', () => {
+    goPage(el.dataset.page);
+    // Ao voltar ao dashboard, garante que os gráficos sejam (re)criados já com
+    // o container visível e dimensionado.
+    if (el.dataset.page === 'dashboard') setTimeout(renderDashboardCharts, 60);
+  });
 });
 
 // ─── Toast ───────────────────────────────────────────────────────────────────
@@ -61,6 +66,12 @@ if (typeof Chart !== 'undefined') {
 let _chartRot, _chartHead;
 
 function renderDashboardCharts() {
+  // Não cria gráficos enquanto o painel estiver oculto (#app display:none).
+  // Criar um Chart num container 0×0 deixa o canvas quebrado mesmo depois de
+  // exibir o app — por isso adiamos até o dashboard estar realmente visível.
+  const appEl = document.getElementById('app');
+  if (appEl && appEl.style.display === 'none') return;
+
   const ctxRot = document.getElementById('chart-rotatividade');
   if (ctxRot && typeof Chart !== 'undefined') {
     _chartRot?.destroy();
@@ -237,21 +248,23 @@ function renderDashboard() {
   // Alertas de vencimentos críticos
   const alertsList  = el('dash-alerts-list');
   const alertsBadge = el('dash-alerts-badge');
-  if (alertsList && vencCriticos.length > 0) {
-    alertsList.innerHTML = [...vencCriticos]
-      .sort((a, b) => diasAte(a.vencimento) - diasAte(b.vencimento))
-      .slice(0, 6)
-      .map(v => {
-        const c    = COLABORADORES.find(x => x.id === v.colaborador_id);
-        const d    = diasAte(v.vencimento);
-        const cls  = d < 0 ? 'danger' : d <= 7 ? 'warn' : 'info';
-        const data = v.vencimento ? v.vencimento.slice(5).replace('-', '/') : '—';
-        const msg  = d < 0
-          ? `<strong>${h(v.item)}</strong>${c ? ` de ${h(c.nome)}` : ''} venceu há ${Math.abs(d)} dia${Math.abs(d) !== 1 ? 's' : ''}`
-          : `<strong>${h(v.item)}</strong>${c ? ` de ${h(c.nome)}` : ''} vence em ${d} dia${d !== 1 ? 's' : ''}`;
-        return `<li class="alert-item"><span class="alert-dot ${cls}"></span><span class="alert-text">${msg}</span><span class="alert-meta">${data}</span></li>`;
-      }).join('');
-    if (alertsBadge) alertsBadge.textContent = `${vencCriticos.length} iten${vencCriticos.length !== 1 ? 's' : ''}`;
+  if (alertsList) {
+    alertsList.innerHTML = vencCriticos.length > 0
+      ? [...vencCriticos]
+          .sort((a, b) => diasAte(a.vencimento) - diasAte(b.vencimento))
+          .slice(0, 6)
+          .map(v => {
+            const c    = COLABORADORES.find(x => x.id === v.colaborador_id);
+            const d    = diasAte(v.vencimento);
+            const cls  = d < 0 ? 'danger' : d <= 7 ? 'warn' : 'info';
+            const data = v.vencimento ? v.vencimento.slice(5).replace('-', '/') : '—';
+            const msg  = d < 0
+              ? `<strong>${h(v.item)}</strong>${c ? ` de ${h(c.nome)}` : ''} venceu há ${Math.abs(d)} dia${Math.abs(d) !== 1 ? 's' : ''}`
+              : `<strong>${h(v.item)}</strong>${c ? ` de ${h(c.nome)}` : ''} vence em ${d} dia${d !== 1 ? 's' : ''}`;
+            return `<li class="alert-item"><span class="alert-dot ${cls}"></span><span class="alert-text">${msg}</span><span class="alert-meta">${data}</span></li>`;
+          }).join('')
+      : `<li style="padding:12px; color:var(--text-soft); font-size:.85rem">Nenhum vencimento crítico</li>`;
+    if (alertsBadge) alertsBadge.textContent = `${vencCriticos.length} ${vencCriticos.length === 1 ? 'item' : 'itens'}`;
   }
 
   // Aniversariantes da semana
