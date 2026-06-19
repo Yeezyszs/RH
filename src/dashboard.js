@@ -56,9 +56,12 @@ document.addEventListener('click', (e) => {
 
 // ─── Chart.js defaults ───────────────────────────────────────────────────────
 
-if (typeof Chart !== 'undefined') {
+// CHART_COLORS vive em constants.js (módulo ES) e é exposto em window por
+// app.js. Aqui (script clássico) só está disponível depois que app.js roda,
+// por isso o acesso é defensivo via window.
+if (typeof Chart !== 'undefined' && window.CHART_COLORS) {
   Chart.defaults.font.family = "'Syne', sans-serif";
-  Chart.defaults.color = CHART_COLORS.text;
+  Chart.defaults.color = window.CHART_COLORS.text;
 }
 
 // ─── Dashboard Charts ────────────────────────────────────────────────────────
@@ -66,6 +69,12 @@ if (typeof Chart !== 'undefined') {
 let _chartRot, _chartHead;
 
 function renderDashboardCharts() {
+  // Sem Chart.js (CDN) ou sem as constantes de cor (expostas por app.js) não há
+  // como desenhar — evita ReferenceError e gráficos quebrados.
+  if (typeof Chart === 'undefined') return;
+  const CHART_COLORS = window.CHART_COLORS;
+  if (!CHART_COLORS) return;
+
   // Não cria gráficos enquanto o painel estiver oculto (#app display:none).
   // Criar um Chart num container 0×0 deixa o canvas quebrado mesmo depois de
   // exibir o app — por isso adiamos até o dashboard estar realmente visível.
