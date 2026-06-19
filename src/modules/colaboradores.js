@@ -589,24 +589,27 @@ export class ColaboradoresModule {
     docCampos.forEach(k => { documentacao[k] = data[k] || ''; });
     const temDoc = Object.values(documentacao).some(v => v !== '');
 
+    // Campos PII textuais: enviamos string vazia (não null) quando limpos, para
+    // que o trigger de criptografia distinga "limpar" ('') de "não alterar"
+    // (null/ausente em updates parciais) e zere o respectivo _enc no banco.
     const payload = {
       nome:            data.nome,
       matricula:       data.matricula || null,
       data_admissao:   data.admissao,
       data_nascimento: data.nascimento || null,
-      cpf:             data.cpf || null,
-      rg:              data.rg || null,
+      cpf:             data.cpf || '',
+      rg:              data.rg || '',
       email:           data.email || null,
-      telefone:        data.telefone || null,
-      celular:         data.celular || null,
-      endereco:        data.endereco || null,
+      telefone:        data.telefone || '',
+      celular:         data.celular || '',
+      endereco:        data.endereco || '',
       escolaridade:    data.escolaridade || null,
       estado_civil:    data.estado_civil || null,
       genero:          data.sexo === 'M' ? 'Masculino' : data.sexo === 'F' ? 'Feminino' : 'Outro',
       status:          data.status || 'ativo',
       departamento_id: data.departamento_id ? parseInt(data.departamento_id, 10) : null,
       area:            data.area || null,
-      documentacao:    temDoc ? JSON.stringify(documentacao) : null,
+      documentacao:    temDoc ? JSON.stringify(documentacao) : '',
     };
 
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
@@ -667,9 +670,12 @@ export class ColaboradoresModule {
   }
 
   editarColaboradorDoDrawer() {
-    if (this._drawerColabId != null) {
+    // Captura o id ANTES de fechar o drawer — fecharDrawerColab() zera
+    // _drawerColabId, e sem isso o modal abriria em modo "Novo colaborador".
+    const id = this._drawerColabId;
+    if (id != null) {
       this.fecharDrawerColab();
-      this.abrirModalColaborador(this._drawerColabId);
+      this.abrirModalColaborador(id);
     }
   }
 
