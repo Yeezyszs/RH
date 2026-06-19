@@ -22,6 +22,7 @@ export class ColaboradoresModule {
     this.CONTATOS_EMERG = deps.CONTATOS_EMERG;
     this.EPI_ENTREGAS = deps.EPI_ENTREGAS;
     this.VENCIMENTOS = deps.VENCIMENTOS;
+    this.DESLIGAMENTOS = deps.DESLIGAMENTOS;
 
     this.state = {
       page: 1,
@@ -335,14 +336,20 @@ export class ColaboradoresModule {
 
     const histEl = this.$('#dcol-historico');
     const admissaoItem = `<li class="activity-item"><span class="activity-chip admissao">Admissão</span><span class="activity-text">Admitido na empresa</span><span class="activity-time">${this.fmtDate(c.admissao)}</span></li>`;
-    histEl.innerHTML = `<ul class="activity-feed" style="margin: -6px 0;">${admissaoItem}</ul>`;
+
+    // Evento de desligamento (se houver) — buscado no array global por colaborador_id
+    const desl = (this.DESLIGAMENTOS || []).find(d => d.colaborador_id === id);
+    const desligamentoItem = desl
+      ? `<li class="activity-item"><span class="activity-chip desligamento">Desligamento</span><span class="activity-text">${this.h(desl.motivo || 'Desligado da empresa')}</span><span class="activity-time">${this.fmtDate(desl.data || desl.data_desligamento)}</span></li>`
+      : '';
+
+    histEl.innerHTML = `<ul class="activity-feed" style="margin: -6px 0;">${desligamentoItem}${admissaoItem}</ul>`;
 
     if (this.HistoricoColaboradores && this.Auth?.sessaoAtual) {
       this.Auth.sessaoAtual().then(sessao => {
         if (!sessao) return;
         this.HistoricoColaboradores.listarPorColab(id).then(registros => {
           const itens = [
-            admissaoItem,
             ...registros.map(r => {
               const partes = [];
               if (r.cargos_novo?.nome && r.cargos_anterior?.nome) partes.push(`${r.cargos_anterior.nome} → ${r.cargos_novo.nome}`);
@@ -350,10 +357,16 @@ export class ColaboradoresModule {
               if (r.depto_novo?.nome && r.depto_anterior?.nome) partes.push(`${r.depto_anterior.nome} → ${r.depto_novo.nome}`);
               if (r.salario_novo && r.salario_anterior) partes.push(`Salário: ${this.fmtBRL(r.salario_anterior)} → ${this.fmtBRL(r.salario_novo)}`);
               const texto = partes.join(' · ') || (r.motivo || 'Alteração');
-              return `<li class="activity-item"><span class="activity-chip">RH</span><span class="activity-text">${this.h(texto)}</span><span class="activity-time">${this.fmtDate(r.data_mudanca)}</span></li>`;
+              return {
+                data: r.data_mudanca,
+                html: `<li class="activity-item"><span class="activity-chip">RH</span><span class="activity-text">${this.h(texto)}</span><span class="activity-time">${this.fmtDate(r.data_mudanca)}</span></li>`,
+              };
             }),
           ];
-          histEl.innerHTML = `<ul class="activity-feed" style="margin: -6px 0;">${itens.join('')}</ul>`;
+          if (desl) itens.push({ data: desl.data || desl.data_desligamento, html: desligamentoItem });
+          // Ordena do mais recente para o mais antigo; admissão sempre por último
+          itens.sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')));
+          histEl.innerHTML = `<ul class="activity-feed" style="margin: -6px 0;">${itens.map(i => i.html).join('')}${admissaoItem}</ul>`;
         }).catch(() => {});
       }).catch(() => {});
     }
