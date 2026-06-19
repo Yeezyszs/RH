@@ -282,7 +282,34 @@ export class ColaboradoresModule {
 
     const docsColab = this.VENCIMENTOS.filter(v => v.colaborador_id === id);
     const hoje = new Date().toISOString().slice(0, 10);
-    this.$('#dcol-docs').innerHTML = docsColab.length ? `
+
+    // Documentação pessoal (RG, CPF, PIS, CTPS, CNH, título, reservista, banco)
+    const di    = (label, val) => `<div class="info-item"><div class="info-label">${label}</div><div class="info-value">${val ? this.h(val) : '—'}</div></div>`;
+    const diMono = (label, val) => `<div class="info-item"><div class="info-label">${label}</div><div class="info-value mono">${val || '—'}</div></div>`;
+    const docPessoal = `
+      <div class="info-grid">
+        ${diMono('CPF', this.h(c.cpf || ''))}
+        ${diMono('RG', this.h(c.rg || ''))}
+        ${di('Órgão emissor / UF', c.rg_orgao)}
+        ${diMono('Emissão RG', c.rg_emissao ? this.fmtDate(c.rg_emissao) : '')}
+        ${di('PIS / PASEP', c.pis)}
+        ${di('CTPS nº', c.ctps)}
+        ${di('CTPS série / UF', c.ctps_serie)}
+        ${di('CNH nº', c.cnh)}
+        ${di('Categoria CNH', c.cnh_categoria)}
+        ${diMono('Validade CNH', c.cnh_validade ? this.fmtDate(c.cnh_validade) : '')}
+        ${di('Título de eleitor', c.titulo_eleitor)}
+        ${di('Zona / Seção', c.titulo_zona)}
+        ${di('Nº reservista', c.reservista)}
+        <div class="info-sep"></div>
+        ${di('Banco', c.banco)}
+        ${di('Agência', c.agencia)}
+        ${di('Conta', c.conta)}
+        ${di('Tipo de conta', c.conta_tipo)}
+      </div>`;
+
+    const vencTable = docsColab.length ? `
+      <div style="font-family:var(--mono); font-size:.72rem; color:var(--text-muted); margin:18px 0 8px; letter-spacing:.06em;">DOCUMENTOS COM VALIDADE</div>
       <table class="data" style="margin: -6px 0;">
         <thead><tr><th>Documento</th><th>Emissão</th><th>Validade</th><th>Status</th></tr></thead>
         <tbody>
@@ -292,8 +319,9 @@ export class ColaboradoresModule {
             return `<tr><td>${this.h(v.item)}</td><td class="cell-mono">${this.fmtDate(v.emissao)}</td><td class="cell-mono">${this.fmtDate(v.vencimento)}</td><td>${badge}</td></tr>`;
           }).join('')}
         </tbody>
-      </table>
-    ` : `<p class="empty" style="padding:12px 0">Nenhum documento cadastrado</p>`;
+      </table>` : '';
+
+    this.$('#dcol-docs').innerHTML = docPessoal + vencTable;
 
     const episColab = this.EPI_ENTREGAS.filter(e => e.colaborador_id === id && !e.devolvido);
     this.$('#dcol-epi').innerHTML = episColab.length ? `
