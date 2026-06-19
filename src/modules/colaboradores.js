@@ -401,6 +401,8 @@ export class ColaboradoresModule {
     }
     el.innerHTML = this._depsModal.map(d => {
       const menor14 = d.nascimento && this._idadeAnos(d.nascimento) < 14;
+      // Garante que a data está em formato ISO (yyyy-mm-dd)
+      const dataNascimento = d.nascimento ? String(d.nascimento).trim() : '';
       return `
       <div class="inline-card" id="dep-card-${d._sid}">
         <div class="inline-card-body">
@@ -417,8 +419,8 @@ export class ColaboradoresModule {
             </select>
           </div>
           <div class="form-group">
-            <label>Data de nascimento</label>
-            <input type="date" value="${this.h(d.nascimento||'')}"
+            <label>Data de nascimento <span style="color:var(--text-muted);font-size:.8rem;">(dd/mm/yyyy)</span></label>
+            <input type="date" value="${dataNascimento}"
               oninput="window._depUpdate(${d._sid},'nascimento',this.value);window.renderDepsModal()">
           </div>
           <div class="form-group">
