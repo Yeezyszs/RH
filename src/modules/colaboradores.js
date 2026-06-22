@@ -116,7 +116,7 @@ export class ColaboradoresModule {
           ? this._renderLinhas(res.data)
           : `<tr><td colspan="5" class="empty">Nenhum colaborador encontrado</td></tr>`;
 
-        this._updateStats(res.data);
+        this._updateStats(this.COLABORADORES);
         this._renderPaginacao(res.page, res.totalPages, res.total);
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="5" class="empty">Erro ao carregar: ${this.h(err.message)}</td></tr>`;
