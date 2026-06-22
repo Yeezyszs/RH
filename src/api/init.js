@@ -19,6 +19,16 @@ function _filtrarArray(arr, manter) {
   arr.push(...mantidos);
 }
 
+// Upsert idempotente por id: se o item já existe (ex.: o módulo o adicionou
+// otimisticamente após salvar), substitui no lugar; senão insere no topo.
+// Evita registros duplicados quando o evento de realtime "ecoa" um insert que
+// o próprio cliente acabou de fazer localmente.
+function _upsertArray(arr, item) {
+  const i = arr.findIndex(x => x.id === item.id);
+  if (i >= 0) arr[i] = item;
+  else arr.unshift(item);
+}
+
 async function inicializarSupabase() {
   try {
     const sessao = await Auth.sessaoAtual();
@@ -254,61 +264,58 @@ function setupRealTimeListeners() {
     }
 
     if (table === 'advertencias') {
-      if (eventType === 'INSERT') {
-        ADVERTENCIAS.unshift(mapAdvertencia(novoReg));
-      } else if (eventType === 'UPDATE') {
-        const i = ADVERTENCIAS.findIndex(x => x.id === id);
-        if (i >= 0) ADVERTENCIAS[i] = mapAdvertencia(novoReg);
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(ADVERTENCIAS, x => x.id !== id);
+      } else {
+        _upsertArray(ADVERTENCIAS, mapAdvertencia(novoReg));
       }
       if (typeof renderAdvertencias === 'function') renderAdvertencias();
     }
 
     if (table === 'ferias') {
-      if (eventType === 'INSERT') {
-        FERIAS.unshift(mapFerias(novoReg));
-      } else if (eventType === 'UPDATE') {
-        const i = FERIAS.findIndex(x => x.id === id);
-        if (i >= 0) FERIAS[i] = mapFerias(novoReg);
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(FERIAS, x => x.id !== id);
+      } else {
+        _upsertArray(FERIAS, mapFerias(novoReg));
       }
       if (typeof renderFerias === 'function') renderFerias();
     }
 
     if (table === 'desligamentos') {
-      if (eventType === 'INSERT') {
-        DESLIGAMENTOS.unshift(mapDesligamento(novoReg));
-      } else if (eventType === 'UPDATE') {
-        const i = DESLIGAMENTOS.findIndex(x => x.id === id);
-        if (i >= 0) DESLIGAMENTOS[i] = mapDesligamento(novoReg);
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(DESLIGAMENTOS, x => x.id !== id);
+      } else {
+        // O payload do realtime traz só a linha de `desligamentos`, sem o join
+        // com `colaboradores`, então mapDesligamento devolveria nome '—'.
+        // Enriquecemos com os dados do colaborador já carregado em memória.
+        const reg = mapDesligamento(novoReg);
+        const c = COLABORADORES.find(x => x.id === reg.colaborador_id);
+        if (c) {
+          reg.nome     = c.nome;
+          reg.cargo    = c.cargo;
+          reg.setor    = c.setor;
+          reg.area     = c.area;
+          reg.admissao = c.admissao;
+        }
+        _upsertArray(DESLIGAMENTOS, reg);
       }
       if (typeof renderDesligamentos === 'function') renderDesligamentos();
     }
 
     if (table === 'cronograma') {
-      if (eventType === 'INSERT') {
-        EVENTOS.unshift(mapEvento(novoReg));
-      } else if (eventType === 'UPDATE') {
-        const i = EVENTOS.findIndex(x => x.id === id);
-        if (i >= 0) EVENTOS[i] = mapEvento(novoReg);
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(EVENTOS, x => x.id !== id);
+      } else {
+        _upsertArray(EVENTOS, mapEvento(novoReg));
       }
       if (typeof renderCronograma === 'function') renderCronograma();
     }
 
     if (table === 'epis') {
-      if (eventType === 'INSERT') {
-        EPI_ENTREGAS.unshift(novoReg);
-      } else if (eventType === 'UPDATE') {
-        const i = EPI_ENTREGAS.findIndex(x => x.id === id);
-        if (i >= 0) EPI_ENTREGAS[i] = novoReg;
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(EPI_ENTREGAS, x => x.id !== id);
+      } else {
+        _upsertArray(EPI_ENTREGAS, novoReg);
       }
       if (typeof renderEpi === 'function') renderEpi();
     }
@@ -334,73 +341,58 @@ function setupRealTimeListeners() {
         observacoes:    row.observacoes    || '',
         _tabela:        table,
       });
-      if (eventType === 'INSERT') {
-        VENCIMENTOS.unshift(mapVenc(novoReg));
-      } else if (eventType === 'UPDATE') {
-        const i = VENCIMENTOS.findIndex(x => x.id === id && x._tabela === table);
-        if (i >= 0) VENCIMENTOS[i] = mapVenc(novoReg);
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(VENCIMENTOS, x => !(x.id === id && x._tabela === table));
+      } else {
+        // Chave composta (id + _tabela) pois ids colidem entre documentos/asos.
+        const i = VENCIMENTOS.findIndex(x => x.id === novoReg.id && x._tabela === table);
+        if (i >= 0) VENCIMENTOS[i] = mapVenc(novoReg);
+        else VENCIMENTOS.unshift(mapVenc(novoReg));
       }
       if (typeof renderVencimentos === 'function') renderVencimentos();
     }
 
     if (table === 'feedbacks') {
-      if (eventType === 'INSERT') {
-        FEEDBACK.unshift(novoReg);
-      } else if (eventType === 'UPDATE') {
-        const i = FEEDBACK.findIndex(x => x.id === id);
-        if (i >= 0) FEEDBACK[i] = novoReg;
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(FEEDBACK, x => x.id !== id);
+      } else {
+        _upsertArray(FEEDBACK, novoReg);
       }
       if (typeof renderFeedback === 'function') renderFeedback();
     }
 
     if (table === 'pesquisas_clima') {
-      if (eventType === 'INSERT') {
-        CLIMA.unshift(novoReg);
-      } else if (eventType === 'UPDATE') {
-        const i = CLIMA.findIndex(x => x.id === id);
-        if (i >= 0) CLIMA[i] = novoReg;
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(CLIMA, x => x.id !== id);
+      } else {
+        _upsertArray(CLIMA, novoReg);
       }
       if (typeof renderClima === 'function') renderClima();
     }
 
     if (table === 'vale_combustivel') {
-      if (eventType === 'INSERT') {
-        VALE_LANCAMENTOS.unshift(novoReg);
-      } else if (eventType === 'UPDATE') {
-        const i = VALE_LANCAMENTOS.findIndex(x => x.id === id);
-        if (i >= 0) VALE_LANCAMENTOS[i] = novoReg;
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(VALE_LANCAMENTOS, x => x.id !== id);
+      } else {
+        _upsertArray(VALE_LANCAMENTOS, novoReg);
       }
-      if (typeof renderValeLancamentos === 'function') renderValeLancamentos();
+      if (typeof renderVale === 'function') renderVale();
     }
 
     if (table === 'vale_alimentacao') {
-      if (eventType === 'INSERT') {
-        VALE_ALIMENTACAO.unshift(novoReg);
-      } else if (eventType === 'UPDATE') {
-        const i = VALE_ALIMENTACAO.findIndex(x => x.id === id);
-        if (i >= 0) VALE_ALIMENTACAO[i] = novoReg;
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(VALE_ALIMENTACAO, x => x.id !== id);
+      } else {
+        _upsertArray(VALE_ALIMENTACAO, novoReg);
       }
       if (typeof renderValeAlimentacao === 'function') renderValeAlimentacao();
     }
 
     if (table === 'rotatividade') {
-      if (eventType === 'INSERT') {
-        ROTATIVIDADE.unshift(novoReg);
-      } else if (eventType === 'UPDATE') {
-        const i = ROTATIVIDADE.findIndex(x => x.id === id);
-        if (i >= 0) ROTATIVIDADE[i] = novoReg;
-      } else if (eventType === 'DELETE') {
+      if (eventType === 'DELETE') {
         _filtrarArray(ROTATIVIDADE, x => x.id !== id);
+      } else {
+        _upsertArray(ROTATIVIDADE, novoReg);
       }
       if (typeof renderRotatividade === 'function') renderRotatividade();
     }
@@ -416,14 +408,12 @@ function setupRealTimeListeners() {
         observacoes:    row.observacoes || '',
         _tabela:        'participantes_treinamento',
       });
-      if (eventType === 'INSERT' && novoReg.data_vencimento) {
-        VENCIMENTOS.unshift(mapTrein(novoReg));
-      } else if (eventType === 'UPDATE') {
-        const i = VENCIMENTOS.findIndex(x => x.id === id && x._tabela === 'participantes_treinamento');
+      if (eventType === 'DELETE') {
+        _filtrarArray(VENCIMENTOS, x => !(x.id === id && x._tabela === 'participantes_treinamento'));
+      } else {
+        const i = VENCIMENTOS.findIndex(x => x.id === novoReg.id && x._tabela === 'participantes_treinamento');
         if (i >= 0) VENCIMENTOS[i] = mapTrein(novoReg);
         else if (novoReg.data_vencimento) VENCIMENTOS.unshift(mapTrein(novoReg));
-      } else if (eventType === 'DELETE') {
-        _filtrarArray(VENCIMENTOS, x => !(x.id === id && x._tabela === 'participantes_treinamento'));
       }
       if (typeof renderVencimentos === 'function') renderVencimentos();
     }
@@ -437,11 +427,20 @@ function setupRealTimeListeners() {
     'vale_combustivel', 'vale_alimentacao', 'rotatividade', 'participantes_treinamento',
   ];
 
+  // Supabase JS v2: um único canal acumula vários filtros .on() antes do
+  // .subscribe(). (A sintaxe antiga sb.on(...) era da v1 e não existe na v2,
+  // por isso os listeners nunca conectavam e a UI exigia refresh manual.)
+  const canal = sb.channel('rh-realtime');
   tabelas.forEach(tabela => {
-    sb.on('postgres_changes', { event: '*', schema: 'public', table: tabela }, handler).subscribe();
+    canal.on('postgres_changes', { event: '*', schema: 'public', table: tabela }, handler);
   });
-
-  console.info('[RH] Listeners real-time ativados.');
+  canal.subscribe(status => {
+    if (status === 'SUBSCRIBED') {
+      console.info('[RH] Listeners real-time ativados.');
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      console.warn(`[RH] Real-time não conectou (${status}). UI dependerá de re-render local.`);
+    }
+  });
 }
 
 // Escopo global
