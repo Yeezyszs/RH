@@ -7,6 +7,17 @@ export const CHART_COLORS = {
   muted:         '#8A98A8',
   grid:          '#E3EBF3',
   text:          '#5A6B7C',
+  // Paleta de cores vibrantes para gráficos de donut/pizza
+  vibrant: [
+    '#2E7AB8', // Azul
+    '#E74C3C', // Vermelho
+    '#27AE60', // Verde
+    '#F39C12', // Laranja
+    '#9B59B6', // Roxo
+    '#1ABC9C', // Turquesa
+    '#E67E22', // Laranja escuro
+    '#16A085', // Verde escuro
+  ],
 };
 
 export const STATUS_LABEL = {

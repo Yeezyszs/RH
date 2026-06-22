@@ -147,10 +147,7 @@ function renderDashboardCharts() {
         labels: setoresHead,
         datasets: [{
           data: setoresHead.map(s => porSetor[s]),
-          backgroundColor: [
-            CHART_COLORS.phthalo, CHART_COLORS.phthaloLight, CHART_COLORS.phthaloBright,
-            '#7EB9E0', '#B1D4EA',
-          ],
+          backgroundColor: CHART_COLORS.vibrant,
           borderColor: '#fff',
           borderWidth: 2,
         }],
