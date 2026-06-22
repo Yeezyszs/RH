@@ -137,7 +137,7 @@ export class RotatividadeModule {
     const motivos = Object.entries(motivosCont).map(([label, valor]) => ({ label, valor }));
 
     const movimentacoes = [];
-    this.COLABORADORES.filter(c => c.admissao).slice(0, 20).forEach(c => {
+    this.COLABORADORES.filter(c => c.admissao).forEach(c => {
       movimentacoes.push({
         tipo: 'admissao',
         nome: c.nome,
@@ -147,7 +147,7 @@ export class RotatividadeModule {
         motivo: '—',
       });
     });
-    this.DESLIGAMENTOS.slice(0, 20).forEach(dl => {
+    this.DESLIGAMENTOS.forEach(dl => {
       const col = this.COLABORADORES.find(c => c.id === dl.colaborador_id);
       if (col) {
         movimentacoes.push({
@@ -161,6 +161,7 @@ export class RotatividadeModule {
       }
     });
     movimentacoes.sort((a, b) => new Date(b.data) - new Date(a.data));
+    movimentacoes = movimentacoes.slice(0, 20);
 
     return { labels, admissoes, desligados, taxa, motivos, movimentacoes };
   }
