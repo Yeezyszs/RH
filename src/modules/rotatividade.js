@@ -136,7 +136,7 @@ export class RotatividadeModule {
     });
     const motivos = Object.entries(motivosCont).map(([label, valor]) => ({ label, valor }));
 
-    const movimentacoes = [];
+    let movimentacoes = [];
     this.COLABORADORES.filter(c => c.admissao).forEach(c => {
       movimentacoes.push({
         tipo: 'admissao',
