@@ -413,7 +413,8 @@ export class ColaboradoresModule {
       return;
     }
     el.innerHTML = this._depsModal.map(d => {
-      const menor14 = d.nascimento && this._idadeAnos(d.nascimento) < 14;
+      const idade = d.nascimento ? this._idadeAnos(d.nascimento) : null;
+      const requerEscola = idade !== null && idade >= 4 && idade < 14;
       // Garante que a data está em formato ISO (yyyy-mm-dd)
       const dataNascimento = d.nascimento ? String(d.nascimento).trim() : '';
       return `
@@ -441,11 +442,11 @@ export class ColaboradoresModule {
             <input type="text" value="${this.h(d.cpf||'')}" placeholder="000.000.000-00"
               oninput="window._depUpdate(${d._sid},'cpf',this.value)">
           </div>
-          <div class="form-group full" id="dep-escola-${d._sid}" style="${menor14 ? '' : 'display:none'}">
-            <label>Escola (obrigatório — menor de 14 anos)</label>
+          <div class="form-group full" id="dep-escola-${d._sid}" style="${requerEscola ? '' : 'display:none'}">
+            <label>Escola (obrigatório — 4 a 14 anos)</label>
             <input type="text" value="${this.h(d.escola||'')}" placeholder="Nome da escola / creche"
               oninput="window._depUpdate(${d._sid},'escola',this.value)">
-            <div class="inline-card-hint">📚 Dependente com menos de 14 anos — campo de escola exigido para fins de declaração e benefícios.</div>
+            <div class="inline-card-hint">📚 Dependentes entre 4 e 14 anos — campo de escola exigido para fins de declaração e benefícios.</div>
           </div>
         </div>
         <button type="button" class="inline-card-remove" title="Remover" onclick="window.removerDepModal(${d._sid})">×</button>
@@ -458,9 +459,10 @@ export class ColaboradoresModule {
   // o ano). Apenas mostra/esconde o campo de escola conforme a idade.
   _depDataNasc(sid, val) {
     this._depUpdate(sid, 'nascimento', val);
-    const menor14 = val && this._idadeAnos(val) < 14;
+    const idade = val ? this._idadeAnos(val) : null;
+    const requerEscola = idade !== null && idade >= 4 && idade < 14;
     const escolaEl = document.getElementById(`dep-escola-${sid}`);
-    if (escolaEl) escolaEl.style.display = menor14 ? '' : 'none';
+    if (escolaEl) escolaEl.style.display = requerEscola ? '' : 'none';
   }
 
   adicionarDepModal() {
@@ -594,11 +596,12 @@ export class ColaboradoresModule {
     const data = Object.fromEntries(new FormData(form));
 
     const depSemEscola = this._depsModal.filter(d => {
-      const menor = d.nascimento && this._idadeAnos(d.nascimento) < 14;
-      return menor && !d.escola.trim();
+      const idade = d.nascimento ? this._idadeAnos(d.nascimento) : null;
+      const requerEscola = idade !== null && idade >= 4 && idade < 14;
+      return requerEscola && !d.escola.trim();
     });
     if (depSemEscola.length) {
-      this.showToast('Preencha a escola dos dependentes menores de 14 anos', 'err');
+      this.showToast('Preencha a escola dos dependentes entre 4 e 14 anos', 'err');
       const box = document.getElementById('modal-colaborador').querySelector('.modal-box');
       box.querySelectorAll('.modal-tab-inner').forEach(t => t.classList.toggle('active', t.dataset.mtab === 'dependentes'));
       box.querySelectorAll('.modal-sec').forEach(s => s.classList.toggle('active', s.dataset.msec === 'dependentes'));
@@ -820,6 +823,8 @@ export class ColaboradoresModule {
     const fStatus = this.$('#quad-filter-status')?.value || '';
 
     const filtrados = this.COLABORADORES.filter(c => {
+      // Se nenhum filtro de status é aplicado, exclui inativos automaticamente
+      if (!fStatus && c.status === 'inativo') return false;
       if (fStatus && c.status !== fStatus) return false;
       if (q && !c.nome.toLowerCase().includes(q)) return false;
       return true;
