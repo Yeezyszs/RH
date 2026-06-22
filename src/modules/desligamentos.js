@@ -315,7 +315,7 @@ export class DesligamentosModule {
     this.$('#modal-entrevista').classList.remove('active');
   }
 
-  salvarEntrevista(ev) {
+  async salvarEntrevista(ev) {
     ev.preventDefault();
     const form = this.$('#form-entrevista');
     const data = Object.fromEntries(new FormData(form));
@@ -323,7 +323,7 @@ export class DesligamentosModule {
     const d = this.DESLIGAMENTOS.find(x => x.id === id);
     if (!d) return;
 
-    d.entrevista = {
+    const entrevista = {
       realizada: true,
       data: new Date().toISOString().slice(0, 10),
       satisfacao: parseInt(data.satisfacao, 10) || null,
@@ -335,9 +335,25 @@ export class DesligamentosModule {
       responsavel: data.responsavel || '',
     };
 
+    // Persiste no banco (coluna jsonb `entrevista`). Antes a entrevista só
+    // ficava em memória, então sumia no refresh / era sobrescrita pelo realtime,
+    // aparecendo sempre como "pendente".
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Desligamentos.atualizar(id, { entrevista });
+      } catch (err) {
+        window.showToast?.('Erro ao salvar entrevista: ' + err.message, 'err');
+        return;
+      }
+    }
+
+    d.entrevista = entrevista;
+
     this.fecharModalEntrevista();
     this.render();
     if (this.state.drawerDeslId === id) this.abrirDrawer(id);
+    window.showToast?.('Entrevista de saída salva', 'ok');
   }
 
   abrirModalEntrevistaDoDrawer() {

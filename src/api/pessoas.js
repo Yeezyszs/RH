@@ -368,6 +368,15 @@ const Desligamentos = {
     return mapDesligamento(data);
   },
 
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('desligamentos').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate();
+    return mapDesligamento(data);
+  },
+
   async excluir(id) {
     const { error } = await withTimeout(
       sb.from('desligamentos').delete().eq('id', id)
