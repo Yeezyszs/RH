@@ -892,8 +892,12 @@ export class ColaboradoresModule {
         `;
       }).join('');
 
+      // Setores com muitos colaboradores ocupam a linha inteira para
+      // distribuir os nomes em várias colunas (menos crescimento vertical)
+      const wide = total > 8 ? ' setor-card--wide' : '';
+
       return `
-        <div class="setor-card">
+        <div class="setor-card${wide}">
           <div class="setor-header">
             <div class="setor-icon">${this.SETOR_ICON[setor] || '◆'}</div>
             <div class="setor-title-block">

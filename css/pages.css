@@ -21,6 +21,10 @@
   overflow: hidden;
 }
 
+/* Setores grandes ocupam a largura total para que os funcionários
+   se distribuam em colunas, evitando que o card cresça demais para baixo */
+.setor-card--wide { grid-column: 1 / -1; }
+
 .setor-header {
   background: linear-gradient(135deg, var(--phthalo) 0%, var(--phthalo-mid) 100%);
   color: var(--on-dark);
@@ -151,12 +155,12 @@
 
 .func-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 6px 10px;
   padding-top: 4px;
 }
 
-@media (max-width: 1500px) {
+@media (max-width: 640px) {
   .func-list { grid-template-columns: 1fr; }
 }
 
