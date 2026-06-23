@@ -853,6 +853,8 @@ export class ColaboradoresModule {
     const fTurno  = this.$('#quad-filter-turno')?.value || '';
 
     const filtrados = this.COLABORADORES.filter(c => {
+      // Afastados nunca aparecem no quadro (continuam acessíveis na página de Colaboradores)
+      if (c.status === 'afastado') return false;
       // Se nenhum filtro de status é aplicado, exclui inativos automaticamente
       if (!fStatus && c.status === 'inativo') return false;
       if (fStatus && c.status !== fStatus) return false;
