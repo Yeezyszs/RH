@@ -7,6 +7,7 @@ export class ColaboradoresModule {
     this.Departamentos = deps.Departamentos;
     this.HistoricoColaboradores = deps.HistoricoColaboradores;
     this.Auth = deps.Auth;
+    this.Afastamentos = deps.Afastamentos;
     this.$ = deps.$;
     this.h = deps.h;
     this.iniciais = deps.iniciais;
@@ -23,6 +24,7 @@ export class ColaboradoresModule {
     this.EPI_ENTREGAS = deps.EPI_ENTREGAS;
     this.VENCIMENTOS = deps.VENCIMENTOS;
     this.DESLIGAMENTOS = deps.DESLIGAMENTOS;
+    this.AFASTAMENTOS = deps.AFASTAMENTOS;
 
     this.state = {
       page: 1,
@@ -333,6 +335,32 @@ export class ColaboradoresModule {
         </tbody>
       </table>
     ` : `<p class="empty" style="padding:12px 0">Nenhum EPI ativo</p>`;
+
+    const afastamentosColab = (this.AFASTAMENTOS || []).filter(a => a.colaborador_id === id).sort((a, b) => b.data_inicio.localeCompare(a.data_inicio));
+    const tipoLabel = { atestado: 'Atestado', afastamento: 'Afastamento', banco_hora: 'Banco de horas' };
+    const statusBadge = (status) => {
+      const badges = {
+        pendente: '<span class="badge neutral">Pendente</span>',
+        aprovado: '<span class="badge ok">Aprovado</span>',
+        rejeitado: '<span class="badge danger">Rejeitado</span>',
+      };
+      return badges[status] || status;
+    };
+    this.$('#dcol-afastamentos').innerHTML = afastamentosColab.length ? `
+      <table class="data" style="margin: -6px 0;">
+        <thead><tr><th>Tipo</th><th>Período</th><th>Dias</th><th>Status</th></tr></thead>
+        <tbody>
+          ${afastamentosColab.map(a => `
+            <tr onclick="editarAfastamento(${a.id})">
+              <td>${tipoLabel[a.tipo] || a.tipo}</td>
+              <td class="cell-mono">${this.fmtDate(a.data_inicio)} — ${this.fmtDate(a.data_termino)}</td>
+              <td class="cell-mono">${a.dias_totais}d</td>
+              <td>${statusBadge(a.status)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : `<p class="empty" style="padding:12px 0">Nenhum afastamento registrado</p>`;
 
     const histEl = this.$('#dcol-historico');
     const admissaoItem = `<li class="activity-item"><span class="activity-chip admissao">Admissão</span><span class="activity-text">Admitido na empresa</span><span class="activity-time">${this.fmtDate(c.admissao)}</span></li>`;
@@ -834,16 +862,26 @@ export class ColaboradoresModule {
     const porSetor = {};
     filtrados.forEach(c => {
       const area = c.area || SEM_AREA;
+      const turno = c.turno || 'diurno';
       if (!porSetor[c.setor])       porSetor[c.setor] = {};
-      if (!porSetor[c.setor][area]) porSetor[c.setor][area] = [];
-      porSetor[c.setor][area].push(c);
+      if (!porSetor[c.setor][area]) porSetor[c.setor][area] = {};
+      if (!porSetor[c.setor][area][turno]) porSetor[c.setor][area][turno] = [];
+      porSetor[c.setor][area][turno].push(c);
     });
 
     const setoresAtivos = Object.keys(porSetor);
     this.$('#quad-stat-total').textContent   = filtrados.length;
     this.$('#quad-stat-setores').textContent = setoresAtivos.length;
 
-    const totalSetor = (s) => Object.values(porSetor[s]).reduce((a, b) => a + b.length, 0);
+    const totalSetor = (s) => {
+      let total = 0;
+      Object.values(porSetor[s]).forEach(areas => {
+        Object.values(areas).forEach(turnos => {
+          total += Object.values(turnos).reduce((a, b) => a + b.length, 0);
+        });
+      });
+      return total;
+    };
 
     let maior = '—', maiorN = 0;
     setoresAtivos.forEach(s => {
@@ -869,25 +907,45 @@ export class ColaboradoresModule {
       });
 
       const areasHtml = areasOrdenadas.map(area => {
-        const pessoas = areas[area];
-        const pessoasHtml = pessoas
-          .sort((a, b) => a.nome.localeCompare(b.nome))
-          .map(p => `
-            <div class="func-mini" onclick="abrirDrawerColab(${p.id})">
-              <div class="cell-avatar">${this.h(this.iniciais(p.nome))}</div>
-              <div class="func-mini-name">${this.h(p.nome)}</div>
-              <div class="func-mini-status ${this.h(p.status)}" title="${this.h(this.STATUS_LABEL[p.status]?.t || p.status)}"></div>
-            </div>
-          `).join('');
+        const turnos = porSetor[setor][area];
+        const turnosOrdenados = Object.keys(turnos).sort((a, b) => {
+          const order = { diurno: 0, noturno: 1 };
+          return (order[a] ?? 99) - (order[b] ?? 99);
+        });
 
+        const turnosHtml = turnosOrdenados.map(turno => {
+          const pessoas = turnos[turno];
+          const pessoasHtml = pessoas
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+            .map(p => `
+              <div class="func-mini" onclick="abrirDrawerColab(${p.id})">
+                <div class="cell-avatar">${this.h(this.iniciais(p.nome))}</div>
+                <div class="func-mini-name">${this.h(p.nome)}</div>
+                <div class="func-mini-status ${this.h(p.status)}" title="${this.h(this.STATUS_LABEL[p.status]?.t || p.status)}"></div>
+              </div>
+            `).join('');
+
+          const turnoLabel = turno === 'noturno' ? '🌙 Noturno' : '☀️ Diurno';
+          return `
+            <div style="margin-bottom:12px;">
+              <div class="area-header" style="padding-left:12px; opacity:0.7; font-size:0.85rem;">
+                <span>${turnoLabel}</span>
+                <span class="area-count">${pessoas.length}</span>
+              </div>
+              <div class="func-list" style="margin-top:6px;">${pessoasHtml}</div>
+            </div>
+          `;
+        }).join('');
+
+        const totalArea = turnosOrdenados.reduce((sum, turno) => sum + turnos[turno].length, 0);
         const isSemArea = area === SEM_AREA;
         return `
           <div class="area-block">
             <div class="area-header">
               <span class="area-name${isSemArea ? ' sem-area' : ''}">${this.h(area)}</span>
-              <span class="area-count">${pessoas.length}</span>
+              <span class="area-count">${totalArea}</span>
             </div>
-            <div class="area-body"><div class="func-list">${pessoasHtml}</div></div>
+            <div class="area-body">${turnosHtml}</div>
           </div>
         `;
       }).join('');
@@ -910,6 +968,93 @@ export class ColaboradoresModule {
         </div>
       `;
     }).join('');
+  }
+
+  // ─── Afastamentos ─────────────────────────────────────────────────────────
+
+  abrirModalAfastamento(id = null) {
+    const colabId = id || this._drawerColabId;
+    if (!colabId) return;
+
+    this.$('#modal-afastamento-title').textContent = 'Novo afastamento';
+    this.$('#afastamento-colab-id').value = colabId;
+    this.$('#form-afastamento').reset();
+    this.$('#form-afastamento').elements['data_inicio'].value = new Date().toISOString().slice(0, 10);
+    this.$('#form-afastamento').elements['data_termino'].value = new Date().toISOString().slice(0, 10);
+    this.$('#modal-afastamento').classList.add('active');
+  }
+
+  fecharModalAfastamento() {
+    this.$('#modal-afastamento').classList.remove('active');
+  }
+
+  async salvarAfastamento(ev) {
+    ev.preventDefault();
+    const form = this.$('#form-afastamento');
+    const data = Object.fromEntries(new FormData(form));
+
+    const colabId = parseInt(data.colaborador_id, 10);
+    const dataInicio = data.data_inicio;
+    const dataTermino = data.data_termino;
+
+    if (!dataInicio || !dataTermino || dataTermino < dataInicio) {
+      this.showToast('Datas inválidas', 'err');
+      return;
+    }
+
+    const diasTotais = Math.ceil((new Date(dataTermino + 'T00:00:00') - new Date(dataInicio + 'T00:00:00')) / 86400000) + 1;
+
+    const payload = {
+      colaborador_id: colabId,
+      tipo: data.tipo,
+      data_inicio: dataInicio,
+      data_termino: dataTermino,
+      dias_totais: diasTotais,
+      motivo: data.motivo || '',
+      status: data.status || 'pendente',
+      observacoes: data.observacoes || '',
+    };
+
+    const temSessao = this.Afastamentos && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Afastamentos.criar(payload);
+        this.showToast('Afastamento registrado', 'ok');
+      } catch (err) {
+        this.showToast('Erro ao salvar: ' + err.message, 'err');
+        return;
+      }
+    } else {
+      const newId = Math.max(0, ...(this.AFASTAMENTOS.map(x => x.id) || [0])) + 1;
+      this.AFASTAMENTOS.push({
+        id: newId,
+        ...payload,
+        criado_em: new Date().toISOString(),
+      });
+      this.showToast('Afastamento adicionado', 'ok');
+    }
+
+    form.reset();
+    this.fecharModalAfastamento();
+    this.abrirDrawerColab(colabId);
+  }
+
+  editarAfastamento(id) {
+    const afastamento = this.AFASTAMENTOS.find(a => a.id === id);
+    if (!afastamento) return;
+
+    this.$('#modal-afastamento-title').textContent = 'Editar afastamento';
+    const form = this.$('#form-afastamento');
+    form.elements['colaborador_id'].value = afastamento.colaborador_id;
+    form.elements['tipo'].value = afastamento.tipo;
+    form.elements['data_inicio'].value = afastamento.data_inicio;
+    form.elements['data_termino'].value = afastamento.data_termino;
+    form.elements['dias_totais'].value = afastamento.dias_totais;
+    form.elements['motivo'].value = afastamento.motivo || '';
+    form.elements['status'].value = afastamento.status;
+    form.elements['observacoes'].value = afastamento.observacoes || '';
+
+    this.$('#modal-afastamento').classList.add('active');
   }
 }
 

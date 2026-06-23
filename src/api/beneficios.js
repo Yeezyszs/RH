@@ -217,3 +217,41 @@ const ValeAlimentacao = {
     Cache.invalidate('vale_alimentacao');
   },
 };
+
+const Afastamentos = {
+  async listar(colabId = null) {
+    let query = sb.from('afastamentos').select('*').order('data_inicio', { ascending: false });
+    if (colabId) {
+      query = query.eq('colaborador_id', colabId);
+    }
+    const { data, error } = await withTimeout(query);
+    if (error) throw error;
+    return data || [];
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('afastamentos').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('afastamentos');
+    return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('afastamentos').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('afastamentos');
+    return data;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('afastamentos').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('afastamentos');
+  },
+};

@@ -39,13 +39,14 @@ async function inicializarSupabase() {
 
     console.info('[RH] Sessão ativa, carregando dados...');
 
-    const [colaboradores, advertencias, ferias, desligamentos, eventos, pcPlanos,
+    const [colaboradores, advertencias, ferias, desligamentos, afastamentos, eventos, pcPlanos,
            vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
         Ferias.listar(),
         Desligamentos.listar(),
+        Afastamentos.listar(),
         Cronograma.listar(),
         PlanoCarreiras.listarPlanos(),
         Vencimentos.listar(),
@@ -89,6 +90,14 @@ async function inicializarSupabase() {
       if (lista?.length > 0) {
         _preencherArray(DESLIGAMENTOS, lista);
         console.info(`[RH] ${DESLIGAMENTOS.length} desligamentos carregados.`);
+      }
+    }
+
+    if (afastamentos.status === 'fulfilled') {
+      const lista = afastamentos.value ?? [];
+      if (lista.length > 0) {
+        _preencherArray(AFASTAMENTOS, lista);
+        console.info(`[RH] ${AFASTAMENTOS.length} afastamentos carregados.`);
       }
     }
 
@@ -492,6 +501,7 @@ window.Departamentos          = Departamentos;
 window.Cargos                 = Cargos;
 window.HistoricoColaboradores = HistoricoColaboradores;
 window.Desligamentos          = Desligamentos;
+window.Afastamentos           = Afastamentos;
 window.Rotatividade           = Rotatividade;
 window.Vencimentos            = Vencimentos;
 window.Epis                   = Epis;

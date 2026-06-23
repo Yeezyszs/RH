@@ -82,12 +82,13 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const colaboradores = new ColaboradoresModule({
     $, h, iniciais, fmtDate, fmtBRL, tempoCasa, showToast,
     COLABORADORES, DEPENDENTES, CONTATOS_EMERG,
-    EPI_ENTREGAS, VENCIMENTOS, DESLIGAMENTOS,
+    EPI_ENTREGAS, VENCIMENTOS, DESLIGAMENTOS, AFASTAMENTOS,
     STATUS_LABEL, SETOR_ICON, PARENTESCO_OPTS: window.PARENTESCO_OPTS,
     Colaboradores: window.Colaboradores,
     Departamentos: window.Departamentos,
     HistoricoColaboradores: window.HistoricoColaboradores,
     Auth: window.Auth,
+    Afastamentos: window.Afastamentos,
   });
 
   const advertencias = new AdvertenciasModule({
@@ -191,6 +192,20 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   window._depUpdate                 = (s, k, v) => colaboradores._depUpdate(s, k, v);
   window._depDataNasc               = (s, v)    => colaboradores._depDataNasc(s, v);
   window._emergUpdate               = (s, k, v) => colaboradores._emergUpdate(s, k, v);
+  window.abrirModalAfastamento      = (id)   => colaboradores.abrirModalAfastamento(id);
+  window.fecharModalAfastamento     = ()     => colaboradores.fecharModalAfastamento();
+  window.salvarAfastamento          = (ev)   => colaboradores.salvarAfastamento(ev);
+  window.editarAfastamento          = (id)   => colaboradores.editarAfastamento(id);
+  window.atualizarLabelAfastamento  = ()     => {
+    const tipo = document.getElementById('afastamento-tipo').value;
+    const form = document.getElementById('form-afastamento');
+    const dataInicio = form.elements['data_inicio'];
+    const dataTermino = form.elements['data_termino'];
+    if (dataInicio.value && dataTermino.value) {
+      const dias = Math.ceil((new Date(dataTermino.value + 'T00:00:00') - new Date(dataInicio.value + 'T00:00:00')) / 86400000) + 1;
+      form.elements['dias_totais'].value = dias;
+    }
+  };
 
   // Advertências
   window.abrirDrawerAdv           = (id)   => advertencias.abrirDrawer(id);

@@ -6,11 +6,11 @@
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/tokens.css?v=20260623a">
-<link rel="stylesheet" href="css/layout.css?v=20260623a">
-<link rel="stylesheet" href="css/components.css?v=20260623a">
-<link rel="stylesheet" href="css/pages.css?v=20260623a">
-<link rel="stylesheet" href="css/login.css?v=20260623a">
+<link rel="stylesheet" href="css/tokens.css?v=20260623b">
+<link rel="stylesheet" href="css/layout.css?v=20260623b">
+<link rel="stylesheet" href="css/components.css?v=20260623b">
+<link rel="stylesheet" href="css/pages.css?v=20260623b">
+<link rel="stylesheet" href="css/login.css?v=20260623b">
 </head>
 <body>
 
@@ -1643,6 +1643,7 @@
 
   <div class="drawer-tabs">
     <div class="drawer-tab active" data-dtab="dados">Dados</div>
+    <div class="drawer-tab" data-dtab="afastamentos">Afastamentos</div>
     <div class="drawer-tab" data-dtab="emergencia">Emergência</div>
     <div class="drawer-tab" data-dtab="docs">Documentos</div>
     <div class="drawer-tab" data-dtab="epi">EPI</div>
@@ -1653,6 +1654,13 @@
 
     <div class="drawer-section active" data-dsec="dados">
       <div class="info-grid" id="dcol-dados"></div>
+    </div>
+
+    <div class="drawer-section" data-dsec="afastamentos">
+      <div id="dcol-afastamentos"></div>
+      <div style="margin-top:14px;">
+        <button class="btn btn-secondary btn-sm" onclick="abrirModalAfastamento()">+ Adicionar afastamento</button>
+      </div>
     </div>
 
     <div class="drawer-section" data-dsec="emergencia">
@@ -1708,6 +1716,69 @@
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalContato()">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-contato">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — NOVO/EDITAR AFASTAMENTO ════════════ -->
+<div id="modal-afastamento" class="modal">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-afastamento-title">Novo afastamento</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalAfastamento()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-afastamento" class="form-grid" onsubmit="salvarAfastamento(event)">
+        <input type="hidden" name="colaborador_id" id="afastamento-colab-id">
+
+        <div class="form-group full">
+          <label>Tipo de afastamento <span class="req">*</span></label>
+          <select name="tipo" id="afastamento-tipo" required onchange="atualizarLabelAfastamento()">
+            <option value="">—</option>
+            <option value="atestado">Atestado médico</option>
+            <option value="afastamento">Afastamento (licença, suspensão, etc)</option>
+            <option value="banco_hora">Banco de horas</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Data de início <span class="req">*</span></label>
+          <input type="date" name="data_inicio" required>
+        </div>
+
+        <div class="form-group">
+          <label>Data de término <span class="req">*</span></label>
+          <input type="date" name="data_termino" required>
+        </div>
+
+        <div class="form-group">
+          <label>Dias totais</label>
+          <input type="number" name="dias_totais" readonly placeholder="Calculado automaticamente">
+        </div>
+
+        <div class="form-group full">
+          <label>Motivo / Descrição</label>
+          <textarea name="motivo" placeholder="Descreva o motivo do afastamento" rows="3"></textarea>
+        </div>
+
+        <div class="form-group full">
+          <label>Status</label>
+          <select name="status">
+            <option value="pendente">Pendente</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="rejeitado">Rejeitado</option>
+          </select>
+        </div>
+
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea name="observacoes" placeholder="Observações adicionais" rows="2"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalAfastamento()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-afastamento">Salvar</button>
     </div>
   </div>
 </div>
@@ -1814,6 +1885,13 @@
               <option value="ferias">Em férias</option>
               <option value="afastado">Afastado</option>
               <option value="inativo">Inativo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Turno</label>
+            <select name="turno">
+              <option value="diurno">Diurno</option>
+              <option value="noturno">Noturno</option>
             </select>
           </div>
           <div class="form-group">
@@ -2979,17 +3057,17 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260623a"></script>
-<script src="src/utils/base.js?v=20260623a"></script>
-<script src="src/dashboard.js?v=20260623a"></script>
-<script src="supabase.js?v=20260623a"></script>
-<script src="src/api/pessoas.js?v=20260623a"></script>
-<script src="src/api/compliance.js?v=20260623a"></script>
-<script src="src/api/beneficios.js?v=20260623a"></script>
-<script src="src/api/gestao.js?v=20260623a"></script>
-<script src="src/api/init.js?v=20260623a"></script>
-<script src="src/auth.js?v=20260623a"></script>
-<script type="module" src="src/app.js?v=20260623a"></script>
+<script src="src/data-store.js?v=20260623b"></script>
+<script src="src/utils/base.js?v=20260623b"></script>
+<script src="src/dashboard.js?v=20260623b"></script>
+<script src="supabase.js?v=20260623b"></script>
+<script src="src/api/pessoas.js?v=20260623b"></script>
+<script src="src/api/compliance.js?v=20260623b"></script>
+<script src="src/api/beneficios.js?v=20260623b"></script>
+<script src="src/api/gestao.js?v=20260623b"></script>
+<script src="src/api/init.js?v=20260623b"></script>
+<script src="src/auth.js?v=20260623b"></script>
+<script type="module" src="src/app.js?v=20260623b"></script>
 
 </body>
 </html>
