@@ -40,7 +40,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -57,6 +57,7 @@ async function inicializarSupabase() {
         ValeAlimentacao.listar(),
         Rotatividade.listar(),
         Treinamentos.listarParticipacoes(),
+        ValeCombustivel.listarCotas(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -175,7 +176,32 @@ async function inicializarSupabase() {
       const lista = valeAlim.value ?? [];
       if (lista.length > 0) {
         _preencherArray(VALE_ALIMENTACAO, lista);
-        console.info(`[RH] ${VALE_ALIMENTACAO.length} vale-alimentação carregados.`);
+        // Indexa por colaborador (registro mais recente — lista vem ordenada
+        // por ano/mês desc) no formato esperado pelo módulo (VA_BENEFICIOS).
+        lista.forEach(v => {
+          if (VA_BENEFICIOS[v.colaborador_id]) return;
+          VA_BENEFICIOS[v.colaborador_id] = {
+            id:             v.id,
+            tipo:           v.tipo || 'fixo',
+            valor:          v.valor_mensal,
+            dias_uteis:     v.dias_uteis ?? null,
+            data_alteracao: v.data_concessao,
+            observacoes:    v.observacoes || '',
+          };
+        });
+        console.info(`[RH] ${Object.keys(VA_BENEFICIOS).length} vale-alimentação carregados.`);
+      }
+    }
+
+    if (valeCotas.status === 'fulfilled') {
+      const lista = valeCotas.value ?? [];
+      if (lista.length > 0) {
+        // Cota mais recente por colaborador (lista ordenada por ano/mês desc).
+        lista.forEach(c => {
+          if (VALE_COTAS[c.colaborador_id] != null) return;
+          VALE_COTAS[c.colaborador_id] = parseFloat(c.valor_mensal) || 0;
+        });
+        console.info(`[RH] ${Object.keys(VALE_COTAS).length} cotas de vale combustível carregadas.`);
       }
     }
 
@@ -373,8 +399,12 @@ function setupRealTimeListeners() {
     if (table === 'vale_combustivel') {
       if (eventType === 'DELETE') {
         _filtrarArray(VALE_LANCAMENTOS, x => x.id !== id);
-      } else {
+      } else if (novoReg && novoReg.data) {
+        // Linha com data preenchida = lançamento (abastecimento)
         _upsertArray(VALE_LANCAMENTOS, novoReg);
+      } else if (novoReg && novoReg.colaborador_id != null) {
+        // Linha sem data = cota mensal
+        VALE_COTAS[novoReg.colaborador_id] = parseFloat(novoReg.valor_mensal) || 0;
       }
       if (typeof renderVale === 'function') renderVale();
     }
@@ -382,8 +412,16 @@ function setupRealTimeListeners() {
     if (table === 'vale_alimentacao') {
       if (eventType === 'DELETE') {
         _filtrarArray(VALE_ALIMENTACAO, x => x.id !== id);
-      } else {
+      } else if (novoReg && novoReg.colaborador_id != null) {
         _upsertArray(VALE_ALIMENTACAO, novoReg);
+        VA_BENEFICIOS[novoReg.colaborador_id] = {
+          id:             novoReg.id,
+          tipo:           novoReg.tipo || 'fixo',
+          valor:          novoReg.valor_mensal,
+          dias_uteis:     novoReg.dias_uteis ?? null,
+          data_alteracao: novoReg.data_concessao,
+          observacoes:    novoReg.observacoes || '',
+        };
       }
       if (typeof renderValeAlimentacao === 'function') renderValeAlimentacao();
     }

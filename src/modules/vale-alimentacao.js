@@ -13,6 +13,8 @@ export class ValeAlimentacaoModule {
     this.VA_BENEFICIOS    = deps.VA_BENEFICIOS;
     this.CHART_COLORS     = deps.CHART_COLORS;
     this.showToast        = deps.showToast;
+    this.Auth             = deps.Auth;
+    this.ValeAlimentacao  = deps.ValeAlimentacao;
 
     this._chartVaEvo = null;
 
@@ -25,6 +27,8 @@ export class ValeAlimentacaoModule {
     });
     document.addEventListener('change', (e) => {
       if (['va-mes', 'va-filter-setor', 'va-filter-tipo'].includes(e.target.id)) this.render();
+      if (e.target.id === 'va-pad-setor') this._atualizarContagemPadronizar();
+      if (e.target.id === 'va-pad-tipo')  this.alternarTipoPadronizar();
     });
     document.querySelectorAll('.nav-item[data-page="vale-alimentacao"]').forEach(el => {
       el.addEventListener('click', () => setTimeout(() => this.render(), 60));
@@ -253,33 +257,161 @@ export class ValeAlimentacaoModule {
     this.$('#modal-vale-alimentacao').classList.remove('active');
   }
 
-  salvar(ev) {
+  async salvar(ev) {
     ev.preventDefault();
     const form    = this.$('#form-vale-alimentacao');
     const data    = Object.fromEntries(new FormData(form));
     const colabId = parseInt(data.colaborador_id, 10);
     if (!colabId) return;
 
-    this.VA_BENEFICIOS[colabId] = {
+    const beneficio = {
       tipo:           data.tipo,
       valor:          parseFloat(data.valor) || 0,
       dias_uteis:     data.tipo === 'dia_util' ? (parseInt(data.dias_uteis, 10) || null) : null,
-      data_alteracao: data.data_alteracao,
+      data_alteracao: data.data_alteracao || new Date().toISOString().slice(0, 10),
       observacoes:    data.observacoes || '',
     };
+
+    try {
+      await this._persistir(colabId, beneficio);
+    } catch (err) {
+      this.showToast('Erro ao salvar: ' + err.message, 'err');
+      return;
+    }
+
     this.showToast('Vale alimentação atualizado', 'ok');
     this.fecharModal();
     this.render();
   }
 
-  remover() {
+  // Persiste um benefício (no banco quando há sessão) e atualiza o estado
+  // em memória. Reutilizado pelo cadastro individual e pela padronização.
+  async _persistir(colabId, beneficio) {
+    const temSessao = this.ValeAlimentacao && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      const now = new Date();
+      const salvo = await this.ValeAlimentacao.upsert({
+        colaborador_id: colabId,
+        mes:            now.getMonth() + 1,
+        ano:            now.getFullYear(),
+        valor_mensal:   beneficio.valor,
+        tipo:           beneficio.tipo,
+        dias_uteis:     beneficio.dias_uteis,
+        data_concessao: beneficio.data_alteracao,
+        observacoes:    beneficio.observacoes,
+        status:         'ativo',
+      });
+      this.VA_BENEFICIOS[colabId] = { ...beneficio, id: salvo.id };
+    } else {
+      this.VA_BENEFICIOS[colabId] = { ...beneficio };
+    }
+  }
+
+  async remover() {
     const colabId = parseInt(this.$('#form-vale-alimentacao').elements['colaborador_id'].value, 10);
     if (!colabId) return;
     if (!confirm('Remover o cadastro de vale alimentação deste colaborador?')) return;
+
+    const benef = this.VA_BENEFICIOS[colabId];
+    const temSessao = this.ValeAlimentacao && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao && benef?.id) {
+      try {
+        await this.ValeAlimentacao.excluir(benef.id);
+      } catch (err) {
+        this.showToast('Erro ao remover: ' + err.message, 'err');
+        return;
+      }
+    }
     delete this.VA_BENEFICIOS[colabId];
     this.fecharModal();
     this.render();
     this.showToast('Cadastro removido');
+  }
+
+  // ─── Padronização por setor ─────────────────────────────────────────────
+  // Define o mesmo benefício para todos os colaboradores ativos de um setor.
+
+  abrirModalPadronizar() {
+    const form = this.$('#form-va-padronizar');
+    if (!form) return;
+    form.reset();
+
+    const setores = [...new Set(
+      this.COLABORADORES.filter(c => c.status !== 'inativo').map(c => c.setor).filter(Boolean)
+    )].sort();
+    const sel = this.$('#va-pad-setor');
+    sel.innerHTML = setores.map(s => `<option value="${this.h(s)}">${this.h(s)}</option>`).join('');
+
+    this.$('#va-pad-data').value = new Date().toISOString().slice(0, 10);
+    this.alternarTipoPadronizar();
+    this._atualizarContagemPadronizar();
+    this.$('#modal-va-padronizar').classList.add('active');
+  }
+
+  fecharModalPadronizar() {
+    this.$('#modal-va-padronizar')?.classList.remove('active');
+  }
+
+  alternarTipoPadronizar() {
+    const tipo = this.$('#form-va-padronizar')?.elements['tipo']?.value;
+    const grupoDias = this.$('#va-pad-dias-group');
+    const lbl = this.$('#va-pad-label-valor');
+    if (!grupoDias || !lbl) return;
+    if (tipo === 'dia_util') {
+      grupoDias.style.display = '';
+      lbl.textContent = 'Valor por dia (R$)';
+    } else {
+      grupoDias.style.display = 'none';
+      lbl.textContent = 'Valor mensal (R$)';
+    }
+  }
+
+  _atualizarContagemPadronizar() {
+    const setor = this.$('#va-pad-setor')?.value || '';
+    const n = this.COLABORADORES.filter(c => c.status !== 'inativo' && c.setor === setor).length;
+    const el = this.$('#va-pad-contagem');
+    if (el) el.textContent = `${n} colaborador${n !== 1 ? 'es' : ''} no setor`;
+  }
+
+  async salvarPadronizar(ev) {
+    ev.preventDefault();
+    const form = this.$('#form-va-padronizar');
+    const data = Object.fromEntries(new FormData(form));
+    const setor = data.setor;
+    if (!setor) return;
+
+    const beneficio = {
+      tipo:           data.tipo,
+      valor:          parseFloat(data.valor) || 0,
+      dias_uteis:     data.tipo === 'dia_util' ? (parseInt(data.dias_uteis, 10) || null) : null,
+      data_alteracao: data.data_alteracao || new Date().toISOString().slice(0, 10),
+      observacoes:    data.observacoes || '',
+    };
+
+    const alvos = this.COLABORADORES.filter(c => c.status !== 'inativo' && c.setor === setor);
+    if (!alvos.length) {
+      this.showToast('Nenhum colaborador ativo nesse setor', 'err');
+      return;
+    }
+    if (!confirm(`Aplicar este vale a ${alvos.length} colaborador(es) do setor ${setor}? Os valores individuais existentes serão sobrescritos.`)) return;
+
+    let ok = 0, falhas = 0;
+    for (const c of alvos) {
+      try {
+        await this._persistir(c.id, beneficio);
+        ok++;
+      } catch (err) {
+        falhas++;
+        console.error('Falha ao padronizar VA para', c.nome, err);
+      }
+    }
+
+    this.fecharModalPadronizar();
+    this.render();
+    this.showToast(
+      falhas ? `${ok} aplicados, ${falhas} com erro` : `Vale padronizado para ${ok} colaborador(es)`,
+      falhas ? 'err' : 'ok'
+    );
   }
 }
 

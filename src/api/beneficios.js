@@ -128,6 +128,36 @@ const ValeCombustivel = {
     if (error) throw error;
     Cache.invalidate('vale_combustivel');
   },
+
+  // ─── Cotas mensais ────────────────────────────────────────────────────────
+  // As cotas ficam em linhas da própria tabela vale_combustivel com `data`
+  // nula e `mes`/`ano`/`valor_mensal` preenchidos (os lançamentos têm `data`).
+
+  async listarCotas() {
+    const { data, error } = await withTimeout(
+      sb.from('vale_combustivel')
+        .select('id, colaborador_id, mes, ano, valor_mensal')
+        .is('data', null)
+        .not('valor_mensal', 'is', null)
+        .order('colaborador_id')
+        .order('ano', { ascending: false })
+        .order('mes', { ascending: false })
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  async upsertCota(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('vale_combustivel')
+        .upsert(payload, { onConflict: 'colaborador_id,mes,ano' })
+        .select()
+        .single()
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_combustivel');
+    return data;
+  },
 };
 
 const ValeAlimentacao = {
@@ -136,8 +166,10 @@ const ValeAlimentacao = {
     if (cached) return cached;
     const { data, error } = await withTimeout(
       sb.from('vale_alimentacao')
-        .select('id, colaborador_id, mes, ano, valor_mensal, data_concessao, status')
+        .select('id, colaborador_id, mes, ano, valor_mensal, data_concessao, status, tipo, dias_uteis, observacoes')
         .order('colaborador_id')
+        .order('ano', { ascending: false })
+        .order('mes', { ascending: false })
     );
     if (error) throw error;
     Cache.set('vale_alimentacao', data);
@@ -156,6 +188,21 @@ const ValeAlimentacao = {
   async atualizar(id, payload) {
     const { data, error } = await withTimeout(
       sb.from('vale_alimentacao').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_alimentacao');
+    return data;
+  },
+
+  // Cria ou atualiza o benefício do colaborador para o mês/ano informado
+  // (chave única colaborador_id, mes, ano) — usado tanto no cadastro
+  // individual quanto na padronização por setor.
+  async upsert(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('vale_alimentacao')
+        .upsert(payload, { onConflict: 'colaborador_id,mes,ano' })
+        .select()
+        .single()
     );
     if (error) throw error;
     Cache.invalidate('vale_alimentacao');

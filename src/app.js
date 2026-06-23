@@ -146,6 +146,7 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const valeAlimentacao = new ValeAlimentacaoModule({
     $, h, iniciais, fmtDate, fmtBRL, mesLabel,
     COLABORADORES, VA_BENEFICIOS, CHART_COLORS, showToast,
+    Auth: window.Auth, ValeAlimentacao: window.ValeAlimentacao,
   });
 
   const feedbackClima = new FeedbackClimaModule({
@@ -289,6 +290,10 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   window.removerValeAlimentacao         = ()     => valeAlimentacao.remover();
   window.preencherValeAlimentacaoExistente = ()  => valeAlimentacao.preencherExistente();
   window.alternarValeAlimentacaoTipo    = ()     => valeAlimentacao.alternarTipo();
+  window.abrirModalVaPadronizar         = ()     => valeAlimentacao.abrirModalPadronizar();
+  window.fecharModalVaPadronizar        = ()     => valeAlimentacao.fecharModalPadronizar();
+  window.salvarVaPadronizar             = (ev)   => valeAlimentacao.salvarPadronizar(ev);
+  window.alternarVaPadronizarTipo       = ()     => valeAlimentacao.alternarTipoPadronizar();
 
   // Feedback & Clima
   window.renderFeedback               = ()    => feedbackClima.renderFeedback();
