@@ -281,6 +281,8 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   window.fecharModalValeDetalhe    = ()           => valeCombustivel.fecharModalDetalhe();
   window.abrirModalCotas           = ()           => valeCombustivel.abrirModalCotas();
   window.fecharModalCotas          = ()           => valeCombustivel.fecharModalCotas();
+  window.salvarCotas               = ()           => valeCombustivel.salvarCotas();
+  window.aplicarCotaSetor          = ()           => valeCombustivel.aplicarCotaSetor();
 
   // Vale Alimentação
   window.renderValeAlimentacao          = ()     => valeAlimentacao.render();

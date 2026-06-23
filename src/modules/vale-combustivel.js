@@ -313,22 +313,86 @@ export class ValeCombustivelModule {
   }
 
   abrirModalCotas() {
-    const tb = this.$('#tb-vale-cotas');
-    tb.innerHTML = this.COLABORADORES
+    const ativos = this.COLABORADORES
       .filter(c => c.status !== 'inativo')
-      .sort((a, b) => a.nome.localeCompare(b.nome))
-      .map(c => `
-        <tr>
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+
+    const tb = this.$('#tb-vale-cotas');
+    tb.innerHTML = ativos.map(c => `
+        <tr data-setor="${this.h(c.setor || '')}">
           <td>${this.h(c.nome)}</td>
           <td>${this.h(c.setor)}</td>
           <td style="text-align:right">
             <input type="number" step="0.01" min="0" value="${this.VALE_COTAS[c.id] || 0}"
-                   onchange="VALE_COTAS[${c.id}] = parseFloat(this.value) || 0; renderVale();"
+                   id="cota-input-${c.id}" data-colab="${c.id}"
                    style="width:130px; text-align:right; background:var(--bluish-bg); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--mono); font-size:.85rem;">
           </td>
         </tr>
       `).join('');
+
+    // Popula o seletor de setor da padronização
+    const setores = [...new Set(ativos.map(c => c.setor).filter(Boolean))].sort();
+    const sel = this.$('#vale-cota-pad-setor');
+    if (sel) sel.innerHTML = setores.map(s => `<option value="${this.h(s)}">${this.h(s)}</option>`).join('');
+
     this.$('#modal-vale-cotas').classList.add('active');
+  }
+
+  // Preenche os inputs de cota de todos os colaboradores do setor escolhido
+  // com o valor informado (a persistência ocorre ao clicar em "Salvar cotas").
+  aplicarCotaSetor() {
+    const setor = this.$('#vale-cota-pad-setor')?.value || '';
+    const valor = parseFloat(this.$('#vale-cota-pad-valor')?.value) || 0;
+    if (!setor) return;
+    let n = 0;
+    this.$('#tb-vale-cotas').querySelectorAll('tr').forEach(tr => {
+      if (tr.dataset.setor === setor) {
+        const input = tr.querySelector('input[data-colab]');
+        if (input) { input.value = valor; n++; }
+      }
+    });
+    this.showToast(`Valor aplicado a ${n} colaborador(es) do setor ${setor}`, 'ok');
+  }
+
+  // Persiste todas as cotas alteradas no banco (quando há sessão) e atualiza
+  // o estado em memória.
+  async salvarCotas() {
+    const inputs = [...this.$('#tb-vale-cotas').querySelectorAll('input[data-colab]')];
+    const now = new Date();
+    const mes = now.getMonth() + 1;
+    const ano = now.getFullYear();
+
+    const temSessao = this.ValeCombustivel && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+
+    let ok = 0, falhas = 0;
+    for (const input of inputs) {
+      const colabId = parseInt(input.dataset.colab, 10);
+      const valor   = parseFloat(input.value) || 0;
+      if ((parseFloat(this.VALE_COTAS[colabId]) || 0) === valor) continue; // sem mudança
+
+      if (temSessao) {
+        try {
+          await this.ValeCombustivel.upsertCota({
+            colaborador_id: colabId,
+            mes, ano,
+            valor_mensal:   valor,
+            data_concessao: now.toISOString().slice(0, 10),
+            status:         'ativo',
+          });
+        } catch (err) {
+          falhas++;
+          console.error('Falha ao salvar cota de', colabId, err);
+          continue;
+        }
+      }
+      this.VALE_COTAS[colabId] = valor;
+      ok++;
+    }
+
+    this.fecharModalCotas();
+    this.render();
+    if (falhas) this.showToast(`${ok} cota(s) salva(s), ${falhas} com erro`, 'err');
+    else        this.showToast(ok ? `${ok} cota(s) salva(s)` : 'Nenhuma alteração', 'ok');
   }
 
   fecharModalCotas() {

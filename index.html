@@ -2268,6 +2268,18 @@
       <div style="font-family:var(--mono); font-size:.75rem; color:var(--text-muted); margin-bottom:14px; letter-spacing:.04em;">
         Defina o valor (R$) da cota mensal de cada colaborador ativo. O que exceder vira desconto em folha.
       </div>
+      <!-- Padronização por setor -->
+      <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; background:var(--bluish-bg); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:14px;">
+        <div class="form-group" style="flex:1; min-width:160px; margin:0;">
+          <label style="font-size:.7rem;">Padronizar setor</label>
+          <select id="vale-cota-pad-setor"></select>
+        </div>
+        <div class="form-group" style="width:130px; margin:0;">
+          <label style="font-size:.7rem;">Valor (R$)</label>
+          <input type="number" id="vale-cota-pad-valor" step="0.01" min="0" placeholder="0,00">
+        </div>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="aplicarCotaSetor()">Aplicar ao setor</button>
+      </div>
       <div class="table-card">
         <div class="table-wrapper">
           <table class="data">
@@ -2278,7 +2290,8 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-sm" type="button" onclick="fecharModalCotas()">Concluído</button>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalCotas()">Cancelar</button>
+      <button class="btn btn-sm" type="button" onclick="salvarCotas()">Salvar cotas</button>
     </div>
   </div>
 </div>
