@@ -1,5 +1,5 @@
-// Feedback & Clima Module
-// Manages individual feedback, climate surveys, and survey responses
+// Organizacional Module
+// Manages individual feedback, climate surveys, company policies, and survey responses
 
 const CLIMA_DIMS = ['lideranca', 'ambiente', 'reconhecimento', 'carreira', 'comunicacao', 'remuneracao'];
 const CLIMA_DIM_LABEL = {
@@ -459,6 +459,23 @@ export class FeedbackClimaModule {
 
   fecharModalRespostasPesquisa() {
     this.$('#modal-respostas-pesquisa')?.classList.remove('active');
+  }
+
+  abrirModalPolitica() {
+    this.showToast('Funcionalidade em desenvolvimento', 'info');
+  }
+
+  fecharModalPolitica() {
+    // Placeholder for politicas modal
+  }
+
+  salvarPolitica(ev) {
+    if (ev) ev.preventDefault();
+    this.showToast('Funcionalidade em desenvolvimento', 'info');
+  }
+
+  excluirPolitica(id) {
+    this.showToast('Funcionalidade em desenvolvimento', 'info');
   }
 }
 

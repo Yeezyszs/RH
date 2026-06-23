@@ -296,6 +296,10 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   window.excluirClima                 = (id)  => feedbackClima.excluirClima(id);
   window.abrirModalRespostasPesquisa  = (id)  => feedbackClima.abrirModalRespostasPesquisa(id);
   window.fecharModalRespostasPesquisa = ()    => feedbackClima.fecharModalRespostasPesquisa();
+  window.abrirModalPolitica           = (id)  => feedbackClima.abrirModalPolitica(id);
+  window.fecharModalPolitica          = ()    => feedbackClima.fecharModalPolitica();
+  window.salvarPolitica               = (ev)  => feedbackClima.salvarPolitica(ev);
+  window.excluirPolitica              = (id)  => feedbackClima.excluirPolitica(id);
 
   // Plano de Carreiras
   window.renderPlanoCarreiras    = ()    => planoCarreiras.render();
