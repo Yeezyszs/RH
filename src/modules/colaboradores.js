@@ -65,7 +65,7 @@ export class ColaboradoresModule {
         this.state.page = 1;
         this.render();
       }
-      if (e.target.id === 'quad-filter-status') {
+      if (['quad-filter-status', 'quad-filter-turno'].includes(e.target.id)) {
         this.renderQuadro();
       }
     });
@@ -662,6 +662,7 @@ export class ColaboradoresModule {
       estado_civil:    data.estado_civil || null,
       genero:          data.sexo === 'M' ? 'Masculino' : data.sexo === 'F' ? 'Feminino' : 'Outro',
       status:          data.status || 'ativo',
+      turno:           data.turno || 'diurno',
       departamento_id: data.departamento_id ? parseInt(data.departamento_id, 10) : null,
       area:            data.area || null,
       documentacao:    temDoc ? JSON.stringify(documentacao) : '',
@@ -849,11 +850,13 @@ export class ColaboradoresModule {
 
     const q       = (this.$('#quad-search')?.value || '').trim().toLowerCase();
     const fStatus = this.$('#quad-filter-status')?.value || '';
+    const fTurno  = this.$('#quad-filter-turno')?.value || '';
 
     const filtrados = this.COLABORADORES.filter(c => {
       // Se nenhum filtro de status é aplicado, exclui inativos automaticamente
       if (!fStatus && c.status === 'inativo') return false;
       if (fStatus && c.status !== fStatus) return false;
+      if (fTurno && (c.turno || 'diurno') !== fTurno) return false;
       if (q && !c.nome.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -875,9 +878,9 @@ export class ColaboradoresModule {
 
     const totalSetor = (s) => {
       let total = 0;
-      Object.values(porSetor[s]).forEach(areas => {
-        Object.values(areas).forEach(turnos => {
-          total += Object.values(turnos).reduce((a, b) => a + b.length, 0);
+      Object.values(porSetor[s]).forEach(areaObj => {     // areaObj = { turno: [pessoas] }
+        Object.values(areaObj).forEach(pessoasArr => {    // pessoasArr = [pessoas]
+          total += pessoasArr.length;
         });
       });
       return total;
