@@ -131,6 +131,49 @@ const FeedbackClima = {
   },
 };
 
+const PoliticasEmpresa = {
+  async listar() {
+    const cached = Cache.get('politicas_empresa');
+    if (cached) return cached;
+    const { data, error } = await withTimeout(
+      sb.from('politicas_empresa')
+        .select('id, titulo, descricao, criado_em, atualizado_em')
+        .order('atualizado_em', { ascending: false })
+    );
+    if (error) throw error;
+    Cache.set('politicas_empresa', data);
+    return data;
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('politicas_empresa').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('politicas_empresa');
+    return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('politicas_empresa')
+        .update({ ...payload, atualizado_em: new Date().toISOString() })
+        .eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('politicas_empresa');
+    return data;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('politicas_empresa').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('politicas_empresa');
+  },
+};
+
 const RespostasPesquisa = {
   async listarPorPesquisa(pesquisaId) {
     const { data, error } = await withTimeout(

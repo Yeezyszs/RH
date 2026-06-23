@@ -20,9 +20,11 @@ export class FeedbackClimaModule {
     this.COLABORADORES    = deps.COLABORADORES;
     this.FEEDBACK         = deps.FEEDBACK;
     this.CLIMA            = deps.CLIMA;
+    this.POLITICAS        = deps.POLITICAS;
     this.CHART_COLORS     = deps.CHART_COLORS;
     this.Auth             = deps.Auth;
     this.FeedbackClima    = deps.FeedbackClima;
+    this.PoliticasEmpresa = deps.PoliticasEmpresa;
     this.RespostasPesquisa = deps.RespostasPesquisa;
     this.showToast        = deps.showToast;
 
@@ -43,6 +45,7 @@ export class FeedbackClimaModule {
       el.addEventListener('click', () => setTimeout(() => {
         this.renderFeedback();
         this.renderClima();
+        this.renderPoliticas();
       }, 60));
     });
   }
@@ -461,21 +464,107 @@ export class FeedbackClimaModule {
     this.$('#modal-respostas-pesquisa')?.classList.remove('active');
   }
 
-  abrirModalPolitica() {
-    this.showToast('Funcionalidade em desenvolvimento', 'info');
+  renderPoliticas() {
+    const tb = this.$('#tb-politicas');
+    if (!tb) return;
+
+    const lista = [...this.POLITICAS].sort((a, b) =>
+      (b.atualizado_em || '').localeCompare(a.atualizado_em || ''));
+
+    tb.innerHTML = lista.length ? lista.map(p => {
+      const data = p.atualizado_em || p.criado_em;
+      const dataFmt = data ? this.fmtDate(data.slice(0, 10)) : '—';
+      const desc = (p.descricao || '').trim();
+      const descCurta = desc.length > 140 ? desc.slice(0, 140) + '…' : (desc || '—');
+      return `
+        <tr onclick="abrirModalPolitica(${p.id})" style="cursor:pointer">
+          <td style="font-weight:600">${this.h(p.titulo)}</td>
+          <td style="white-space:pre-line; color:var(--text-soft)">${this.h(descCurta)}</td>
+          <td class="cell-mono">${dataFmt}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalPolitica(${p.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirPolitica(${p.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="4" class="empty">Nenhuma política cadastrada</td></tr>`;
+  }
+
+  abrirModalPolitica(id = null) {
+    const form = this.$('#form-politica');
+    if (!form) return;
+    form.reset();
+    if (id != null) {
+      const p = this.POLITICAS.find(x => x.id === id);
+      if (p) {
+        this.$('#pol-modal-title').textContent = 'Editar política';
+        form.elements['id'].value        = p.id;
+        form.elements['titulo'].value     = p.titulo ?? '';
+        form.elements['descricao'].value  = p.descricao ?? '';
+      }
+    } else {
+      this.$('#pol-modal-title').textContent = 'Nova política';
+    }
+    this.$('#modal-politica').classList.add('active');
   }
 
   fecharModalPolitica() {
-    // Placeholder for politicas modal
+    this.$('#modal-politica')?.classList.remove('active');
   }
 
-  salvarPolitica(ev) {
+  async salvarPolitica(ev) {
     if (ev) ev.preventDefault();
-    this.showToast('Funcionalidade em desenvolvimento', 'info');
+    const form = this.$('#form-politica');
+    const data = Object.fromEntries(new FormData(form));
+    const id   = data.id ? parseInt(data.id, 10) : null;
+
+    const payload = {
+      titulo:    (data.titulo || '').trim(),
+      descricao: (data.descricao || '').trim(),
+    };
+
+    if (!payload.titulo) {
+      this.showToast('Informe o título da política', 'err');
+      return;
+    }
+
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao && this.PoliticasEmpresa) {
+      try {
+        if (id != null) {
+          const saved = await this.PoliticasEmpresa.atualizar(id, payload);
+          const i = this.POLITICAS.findIndex(x => x.id === id);
+          if (i >= 0) this.POLITICAS[i] = saved;
+        } else {
+          const saved = await this.PoliticasEmpresa.criar(payload);
+          this.POLITICAS.unshift(saved);
+        }
+      } catch (err) { this.showToast('Erro ao salvar: ' + err.message, 'err'); return; }
+    } else {
+      const agora = new Date().toISOString();
+      if (id != null) {
+        const i = this.POLITICAS.findIndex(x => x.id === id);
+        if (i >= 0) this.POLITICAS[i] = { ...this.POLITICAS[i], ...payload, atualizado_em: agora };
+      } else {
+        const nextId = Math.max(0, ...this.POLITICAS.map(x => x.id)) + 1;
+        this.POLITICAS.unshift({ id: nextId, ...payload, criado_em: agora, atualizado_em: agora });
+      }
+    }
+    this.showToast(id != null ? 'Política atualizada' : 'Política cadastrada', 'ok');
+    this.fecharModalPolitica();
+    this.renderPoliticas();
   }
 
-  excluirPolitica(id) {
-    this.showToast('Funcionalidade em desenvolvimento', 'info');
+  async excluirPolitica(id) {
+    if (!confirm('Excluir esta política?')) return;
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao && this.PoliticasEmpresa) {
+      try { await this.PoliticasEmpresa.excluir(id); } catch (err) { this.showToast('Erro: ' + err.message, 'err'); return; }
+    }
+    const idx = this.POLITICAS.findIndex(x => x.id === id);
+    if (idx >= 0) this.POLITICAS.splice(idx, 1);
+    this.renderPoliticas();
+    this.showToast('Política excluída');
   }
 }
 

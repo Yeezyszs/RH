@@ -3,22 +3,22 @@
 
 // ?v= é cache-busting do grafo de módulos ES. Ao alterar qualquer módulo,
 // incremente esta versão (e a do index.html) para forçar fetch do arquivo novo.
-import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623c';
-import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623c';
+import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623d';
+import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623d';
 
-import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623c';
-import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623c';
-import { FeriasModule }           from './modules/ferias.js?v=20260623c';
-import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623c';
-import { CronogramaModule }       from './modules/cronograma.js?v=20260623c';
-import { VencimentosModule }      from './modules/vencimentos.js?v=20260623c';
-import { EpiModule }              from './modules/epi.js?v=20260623c';
-import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623c';
-import { SalariosModule }         from './modules/salarios.js?v=20260623c';
-import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623c';
-import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623c';
-import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623c';
-import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623c';
+import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623d';
+import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623d';
+import { FeriasModule }           from './modules/ferias.js?v=20260623d';
+import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623d';
+import { CronogramaModule }       from './modules/cronograma.js?v=20260623d';
+import { VencimentosModule }      from './modules/vencimentos.js?v=20260623d';
+import { EpiModule }              from './modules/epi.js?v=20260623d';
+import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623d';
+import { SalariosModule }         from './modules/salarios.js?v=20260623d';
+import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623d';
+import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623d';
+import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623d';
+import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623d';
 
 // faixaIdx depends on FAIXAS which lives in index.html — read from window
 function faixaIdx(valor) {
@@ -72,6 +72,7 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const VA_BENEFICIOS    = window.VA_BENEFICIOS;
   const FEEDBACK         = window.FEEDBACK;
   const CLIMA            = window.CLIMA;
+  const POLITICAS        = window.POLITICAS;
   const PC_CARGOS        = window.PC_CARGOS;
   const PC_PLANOS        = window.PC_PLANOS;
 
@@ -153,8 +154,9 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
 
   const feedbackClima = new FeedbackClimaModule({
     $, h, iniciais, fmtDate,
-    COLABORADORES, FEEDBACK, CLIMA, CHART_COLORS,
+    COLABORADORES, FEEDBACK, CLIMA, POLITICAS, CHART_COLORS,
     Auth: window.Auth, FeedbackClima: window.FeedbackClima,
+    PoliticasEmpresa: window.PoliticasEmpresa,
     RespostasPesquisa: window.RespostasPesquisa, showToast,
   });
 
@@ -326,6 +328,7 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   window.excluirClima                 = (id)  => feedbackClima.excluirClima(id);
   window.abrirModalRespostasPesquisa  = (id)  => feedbackClima.abrirModalRespostasPesquisa(id);
   window.fecharModalRespostasPesquisa = ()    => feedbackClima.fecharModalRespostasPesquisa();
+  window.renderPoliticas              = ()    => feedbackClima.renderPoliticas();
   window.abrirModalPolitica           = (id)  => feedbackClima.abrirModalPolitica(id);
   window.fecharModalPolitica          = ()    => feedbackClima.fecharModalPolitica();
   window.salvarPolitica               = (ev)  => feedbackClima.salvarPolitica(ev);
