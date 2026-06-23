@@ -154,7 +154,7 @@
       </div>
       <div class="nav-item" data-page="feedback-clima">
         <span class="nav-icon">✎</span>
-        <span>Feedback & Clima</span>
+        <span>Organizacional</span>
       </div>
       <div class="nav-item" data-page="cronograma">
         <span class="nav-icon">▦</span>
@@ -1334,8 +1334,8 @@
     <section id="page-feedback-clima" class="page">
       <div class="page-header">
         <div>
-          <h1 class="page-title">Feedback & Clima</h1>
-          <div class="page-subtitle">Avaliações 1:1 e pesquisas de clima organizacional</div>
+          <h1 class="page-title">Organizacional</h1>
+          <div class="page-subtitle">Avaliações 1:1, pesquisas de clima e políticas da empresa</div>
         </div>
       </div>
 
@@ -1343,6 +1343,7 @@
       <div class="view-tabs">
         <div class="view-tab active" data-view="feedback">Feedback individual</div>
         <div class="view-tab" data-view="clima">Clima organizacional</div>
+        <div class="view-tab" data-view="politicas">Políticas da Empresa</div>
       </div>
 
       <!-- ══════ FEEDBACK ══════ -->
@@ -1461,6 +1462,33 @@
                 </tr>
               </thead>
               <tbody id="tb-clima"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ POLITICAS ══════ -->
+      <div id="view-politicas" class="view-content">
+
+        <div class="toolbar">
+          <div class="toolbar-spacer"></div>
+          <button class="btn" type="button" onclick="abrirModalPolitica()">+ Adicionar política</button>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Política</th>
+                  <th>Descrição</th>
+                  <th>Data de atualização</th>
+                  <th style="width:100px; text-align:right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tb-politicas">
+                <tr><td colspan="4" class="empty">Nenhuma política cadastrada</td></tr>
+              </tbody>
             </table>
           </div>
         </div>
