@@ -188,12 +188,15 @@ function mapDesligamento(row) {
 }
 
 function mapEvento(row) {
+  // Timestamps podem vir com 'T' (API REST) ou espaço (Realtime). Normaliza.
+  const ini = row.data_inicio ? String(row.data_inicio).replace(' ', 'T') : '';
+  const fim = row.data_termino ? String(row.data_termino).replace(' ', 'T') : '';
   return {
     id:          row.id,
     titulo:      row.titulo,
-    data:        row.data_inicio?.split('T')[0],
-    hora_inicio: row.data_inicio?.split('T')[1]?.slice(0, 5) || '',
-    hora_fim:    row.data_termino?.split('T')[1]?.slice(0, 5) || '',
+    data:        ini ? ini.slice(0, 10) : undefined,
+    hora_inicio: ini.split('T')[1]?.slice(0, 5) || '',
+    hora_fim:    fim.split('T')[1]?.slice(0, 5) || '',
     local:       row.local || '',
     tipo:        row.tipo || 'evento',
     status:      row.status || 'agendado',

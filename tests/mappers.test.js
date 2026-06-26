@@ -235,6 +235,17 @@ describe('mapEvento', () => {
     expect(mapEvento({ ...row, data_inicio: '2024-12-31T23:59:59' }).data).toBe('2024-12-31');
   });
 
+  it('aceita timestamp do realtime (separado por espaço)', () => {
+    const r = mapEvento({
+      ...row,
+      data_inicio:  '2024-06-10 08:00:00',
+      data_termino: '2024-06-10 17:00:00',
+    });
+    expect(r.data).toBe('2024-06-10');
+    expect(r.hora_inicio).toBe('08:00');
+    expect(r.hora_fim).toBe('17:00');
+  });
+
   it('hora_inicio e hora_fim vazios quando datas sem horário', () => {
     const r = mapEvento({ ...row, data_inicio: '2024-06-10', data_termino: '2024-06-10' });
     expect(r.hora_inicio).toBe('');

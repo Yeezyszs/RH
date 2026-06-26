@@ -283,9 +283,13 @@ export class CronogramaModule {
         window.showToast?.('Erro ao excluir: ' + err.message, 'err');
         return;
       }
-    } else {
-      this.EVENTOS = this.EVENTOS.filter(x => x.id !== id);
     }
+    // Remove do array local em ambos os casos (splice preserva a referência
+    // compartilhada com o data-store; não depende do eco do realtime).
+    const i = this.EVENTOS.findIndex(x => x.id === id);
+    if (i >= 0) this.EVENTOS.splice(i, 1);
+
+    window.showToast?.('Evento excluído', 'ok');
     this.fecharModalEvento();
     this.render();
   }
