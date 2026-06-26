@@ -217,7 +217,23 @@ const Cronograma = {
     );
     if (error) throw error;
     Cache.invalidate('cronograma');
-    return mapEvento(data[0]);
+
+    // Em algumas condições de RLS o INSERT é aceito mas a representação
+    // (RETURNING) volta vazia. Nesse caso buscamos a linha recém-criada
+    // por um SELECT normal (que funciona) para recuperar o id real.
+    let row = data && data[0];
+    if (!row) {
+      const { data: refetch } = await withTimeout(
+        sb.from('cronograma').select('*')
+          .eq('titulo', payload.titulo)
+          .eq('data_inicio', payload.data_inicio)
+          .order('id', { ascending: false })
+          .limit(1)
+      );
+      row = refetch && refetch[0];
+    }
+    if (!row) throw new Error('Não foi possível confirmar o salvamento. Verifique sua sessão e tente novamente.');
+    return mapEvento(row);
   },
 
   async atualizar(id, payload) {
@@ -226,7 +242,16 @@ const Cronograma = {
     );
     if (error) throw error;
     Cache.invalidate('cronograma');
-    return mapEvento(data[0]);
+
+    let row = data && data[0];
+    if (!row) {
+      const { data: refetch } = await withTimeout(
+        sb.from('cronograma').select('*').eq('id', id).limit(1)
+      );
+      row = refetch && refetch[0];
+    }
+    // Se ainda assim não retornar, devolve o payload mesclado para a UI atualizar.
+    return mapEvento(row || { id, ...payload });
   },
 
   async excluir(id) {

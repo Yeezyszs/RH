@@ -120,6 +120,7 @@ export function mapDesligamento(row) {
 }
 
 export function mapEvento(row) {
+  if (!row) return { id: undefined, titulo: '', data: undefined, hora_inicio: '', hora_fim: '', local: '', tipo: 'evento', status: 'agendado', descricao: '' };
   // Timestamps podem vir com 'T' (API REST) ou espaço (Realtime). Normaliza.
   const ini = row.data_inicio ? String(row.data_inicio).replace(' ', 'T') : '';
   const fim = row.data_termino ? String(row.data_termino).replace(' ', 'T') : '';
