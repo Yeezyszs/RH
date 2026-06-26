@@ -213,20 +213,20 @@ const Cronograma = {
 
   async criar(payload) {
     const { data, error } = await withTimeout(
-      sb.from('cronograma').insert(payload).select().single()
+      sb.from('cronograma').insert(payload).select()
     );
     if (error) throw error;
     Cache.invalidate('cronograma');
-    return mapEvento(data);
+    return mapEvento(data[0]);
   },
 
   async atualizar(id, payload) {
     const { data, error } = await withTimeout(
-      sb.from('cronograma').update(payload).eq('id', id).select().single()
+      sb.from('cronograma').update(payload).eq('id', id).select()
     );
     if (error) throw error;
     Cache.invalidate('cronograma');
-    return mapEvento(data);
+    return mapEvento(data[0]);
   },
 
   async excluir(id) {
