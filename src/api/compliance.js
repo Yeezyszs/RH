@@ -69,6 +69,22 @@ const Vencimentos = {
     return { ...row, id: data.id, _tabela: tabela };
   },
 
+  async atualizar(id, payload, tabela = 'documentos') {
+    const base = {
+      data_emissao:    payload.data_emissao || null,
+      data_vencimento: payload.data_vencimento,
+      observacoes:     payload.observacoes || null,
+    };
+    const row = tabela === 'documentos' ? { ...base, tipo: payload.tipo || payload.item } : base;
+    const { data, error } = await withTimeout(
+      sb.from(tabela).update(row).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate('vencimentos');
+    if (tabela === 'participantes_treinamento') Cache.invalidate('treinamentos');
+    return { ...row, id, _tabela: tabela };
+  },
+
   async excluir(id, tabela = 'documentos') {
     const { error } = await withTimeout(
       sb.from(tabela).delete().eq('id', id)

@@ -227,8 +227,18 @@ export class VencimentosModule {
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
       try {
-        const saved = await this.Vencimentos.criar(payload);
-        this.VENCIMENTOS.unshift({ ...frontendItem, id: saved.id, _tabela: saved._tabela });
+        if (id != null) {
+          // Atualizar vencimento existente
+          const v = this.VENCIMENTOS.find(x => x.id === id);
+          const tabela = v?._tabela || 'documentos';
+          const saved = await this.Vencimentos.atualizar(id, payload, tabela);
+          const i = this.VENCIMENTOS.findIndex(x => x.id === id);
+          if (i >= 0) this.VENCIMENTOS[i] = { ...frontendItem, id: saved.id, _tabela: saved._tabela };
+        } else {
+          // Criar novo vencimento
+          const saved = await this.Vencimentos.criar(payload);
+          this.VENCIMENTOS.unshift({ ...frontendItem, id: saved.id, _tabela: saved._tabela });
+        }
       } catch (err) {
         window.showToast?.('Erro ao salvar: ' + err.message, 'err');
         return;
