@@ -196,6 +196,7 @@ function mapEvento(row) {
     hora_fim:    row.data_termino?.split('T')[1]?.slice(0, 5) || '',
     local:       row.local || '',
     tipo:        row.tipo || 'evento',
+    status:      row.status || 'agendado',
     descricao:   row.descricao || '',
   };
 }

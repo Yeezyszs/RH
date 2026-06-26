@@ -106,18 +106,11 @@ export class CronogramaModule {
       const dia = cell.date.getDate();
       const dow = cell.date.getDay();
       const eventosDia = eventosVisiveis
-        .filter(e => {
-          // Para feriados usa e.data, para eventos normais usa e.data_inicio
-          const dataEvento = e._feriado ? e.data : (e.data_inicio ? e.data_inicio.slice(0, 10) : null);
-          return dataEvento === iso;
-        })
+        .filter(e => e.data === iso)
         .sort((a, b) => {
           if (a._feriado && !b._feriado) return -1;
           if (b._feriado && !a._feriado) return 1;
-          // Extrai hora do TIMESTAMP para ordenar
-          const horaA = a.data_inicio ? a.data_inicio.slice(11, 16) : '';
-          const horaB = b.data_inicio ? b.data_inicio.slice(11, 16) : '';
-          return (horaA || '').localeCompare(horaB || '');
+          return (a.hora_inicio || '').localeCompare(b.hora_inicio || '');
         });
 
       const ehFeriado = eventosDia.some(e => e._feriado);
@@ -126,13 +119,9 @@ export class CronogramaModule {
       const extraN = eventosDia.length - visibles.length;
 
       const eventosHtml = visibles.map(e => {
-        let horaHtml = '';
-        if (e.data_inicio) {
-          const hora = e.data_inicio.slice(11, 16); // Extrai HH:MM de ISO 8601
-          if (hora !== '00:00') {
-            horaHtml = `<span class="cal-event-time">${this.h(hora)}</span>`;
-          }
-        }
+        const horaHtml = (e.hora_inicio && e.hora_inicio !== '00:00')
+          ? `<span class="cal-event-time">${this.h(e.hora_inicio)}</span>`
+          : '';
         const onclick = e._feriado
           ? ''
           : `onclick="event.stopPropagation(); abrirModalEvento(${e.id})"`;
@@ -161,22 +150,13 @@ export class CronogramaModule {
     }).join('');
 
     const mesChaveAtual = `${ano}-${String(mes + 1).padStart(2, '0')}`;
-    const eventosDoMes = todosEventos.filter(e => {
-      const dataEvento = e._feriado ? e.data : (e.data_inicio ? e.data_inicio.slice(0, 10) : null);
-      return dataEvento && dataEvento.startsWith(mesChaveAtual);
-    });
+    const eventosDoMes = todosEventos.filter(e => e.data && e.data.startsWith(mesChaveAtual));
     this.$('#cron-stat-mes').textContent = eventosDoMes.length;
-
-    this.$('#cron-stat-hoje').textContent = todosEventos.filter(e => {
-      const dataEvento = e._feriado ? e.data : (e.data_inicio ? e.data_inicio.slice(0, 10) : null);
-      return dataEvento === hojeIso;
-    }).length;
+    this.$('#cron-stat-hoje').textContent = todosEventos.filter(e => e.data === hojeIso).length;
 
     const fim7 = this.addDays(hojeIso, 7);
-    this.$('#cron-stat-7d').textContent = todosEventos.filter(e => {
-      const dataEvento = e._feriado ? e.data : (e.data_inicio ? e.data_inicio.slice(0, 10) : null);
-      return dataEvento && dataEvento >= hojeIso && dataEvento <= fim7;
-    }).length;
+    this.$('#cron-stat-7d').textContent = todosEventos.filter(e => e.data && e.data >= hojeIso && e.data <= fim7).length;
+    this.$('#cron-stat-conc').textContent = eventosDoMes.filter(e => e.status === 'concluido' && !e._feriado).length;
   }
 
   abrirModalEvento(id = null, dataPre = null) {
@@ -193,23 +173,11 @@ export class CronogramaModule {
         form.elements['id'].value = e.id || '';
         form.elements['titulo'].value = e.titulo || '';
         form.elements['tipo'].value = e.tipo || '';
-
-        // Extrai data e hora do data_inicio (TIMESTAMP ISO 8601)
-        if (e.data_inicio) {
-          const dt = new Date(e.data_inicio);
-          const data = dt.toISOString().slice(0, 10);
-          const hora = dt.toISOString().slice(11, 16);
-          form.elements['data'].value = data;
-          form.elements['hora_inicio'].value = hora;
-        }
-
-        // Extrai hora do data_termino
-        if (e.data_termino) {
-          const dt = new Date(e.data_termino);
-          const hora = dt.toISOString().slice(11, 16);
-          form.elements['hora_fim'].value = hora;
-        }
-
+        form.elements['status'].value = e.status || 'agendado';
+        // O objeto já vem mapeado (data / hora_inicio / hora_fim)
+        form.elements['data'].value = e.data || '';
+        form.elements['hora_inicio'].value = e.hora_inicio || '';
+        form.elements['hora_fim'].value = e.hora_fim || '';
         form.elements['local'].value = e.local || '';
         form.elements['descricao'].value = e.descricao || '';
         this.$('#btn-ev-excluir').style.display = '';
@@ -218,6 +186,7 @@ export class CronogramaModule {
       this.$('#ev-modal-title').textContent = 'Novo evento';
       this.$('#btn-ev-excluir').style.display = 'none';
       form.elements['data'].value = dataPre || new Date().toISOString().slice(0, 10);
+      form.elements['status'].value = 'agendado';
     }
 
     this.$('#modal-evento').classList.add('active');
@@ -253,6 +222,7 @@ export class CronogramaModule {
     const payload = {
       titulo:       data.titulo,
       tipo:         data.tipo,
+      status:       data.status || 'agendado',
       data_inicio:  dataInicio,
       data_termino: dataTermino,
       local:        data.local || '',
@@ -263,9 +233,10 @@ export class CronogramaModule {
     if (temSessao) {
       try {
         if (id != null) {
-          await this.Cronograma.atualizar(id, payload);
+          // atualizar() devolve o objeto já mapeado (data / hora_inicio / hora_fim)
+          const saved = await this.Cronograma.atualizar(id, payload);
           const i = this.EVENTOS.findIndex(x => x.id === id);
-          if (i >= 0) this.EVENTOS[i] = { ...this.EVENTOS[i], ...payload };
+          if (i >= 0) this.EVENTOS[i] = saved;
         } else {
           const saved = await this.Cronograma.criar(payload);
           this.EVENTOS.unshift(saved);
@@ -275,12 +246,23 @@ export class CronogramaModule {
         return;
       }
     } else {
-      const newId = Math.max(0, ...this.EVENTOS.map(x => x.id)) + 1;
+      // Modo mock (sem sessão): grava no formato mapeado que a tela consome
+      const mapped = {
+        titulo:      data.titulo,
+        tipo:        data.tipo,
+        status:      data.status || 'agendado',
+        data:        dataStr,
+        hora_inicio: data.hora_inicio || '',
+        hora_fim:    data.hora_fim || '',
+        local:       data.local || '',
+        descricao:   data.descricao || '',
+      };
       if (id != null) {
         const i = this.EVENTOS.findIndex(x => x.id === id);
-        if (i >= 0) this.EVENTOS[i] = { id, ...payload };
+        if (i >= 0) this.EVENTOS[i] = { id, ...mapped };
       } else {
-        this.EVENTOS.unshift({ id: newId, ...payload, criado_em: new Date().toISOString() });
+        const newId = Math.max(0, ...this.EVENTOS.map(x => x.id)) + 1;
+        this.EVENTOS.unshift({ id: newId, ...mapped });
       }
     }
 
