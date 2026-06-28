@@ -6,11 +6,11 @@
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/tokens.css?v=20260623k">
-<link rel="stylesheet" href="css/layout.css?v=20260623k">
-<link rel="stylesheet" href="css/components.css?v=20260623k">
-<link rel="stylesheet" href="css/pages.css?v=20260623k">
-<link rel="stylesheet" href="css/login.css?v=20260623k">
+<link rel="stylesheet" href="css/tokens.css?v=20260623l">
+<link rel="stylesheet" href="css/layout.css?v=20260623l">
+<link rel="stylesheet" href="css/components.css?v=20260623l">
+<link rel="stylesheet" href="css/pages.css?v=20260623l">
+<link rel="stylesheet" href="css/login.css?v=20260623l">
 </head>
 <body>
 
@@ -183,22 +183,22 @@
 
       <!-- KPIs -->
       <div class="kpi-grid">
-        <div class="kpi-card">
+        <div class="kpi-card kpi-clickable" onclick="goPage('colaboradores')" title="Ver colaboradores">
           <div class="kpi-label">Headcount ativo</div>
           <div class="kpi-value" id="dash-kpi-headcount">—</div>
           <div class="kpi-trend up" id="dash-kpi-headcount-trend">carregando…</div>
         </div>
-        <div class="kpi-card kpi-warn">
+        <div class="kpi-card kpi-warn kpi-clickable" onclick="goPage('rotatividade')" title="Ver rotatividade">
           <div class="kpi-label">Rotatividade 30d</div>
           <div class="kpi-value" id="dash-kpi-rot">—<span class="unit">%</span></div>
           <div class="kpi-trend down" id="dash-kpi-rot-trend">calculando…</div>
         </div>
-        <div class="kpi-card kpi-success">
+        <div class="kpi-card kpi-success kpi-clickable" onclick="goPage('colaboradores')" title="Ver colaboradores">
           <div class="kpi-label">Aniversariantes do mês</div>
           <div class="kpi-value" id="dash-kpi-aniv">—</div>
           <div class="kpi-trend" id="dash-kpi-aniv-trend">carregando…</div>
         </div>
-        <div class="kpi-card kpi-danger">
+        <div class="kpi-card kpi-danger kpi-clickable" onclick="goPage('vencimentos')" title="Ver vencimentos">
           <div class="kpi-label">Vencimentos críticos</div>
           <div class="kpi-value" id="dash-kpi-venc">—</div>
           <div class="kpi-trend down" id="dash-kpi-venc-trend">carregando…</div>
@@ -3116,17 +3116,18 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260623k"></script>
-<script src="src/utils/base.js?v=20260623k"></script>
-<script src="src/dashboard.js?v=20260623k"></script>
-<script src="supabase.js?v=20260623k"></script>
-<script src="src/api/pessoas.js?v=20260623k"></script>
-<script src="src/api/compliance.js?v=20260623k"></script>
-<script src="src/api/beneficios.js?v=20260623k"></script>
-<script src="src/api/gestao.js?v=20260623k"></script>
-<script src="src/api/init.js?v=20260623k"></script>
-<script src="src/auth.js?v=20260623k"></script>
-<script type="module" src="src/app.js?v=20260623k"></script>
+<script src="src/data-store.js?v=20260623l"></script>
+<script src="src/utils/base.js?v=20260623l"></script>
+<script src="src/dashboard.js?v=20260623l"></script>
+<script src="src/utils/relatorio.js?v=20260623l"></script>
+<script src="supabase.js?v=20260623l"></script>
+<script src="src/api/pessoas.js?v=20260623l"></script>
+<script src="src/api/compliance.js?v=20260623l"></script>
+<script src="src/api/beneficios.js?v=20260623l"></script>
+<script src="src/api/gestao.js?v=20260623l"></script>
+<script src="src/api/init.js?v=20260623l"></script>
+<script src="src/auth.js?v=20260623l"></script>
+<script type="module" src="src/app.js?v=20260623l"></script>
 
 </body>
 </html>

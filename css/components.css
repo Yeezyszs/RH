@@ -24,6 +24,13 @@
   box-shadow: var(--shadow);
 }
 
+.kpi-clickable { cursor: pointer; }
+.kpi-clickable:hover {
+  border-color: var(--phthalo-light);
+  box-shadow: var(--shadow), 0 0 0 1px var(--phthalo-light);
+}
+.kpi-clickable:active { transform: translateY(0); }
+
 .kpi-card::before {
   content: '';
   position: absolute;
