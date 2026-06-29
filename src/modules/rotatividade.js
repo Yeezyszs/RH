@@ -131,7 +131,7 @@ export class RotatividadeModule {
 
     const motivosCont = {};
     this.DESLIGAMENTOS.forEach(dl => {
-      const motivo = dl.tipo_saida || 'Outros';
+      const motivo = (dl.motivo && String(dl.motivo).trim()) || 'Outros';
       motivosCont[motivo] = (motivosCont[motivo] || 0) + 1;
     });
     const motivos = Object.entries(motivosCont).map(([label, valor]) => ({ label, valor }));
@@ -156,7 +156,7 @@ export class RotatividadeModule {
           setor: col.setor,
           area: col.area,
           data: dl.data,
-          motivo: dl.tipo_saida || '—',
+          motivo: dl.motivo || '—',
         });
       }
     });
