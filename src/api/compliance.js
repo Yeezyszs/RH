@@ -136,7 +136,7 @@ const Epis = {
   async listarCatalogo() {
     const { data, error } = await withTimeout(
       sb.from('epi_catalogo')
-        .select('id, nome, ca, validade_ca, vida_util_meses, fabricante, quantidade')
+        .select('id, nome, ca, validade_ca, vida_util_meses, fabricante, quantidade, grupo')
         .order('nome')
     );
     if (error) throw error;
@@ -174,16 +174,16 @@ const Epis = {
   // ── Kits de EPI por área (tabela epi_kits) ──────────────────────────────────
   async listarKits() {
     const { data, error } = await withTimeout(
-      sb.from('epi_kits').select('area, epi_ids')
+      sb.from('epi_kits').select('area, grupos')
     );
     if (error) throw error;
     return data ?? [];
   },
 
-  async salvarKit(area, epiIds) {
+  async salvarKit(area, grupos) {
     const { data, error } = await withTimeout(
       sb.from('epi_kits')
-        .upsert({ area, epi_ids: epiIds, atualizado_em: new Date().toISOString() }, { onConflict: 'area' })
+        .upsert({ area, grupos, atualizado_em: new Date().toISOString() }, { onConflict: 'area' })
         .select()
     );
     if (error) throw error;

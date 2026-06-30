@@ -155,7 +155,7 @@ async function inicializarSupabase() {
 
     if (epiKits.status === 'fulfilled') {
       const lista = epiKits.value ?? [];
-      lista.forEach(k => { if (k.area) EPI_KITS[k.area] = k.epi_ids || []; });
+      lista.forEach(k => { if (k.area) EPI_KITS[k.area] = k.grupos || []; });
       if (lista.length > 0) console.info(`[RH] ${lista.length} kits de EPI carregados.`);
     }
 
@@ -399,7 +399,7 @@ function setupRealTimeListeners() {
       if (eventType === 'DELETE') {
         if (area) delete EPI_KITS[area];
       } else if (area) {
-        EPI_KITS[area] = novoReg.epi_ids || [];
+        EPI_KITS[area] = novoReg.grupos || [];
       }
       if (typeof renderEpiKits === 'function') renderEpiKits();
     }

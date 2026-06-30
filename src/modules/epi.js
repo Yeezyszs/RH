@@ -43,6 +43,13 @@ export class EpiModule {
     });
   }
 
+  // Grupo efetivo de um item do catálogo: o campo grupo, ou o próprio nome.
+  // Usado para que variações (ex.: tamanhos de bota) contem como um único EPI
+  // na configuração de kits por área.
+  _grupoDe(item) {
+    return (item && item.grupo && String(item.grupo).trim()) || (item ? item.nome : '');
+  }
+
   render() {
     const tb = this.$('#tb-epi-entregas');
     if (!tb) return;
@@ -134,9 +141,12 @@ export class EpiModule {
             : q <= 5
               ? `<span class="badge warn">${q}</span>`
               : `<span class="badge ok">${q}</span>`;
+          const sub = t.grupo
+            ? `Grupo: ${this.h(t.grupo)}`
+            : this.h(t.fabricante || '—');
           return `
             <tr>
-              <td style="font-weight:500;">${this.h(t.nome)}<div class="cell-person-sub">${this.h(t.fabricante || '—')}</div></td>
+              <td style="font-weight:500;">${this.h(t.nome)}<div class="cell-person-sub">${sub}</div></td>
               <td class="cell-mono">${this.h(t.ca || '—')}</td>
               <td class="cell-mono" style="text-align:center;">${qBadge}</td>
               <td class="cell-mono">${this.fmtDate(t.validade_ca)} ${badgeCa}</td>
@@ -153,6 +163,13 @@ export class EpiModule {
 
     const badge = this.$('#epi-cat-total-badge');
     if (badge) badge.textContent = `${this.EPI_CATALOGO.length} ${this.EPI_CATALOGO.length === 1 ? 'item' : 'itens'}`;
+
+    // Sugestões de grupos já existentes (datalist do formulário)
+    const dl = this.$('#epi-grupos-list');
+    if (dl) {
+      const grupos = [...new Set(this.EPI_CATALOGO.map(t => t.grupo).filter(Boolean))].sort();
+      dl.innerHTML = grupos.map(g => `<option value="${this.h(g)}"></option>`).join('');
+    }
   }
 
   renderKits() {
@@ -171,16 +188,24 @@ export class EpiModule {
       setorAreas[setor].add(area);
     });
 
-    // Pendências por colaborador — o kit é definido pela ÁREA do colaborador
+    // Mapa: id do item do catálogo -> grupo efetivo (grupo ou próprio nome).
+    const grupoPorItem = {};
+    this.EPI_CATALOGO.forEach(t => { grupoPorItem[t.id] = this._grupoDe(t); });
+
+    // Grupos de EPI que um colaborador já recebeu (entregas ativas).
+    const gruposEntregues = (colabId) => new Set(
+      this.EPI_ENTREGAS
+        .filter(e => e.colaborador_id === colabId && !e.devolvido)
+        .map(e => grupoPorItem[e.epi_tipo_id])
+        .filter(Boolean)
+    );
+
+    // Pendências por colaborador — o kit é definido pela ÁREA, em GRUPOS de EPI
     const colabsPendencias = ativos.map(c => {
       const kit = this.EPI_KITS[c.area] || [];
       if (!kit.length) return null;
-      const entreguesAtivos = new Set(
-        this.EPI_ENTREGAS
-          .filter(e => e.colaborador_id === c.id && !e.devolvido)
-          .map(e => e.epi_tipo_id)
-      );
-      const faltando = kit.filter(epiId => !entreguesAtivos.has(epiId));
+      const possui = gruposEntregues(c.id);
+      const faltando = kit.filter(grupo => !possui.has(grupo));
       if (!faltando.length) return null;
       return { colab: c, faltando };
     }).filter(Boolean);
@@ -205,12 +230,9 @@ export class EpiModule {
         `;
       }
 
-      const itensHtml = kit.map(epiId => {
-        const t = this.EPI_CATALOGO.find(x => x.id === epiId);
-        if (!t) return '';
-        const entregues = colabsArea.filter(c =>
-          this.EPI_ENTREGAS.some(e => e.colaborador_id === c.id && e.epi_tipo_id === epiId && !e.devolvido)
-        ).length;
+      const itensHtml = kit.map(grupo => {
+        const itensGrupo = this.EPI_CATALOGO.filter(t => this._grupoDe(t) === grupo);
+        const entregues = colabsArea.filter(c => gruposEntregues(c.id).has(grupo)).length;
         const pendentes = n - entregues;
         const coberturaPct = n ? (entregues / n) * 100 : 100;
         const icon = pendentes === 0
@@ -218,11 +240,14 @@ export class EpiModule {
           : pendentes <= Math.ceil(n * 0.2)
             ? `<span class="badge warn" style="margin-left:auto">${entregues}/${n}</span>`
             : `<span class="badge danger" style="margin-left:auto">${entregues}/${n}</span>`;
+        const sub = itensGrupo.length > 1
+          ? `${itensGrupo.length} variações · ${coberturaPct.toFixed(0)}% cobertura`
+          : `${itensGrupo[0]?.ca ? 'CA ' + this.h(itensGrupo[0].ca) + ' · ' : ''}${coberturaPct.toFixed(0)}% cobertura`;
         return `
           <div style="display:flex; align-items:center; gap:10px; padding:8px 2px; border-bottom:1px solid var(--border-soft);">
             <div style="flex:1; min-width:0;">
-              <div style="font-size:.88rem; font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this.h(t.nome)}</div>
-              <div class="cell-person-sub">CA ${this.h(t.ca)} · ${coberturaPct.toFixed(0)}% cobertura</div>
+              <div style="font-size:.88rem; font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this.h(grupo)}</div>
+              <div class="cell-person-sub">${sub}</div>
             </div>
             ${icon}
           </div>
@@ -233,7 +258,7 @@ export class EpiModule {
         <div class="widget">
           <div class="widget-header">
             <div class="widget-title">${this.h(area)}</div>
-            <span class="widget-badge">${n} ${n === 1 ? 'colab.' : 'colabs.'} · ${kit.length} EPIs</span>
+            <span class="widget-badge">${n} ${n === 1 ? 'colab.' : 'colabs.'} · ${kit.length} ${kit.length === 1 ? 'EPI' : 'EPIs'}</span>
           </div>
           ${itensHtml}
           <div style="display:flex; justify-content:flex-end; padding:10px 2px 2px;">
@@ -274,10 +299,7 @@ export class EpiModule {
       tb.innerHTML = colabsPendencias.length
         ? colabsPendencias.map(p => {
             const c = p.colab;
-            const faltantes = p.faltando.map(epiId => {
-              const t = this.EPI_CATALOGO.find(x => x.id === epiId);
-              return t ? t.nome : '?';
-            }).join(' · ');
+            const faltantes = p.faltando.join(' · ');
             return `
               <tr onclick="abrirDrawerColab(${c.id})">
                 <td>
@@ -475,6 +497,7 @@ export class EpiModule {
       vida_util_meses: parseInt(data.vida_util_meses, 10) || null,
       fabricante:      data.fabricante || '',
       quantidade:      parseInt(data.quantidade, 10) || 0,
+      grupo:           (data.grupo && data.grupo.trim()) || null,
     };
 
     const temSessao = this.Epis && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
@@ -536,9 +559,8 @@ export class EpiModule {
     }
     const idx = this.EPI_CATALOGO.findIndex(x => x.id === id);
     if (idx >= 0) this.EPI_CATALOGO.splice(idx, 1);
-    Object.keys(this.EPI_KITS).forEach(s => {
-      this.EPI_KITS[s] = this.EPI_KITS[s].filter(epiId => epiId !== id);
-    });
+    // Kits referenciam GRUPOS (não itens). Mantêm-se válidos enquanto o grupo
+    // tiver ao menos um item; logo, não há limpeza por id aqui.
     window.showToast?.('Item excluído');
     this.renderCatalogo();
     this.render();
@@ -550,14 +572,31 @@ export class EpiModule {
     this.$('#epi-kit-modal-title').textContent = `Kit da área · ${area}`;
     const atual = new Set(this.EPI_KITS[area] || []);
     const lista = this.$('#epi-kit-lista');
-    lista.innerHTML = this.EPI_CATALOGO.length
-      ? this.EPI_CATALOGO.sort((a, b) => a.nome.localeCompare(b.nome)).map(t => `
-          <label class="toggle-row" style="cursor:pointer;">
-            <input type="checkbox" value="${t.id}" ${atual.has(t.id) ? 'checked' : ''}>
-            <span style="flex:1;">${this.h(t.nome)}</span>
-            <span class="cell-person-sub">CA ${this.h(t.ca)}</span>
-          </label>
-        `).join('')
+
+    // Monta a lista por GRUPO: variações (ex.: tamanhos de bota) viram 1 opção.
+    const grupos = {};
+    this.EPI_CATALOGO.forEach(t => {
+      const g = this._grupoDe(t);
+      if (!grupos[g]) grupos[g] = [];
+      grupos[g].push(t);
+    });
+    const nomesGrupos = Object.keys(grupos).sort((a, b) => a.localeCompare(b));
+
+    lista.innerHTML = nomesGrupos.length
+      ? nomesGrupos.map(g => {
+          const itens = grupos[g];
+          const sub = itens.length > 1
+            ? `${itens.length} variações`
+            : (itens[0]?.ca ? `CA ${this.h(itens[0].ca)}` : '—');
+          const val = g.replace(/"/g, '&quot;');
+          return `
+            <label class="toggle-row" style="cursor:pointer;">
+              <input type="checkbox" value="${val}" ${atual.has(g) ? 'checked' : ''}>
+              <span style="flex:1;">${this.h(g)}</span>
+              <span class="cell-person-sub">${sub}</span>
+            </label>
+          `;
+        }).join('')
       : `<div class="empty">Cadastre itens no catálogo primeiro</div>`;
     this.$('#modal-epi-kit').classList.add('active');
   }
@@ -570,19 +609,19 @@ export class EpiModule {
   async salvarKit() {
     if (!this._kitEditando) return;
     const area = this._kitEditando;
-    const ids = [...this.$('#epi-kit-lista').querySelectorAll('input[type="checkbox"]:checked')]
-      .map(i => parseInt(i.value, 10));
+    const grupos = [...this.$('#epi-kit-lista').querySelectorAll('input[type="checkbox"]:checked')]
+      .map(i => i.value);
 
     const temSessao = this.Epis && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
       try {
-        await this.Epis.salvarKit(area, ids);
+        await this.Epis.salvarKit(area, grupos);
       } catch (err) {
         window.showToast?.('Erro ao salvar kit: ' + err.message, 'err');
         return;
       }
     }
-    this.EPI_KITS[area] = ids;
+    this.EPI_KITS[area] = grupos;
     window.showToast?.('Kit salvo', 'ok');
     this.fecharModalKit();
     this.renderKits();
