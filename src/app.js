@@ -3,22 +3,22 @@
 
 // ?v= é cache-busting do grafo de módulos ES. Ao alterar qualquer módulo,
 // incremente esta versão (e a do index.html) para forçar fetch do arquivo novo.
-import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623m';
-import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623m';
+import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623n';
+import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623n';
 
-import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623m';
-import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623m';
-import { FeriasModule }           from './modules/ferias.js?v=20260623m';
-import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623m';
-import { CronogramaModule }       from './modules/cronograma.js?v=20260623m';
-import { VencimentosModule }      from './modules/vencimentos.js?v=20260623m';
-import { EpiModule }              from './modules/epi.js?v=20260623m';
-import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623m';
-import { SalariosModule }         from './modules/salarios.js?v=20260623m';
-import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623m';
-import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623m';
-import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623m';
-import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623m';
+import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623n';
+import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623n';
+import { FeriasModule }           from './modules/ferias.js?v=20260623n';
+import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623n';
+import { CronogramaModule }       from './modules/cronograma.js?v=20260623n';
+import { VencimentosModule }      from './modules/vencimentos.js?v=20260623n';
+import { EpiModule }              from './modules/epi.js?v=20260623n';
+import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623n';
+import { SalariosModule }         from './modules/salarios.js?v=20260623n';
+import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623n';
+import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623n';
+import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623n';
+import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623n';
 
 // faixaIdx depends on FAIXAS which lives in index.html — read from window
 function faixaIdx(valor) {

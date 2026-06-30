@@ -131,6 +131,45 @@ const Epis = {
     if (error) throw error;
     Cache.invalidate('epis');
   },
+
+  // ── Catálogo de EPIs (tabela epi_catalogo) ──────────────────────────────────
+  async listarCatalogo() {
+    const { data, error } = await withTimeout(
+      sb.from('epi_catalogo')
+        .select('id, nome, ca, validade_ca, vida_util_meses, fabricante')
+        .order('nome')
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async criarCatalogo(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('epi_catalogo').insert(payload).select()
+    );
+    if (error) throw error;
+    Cache.invalidate('epi_catalogo');
+    return data && data[0];
+  },
+
+  async atualizarCatalogo(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('epi_catalogo')
+        .update({ ...payload, atualizado_em: new Date().toISOString() })
+        .eq('id', id).select()
+    );
+    if (error) throw error;
+    Cache.invalidate('epi_catalogo');
+    return (data && data[0]) || { id, ...payload };
+  },
+
+  async excluirCatalogo(id) {
+    const { error } = await withTimeout(
+      sb.from('epi_catalogo').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('epi_catalogo');
+  },
 };
 
 const Treinamentos = {

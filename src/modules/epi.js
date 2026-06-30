@@ -426,28 +426,51 @@ export class EpiModule {
     f.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  salvarCatalogo(ev) {
+  async salvarCatalogo(ev) {
     ev.preventDefault();
     const f = this.$('#form-epi-catalogo-new');
     const data = Object.fromEntries(new FormData(f));
     const id = data.id ? parseInt(data.id, 10) : null;
 
+    if (!data.nome || !data.nome.trim()) {
+      window.showToast?.('Informe o nome do EPI', 'err');
+      return;
+    }
+
     const payload = {
-      nome:            data.nome,
-      ca:              data.ca,
+      nome:            data.nome.trim(),
+      ca:              data.ca || '',
       validade_ca:     data.validade_ca || null,
       vida_util_meses: parseInt(data.vida_util_meses, 10) || null,
       fabricante:      data.fabricante || '',
     };
 
-    if (id != null) {
-      const i = this.EPI_CATALOGO.findIndex(x => x.id === id);
-      if (i >= 0) this.EPI_CATALOGO[i] = { ...this.EPI_CATALOGO[i], ...payload };
+    const temSessao = this.Epis && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        if (id != null) {
+          const saved = await this.Epis.atualizarCatalogo(id, payload);
+          const i = this.EPI_CATALOGO.findIndex(x => x.id === id);
+          if (i >= 0) this.EPI_CATALOGO[i] = saved;
+        } else {
+          const saved = await this.Epis.criarCatalogo(payload);
+          if (saved) this.EPI_CATALOGO.unshift(saved);
+        }
+      } catch (err) {
+        window.showToast?.('Erro ao salvar: ' + err.message, 'err');
+        return;
+      }
     } else {
-      const newId = Math.max(0, ...this.EPI_CATALOGO.map(x => x.id)) + 1;
-      this.EPI_CATALOGO.unshift({ id: newId, ...payload });
+      if (id != null) {
+        const i = this.EPI_CATALOGO.findIndex(x => x.id === id);
+        if (i >= 0) this.EPI_CATALOGO[i] = { ...this.EPI_CATALOGO[i], ...payload };
+      } else {
+        const newId = Math.max(0, ...this.EPI_CATALOGO.map(x => x.id)) + 1;
+        this.EPI_CATALOGO.unshift({ id: newId, ...payload });
+      }
     }
 
+    window.showToast?.(id != null ? 'Item atualizado' : 'Item cadastrado', 'ok');
     this.resetCatalogoForm();
     this.renderCatalogo();
     this.render();
@@ -462,14 +485,29 @@ export class EpiModule {
     }
   }
 
-  excluirCatalogo(id) {
+  async excluirCatalogo(id) {
     const emUso = this.EPI_ENTREGAS.some(e => e.epi_tipo_id === id && !e.devolvido);
-    if (emUso) return;
+    if (emUso) {
+      window.showToast?.('Não é possível excluir: EPI em uso em entregas ativas', 'err');
+      return;
+    }
     if (!confirm('Excluir este item do catálogo?')) return;
-    this.EPI_CATALOGO = this.EPI_CATALOGO.filter(x => x.id !== id);
+
+    const temSessao = this.Epis && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Epis.excluirCatalogo(id);
+      } catch (err) {
+        window.showToast?.('Erro ao excluir: ' + err.message, 'err');
+        return;
+      }
+    }
+    const idx = this.EPI_CATALOGO.findIndex(x => x.id === id);
+    if (idx >= 0) this.EPI_CATALOGO.splice(idx, 1);
     Object.keys(this.EPI_KITS).forEach(s => {
       this.EPI_KITS[s] = this.EPI_KITS[s].filter(epiId => epiId !== id);
     });
+    window.showToast?.('Item excluído');
     this.renderCatalogo();
     this.render();
     this.renderKits();
