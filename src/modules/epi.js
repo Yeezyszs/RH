@@ -128,10 +128,17 @@ export class EpiModule {
             diasCa < 0   ? `<span class="badge danger" style="margin-left:6px">CA venc.</span>` :
             diasCa <= 90 ? `<span class="badge warn"   style="margin-left:6px">${diasCa}d</span>` : '';
           const ativas = this.EPI_ENTREGAS.filter(e => e.epi_tipo_id === t.id && !e.devolvido).length;
+          const q = t.quantidade ?? 0;
+          const qBadge = q === 0
+            ? `<span class="badge danger">0</span>`
+            : q <= 5
+              ? `<span class="badge warn">${q}</span>`
+              : `<span class="badge ok">${q}</span>`;
           return `
             <tr>
               <td style="font-weight:500;">${this.h(t.nome)}<div class="cell-person-sub">${this.h(t.fabricante || '—')}</div></td>
-              <td class="cell-mono">${this.h(t.ca)}</td>
+              <td class="cell-mono">${this.h(t.ca || '—')}</td>
+              <td class="cell-mono" style="text-align:center;">${qBadge}</td>
               <td class="cell-mono">${this.fmtDate(t.validade_ca)} ${badgeCa}</td>
               <td class="cell-mono">${t.vida_util_meses || '—'}m</td>
               <td class="cell-mono">${ativas}</td>
@@ -142,7 +149,7 @@ export class EpiModule {
             </tr>
           `;
         }).join('')
-      : `<tr><td colspan="6" class="empty">Catálogo vazio — cadastre o primeiro item acima</td></tr>`;
+      : `<tr><td colspan="7" class="empty">Catálogo vazio — cadastre o primeiro item acima</td></tr>`;
 
     const badge = this.$('#epi-cat-total-badge');
     if (badge) badge.textContent = `${this.EPI_CATALOGO.length} ${this.EPI_CATALOGO.length === 1 ? 'item' : 'itens'}`;
@@ -467,6 +474,7 @@ export class EpiModule {
       validade_ca:     data.validade_ca || null,
       vida_util_meses: parseInt(data.vida_util_meses, 10) || null,
       fabricante:      data.fabricante || '',
+      quantidade:      parseInt(data.quantidade, 10) || 0,
     };
 
     const temSessao = this.Epis && this.Auth && await this.Auth.sessaoAtual().catch(() => null);

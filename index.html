@@ -6,11 +6,11 @@
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/tokens.css?v=20260623o">
-<link rel="stylesheet" href="css/layout.css?v=20260623o">
-<link rel="stylesheet" href="css/components.css?v=20260623o">
-<link rel="stylesheet" href="css/pages.css?v=20260623o">
-<link rel="stylesheet" href="css/login.css?v=20260623o">
+<link rel="stylesheet" href="css/tokens.css?v=20260623p">
+<link rel="stylesheet" href="css/layout.css?v=20260623p">
+<link rel="stylesheet" href="css/components.css?v=20260623p">
+<link rel="stylesheet" href="css/pages.css?v=20260623p">
+<link rel="stylesheet" href="css/login.css?v=20260623p">
 </head>
 <body>
 
@@ -763,7 +763,11 @@
             </div>
             <div class="form-group">
               <label>CA</label>
-              <input type="text" name="ca" required placeholder="Nº do CA">
+              <input type="text" name="ca" placeholder="Nº do CA (ou deixe vazio)">
+            </div>
+            <div class="form-group">
+              <label>Quantidade (estoque)</label>
+              <input type="number" name="quantidade" min="0" value="0">
             </div>
             <div class="form-group">
               <label>Validade do CA</label>
@@ -791,6 +795,7 @@
                 <tr>
                   <th>Nome</th>
                   <th>CA</th>
+                  <th style="text-align:center">Qtd. estoque</th>
                   <th>Validade CA</th>
                   <th>Vida útil</th>
                   <th>Entregas ativas</th>
@@ -3116,18 +3121,18 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260623o"></script>
-<script src="src/utils/base.js?v=20260623o"></script>
-<script src="src/dashboard.js?v=20260623o"></script>
-<script src="src/utils/relatorio.js?v=20260623o"></script>
-<script src="supabase.js?v=20260623o"></script>
-<script src="src/api/pessoas.js?v=20260623o"></script>
-<script src="src/api/compliance.js?v=20260623o"></script>
-<script src="src/api/beneficios.js?v=20260623o"></script>
-<script src="src/api/gestao.js?v=20260623o"></script>
-<script src="src/api/init.js?v=20260623o"></script>
-<script src="src/auth.js?v=20260623o"></script>
-<script type="module" src="src/app.js?v=20260623o"></script>
+<script src="src/data-store.js?v=20260623p"></script>
+<script src="src/utils/base.js?v=20260623p"></script>
+<script src="src/dashboard.js?v=20260623p"></script>
+<script src="src/utils/relatorio.js?v=20260623p"></script>
+<script src="supabase.js?v=20260623p"></script>
+<script src="src/api/pessoas.js?v=20260623p"></script>
+<script src="src/api/compliance.js?v=20260623p"></script>
+<script src="src/api/beneficios.js?v=20260623p"></script>
+<script src="src/api/gestao.js?v=20260623p"></script>
+<script src="src/api/init.js?v=20260623p"></script>
+<script src="src/auth.js?v=20260623p"></script>
+<script type="module" src="src/app.js?v=20260623p"></script>
 
 </body>
 </html>

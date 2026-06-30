@@ -136,7 +136,7 @@ const Epis = {
   async listarCatalogo() {
     const { data, error } = await withTimeout(
       sb.from('epi_catalogo')
-        .select('id, nome, ca, validade_ca, vida_util_meses, fabricante')
+        .select('id, nome, ca, validade_ca, vida_util_meses, fabricante, quantidade')
         .order('nome')
     );
     if (error) throw error;
