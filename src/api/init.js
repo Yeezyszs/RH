@@ -40,7 +40,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, afastamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -61,6 +61,7 @@ async function inicializarSupabase() {
         ValeCombustivel.listarCotas(),
         PoliticasEmpresa.listar(),
         Epis.listarCatalogo(),
+        Epis.listarKits(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -150,6 +151,12 @@ async function inicializarSupabase() {
         _preencherArray(EPI_CATALOGO, lista);
         console.info(`[RH] ${EPI_CATALOGO.length} itens de catálogo de EPI carregados.`);
       }
+    }
+
+    if (epiKits.status === 'fulfilled') {
+      const lista = epiKits.value ?? [];
+      lista.forEach(k => { if (k.area) EPI_KITS[k.area] = k.epi_ids || []; });
+      if (lista.length > 0) console.info(`[RH] ${lista.length} kits de EPI carregados.`);
     }
 
     if (salarios.status === 'fulfilled') {
@@ -268,6 +275,7 @@ async function inicializarSupabase() {
     if (typeof renderVencimentos    === 'function') renderVencimentos();
     if (typeof renderEpi            === 'function') renderEpi();
     if (typeof renderEpiCatalogo    === 'function') renderEpiCatalogo();
+    if (typeof renderEpiKits        === 'function') renderEpiKits();
     if (typeof renderRotatividade   === 'function') renderRotatividade();
     if (typeof renderSalarios       === 'function') renderSalarios();
     if (typeof renderQuadro         === 'function') renderQuadro();
@@ -383,6 +391,17 @@ function setupRealTimeListeners() {
       }
       if (typeof renderEpiCatalogo === 'function') renderEpiCatalogo();
       if (typeof renderEpi === 'function') renderEpi();
+      if (typeof renderEpiKits === 'function') renderEpiKits();
+    }
+
+    if (table === 'epi_kits') {
+      const area = novoReg?.area ?? regAnterior?.area;
+      if (eventType === 'DELETE') {
+        if (area) delete EPI_KITS[area];
+      } else if (area) {
+        EPI_KITS[area] = novoReg.epi_ids || [];
+      }
+      if (typeof renderEpiKits === 'function') renderEpiKits();
     }
 
     if (table === 'salario_atual') {
@@ -511,7 +530,7 @@ function setupRealTimeListeners() {
     'colaboradores', 'advertencias', 'ferias', 'desligamentos', 'cronograma',
     'epis', 'salario_atual', 'documentos', 'asos', 'feedbacks', 'pesquisas_clima',
     'vale_combustivel', 'vale_alimentacao', 'rotatividade', 'participantes_treinamento',
-    'politicas_empresa', 'epi_catalogo',
+    'politicas_empresa', 'epi_catalogo', 'epi_kits',
   ];
 
   // Supabase JS v2: um único canal acumula vários filtros .on() antes do

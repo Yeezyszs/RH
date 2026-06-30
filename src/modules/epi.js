@@ -152,11 +152,21 @@ export class EpiModule {
     const grid = this.$('#epi-kits-grid');
     if (!grid) return;
 
-    const setores = [...new Set(this.COLABORADORES.map(c => c.setor).filter(Boolean))].sort();
+    const SEM_AREA = '— sem área —';
     const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo');
 
+    // Agrupa as áreas por setor (a configuração de kit é por ÁREA)
+    const setorAreas = {};
+    ativos.forEach(c => {
+      const setor = c.setor || '—';
+      const area  = c.area  || SEM_AREA;
+      if (!setorAreas[setor]) setorAreas[setor] = new Set();
+      setorAreas[setor].add(area);
+    });
+
+    // Pendências por colaborador — o kit é definido pela ÁREA do colaborador
     const colabsPendencias = ativos.map(c => {
-      const kit = this.EPI_KITS[c.setor] || [];
+      const kit = this.EPI_KITS[c.area] || [];
       if (!kit.length) return null;
       const entreguesAtivos = new Set(
         this.EPI_ENTREGAS
@@ -168,21 +178,21 @@ export class EpiModule {
       return { colab: c, faltando };
     }).filter(Boolean);
 
-    grid.innerHTML = setores.map(setor => {
-      const kit = this.EPI_KITS[setor] || [];
-      const ativosSetor = ativos.filter(c => c.setor === setor);
-      const n = ativosSetor.length;
+    const cardArea = (setor, area) => {
+      const kit = this.EPI_KITS[area] || [];
+      const colabsArea = ativos.filter(c => (c.area || SEM_AREA) === area && (c.setor || '—') === setor);
+      const n = colabsArea.length;
 
       if (kit.length === 0) {
         return `
           <div class="widget">
             <div class="widget-header">
-              <div class="widget-title">${this.SETOR_ICON[setor] || ''} ${this.h(setor)}</div>
+              <div class="widget-title">${this.h(area)}</div>
               <span class="widget-badge">${n} ${n === 1 ? 'colab.' : 'colabs.'}</span>
             </div>
-            <div class="empty" style="padding:24px 12px">Nenhum EPI definido — configure o kit</div>
+            <div class="empty" style="padding:20px 12px">Nenhum EPI definido — configure o kit</div>
             <div style="display:flex; justify-content:flex-end; padding:0 2px;">
-              <button class="btn btn-sm" type="button" onclick="abrirModalEpiKit('${this.h(setor)}')">Configurar kit</button>
+              <button class="btn btn-sm" type="button" onclick="abrirModalEpiKit('${this.h(area)}')">Configurar kit</button>
             </div>
           </div>
         `;
@@ -191,7 +201,7 @@ export class EpiModule {
       const itensHtml = kit.map(epiId => {
         const t = this.EPI_CATALOGO.find(x => x.id === epiId);
         if (!t) return '';
-        const entregues = ativosSetor.filter(c =>
+        const entregues = colabsArea.filter(c =>
           this.EPI_ENTREGAS.some(e => e.colaborador_id === c.id && e.epi_tipo_id === epiId && !e.devolvido)
         ).length;
         const pendentes = n - entregues;
@@ -215,25 +225,39 @@ export class EpiModule {
       return `
         <div class="widget">
           <div class="widget-header">
-            <div class="widget-title">${this.SETOR_ICON[setor] || ''} ${this.h(setor)}</div>
+            <div class="widget-title">${this.h(area)}</div>
             <span class="widget-badge">${n} ${n === 1 ? 'colab.' : 'colabs.'} · ${kit.length} EPIs</span>
           </div>
           ${itensHtml}
           <div style="display:flex; justify-content:flex-end; padding:10px 2px 2px;">
-            <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalEpiKit('${this.h(setor)}')">Editar kit</button>
+            <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalEpiKit('${this.h(area)}')">Editar kit</button>
           </div>
         </div>
       `;
+    };
+
+    const setores = Object.keys(setorAreas).sort((a, b) => a.localeCompare(b));
+    let totalAreas = 0, areasConfig = 0;
+
+    grid.innerHTML = setores.map(setor => {
+      const areas = [...setorAreas[setor]].sort((a, b) => a.localeCompare(b));
+      totalAreas += areas.length;
+      areasConfig += areas.filter(a => (this.EPI_KITS[a] || []).length > 0).length;
+      const header = `
+        <div style="grid-column:1/-1; display:flex; align-items:center; gap:8px; margin:6px 0 -4px; font-weight:700; color:var(--phthalo-dark); font-size:1.02rem;">
+          <span>${this.SETOR_ICON[setor] || '◆'}</span><span>${this.h(setor)}</span>
+          <span class="cell-person-sub" style="font-weight:500;">· ${areas.length} ${areas.length === 1 ? 'área' : 'áreas'}</span>
+        </div>`;
+      return header + areas.map(area => cardArea(setor, area)).join('');
     }).join('');
 
-    const setoresConfig = setores.filter(s => (this.EPI_KITS[s] || []).length > 0).length;
     const totalPendencias = colabsPendencias.reduce((s, x) => s + x.faltando.length, 0);
 
     let esperadoTotal = 0;
-    ativos.forEach(c => { esperadoTotal += (this.EPI_KITS[c.setor] || []).length; });
+    ativos.forEach(c => { esperadoTotal += (this.EPI_KITS[c.area] || []).length; });
     const cobertura = esperadoTotal ? (1 - totalPendencias / esperadoTotal) * 100 : 100;
 
-    this.$('#epi-kits-stat-setores').textContent    = `${setoresConfig}/${setores.length}`;
+    this.$('#epi-kits-stat-setores').textContent    = `${areasConfig}/${totalAreas}`;
     this.$('#epi-kits-stat-pend').textContent       = colabsPendencias.length;
     this.$('#epi-kits-stat-total-pend').textContent = totalPendencias;
     this.$('#epi-kits-stat-cobertura').textContent  = `${cobertura.toFixed(0)}%`;
@@ -513,10 +537,10 @@ export class EpiModule {
     this.renderKits();
   }
 
-  abrirModalKit(setor) {
-    this._kitEditando = setor;
-    this.$('#epi-kit-modal-title').textContent = `Kit do setor · ${setor}`;
-    const atual = new Set(this.EPI_KITS[setor] || []);
+  abrirModalKit(area) {
+    this._kitEditando = area;
+    this.$('#epi-kit-modal-title').textContent = `Kit da área · ${area}`;
+    const atual = new Set(this.EPI_KITS[area] || []);
     const lista = this.$('#epi-kit-lista');
     lista.innerHTML = this.EPI_CATALOGO.length
       ? this.EPI_CATALOGO.sort((a, b) => a.nome.localeCompare(b.nome)).map(t => `
@@ -535,11 +559,23 @@ export class EpiModule {
     this._kitEditando = null;
   }
 
-  salvarKit() {
+  async salvarKit() {
     if (!this._kitEditando) return;
+    const area = this._kitEditando;
     const ids = [...this.$('#epi-kit-lista').querySelectorAll('input[type="checkbox"]:checked')]
       .map(i => parseInt(i.value, 10));
-    this.EPI_KITS[this._kitEditando] = ids;
+
+    const temSessao = this.Epis && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Epis.salvarKit(area, ids);
+      } catch (err) {
+        window.showToast?.('Erro ao salvar kit: ' + err.message, 'err');
+        return;
+      }
+    }
+    this.EPI_KITS[area] = ids;
+    window.showToast?.('Kit salvo', 'ok');
     this.fecharModalKit();
     this.renderKits();
   }

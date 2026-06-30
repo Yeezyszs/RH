@@ -170,6 +170,26 @@ const Epis = {
     if (error) throw error;
     Cache.invalidate('epi_catalogo');
   },
+
+  // ── Kits de EPI por área (tabela epi_kits) ──────────────────────────────────
+  async listarKits() {
+    const { data, error } = await withTimeout(
+      sb.from('epi_kits').select('area, epi_ids')
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async salvarKit(area, epiIds) {
+    const { data, error } = await withTimeout(
+      sb.from('epi_kits')
+        .upsert({ area, epi_ids: epiIds, atualizado_em: new Date().toISOString() }, { onConflict: 'area' })
+        .select()
+    );
+    if (error) throw error;
+    Cache.invalidate('epi_kits');
+    return data && data[0];
+  },
 };
 
 const Treinamentos = {
