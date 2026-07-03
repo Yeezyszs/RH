@@ -3,22 +3,23 @@
 
 // ?v= é cache-busting do grafo de módulos ES. Ao alterar qualquer módulo,
 // incremente esta versão (e a do index.html) para forçar fetch do arquivo novo.
-import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623q';
-import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623q';
+import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623r';
+import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623r';
 
-import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623q';
-import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623q';
-import { FeriasModule }           from './modules/ferias.js?v=20260623q';
-import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623q';
-import { CronogramaModule }       from './modules/cronograma.js?v=20260623q';
-import { VencimentosModule }      from './modules/vencimentos.js?v=20260623q';
-import { EpiModule }              from './modules/epi.js?v=20260623q';
-import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623q';
-import { SalariosModule }         from './modules/salarios.js?v=20260623q';
-import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623q';
-import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623q';
-import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623q';
-import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623q';
+import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623r';
+import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623r';
+import { FeriasModule }           from './modules/ferias.js?v=20260623r';
+import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623r';
+import { CronogramaModule }       from './modules/cronograma.js?v=20260623r';
+import { VencimentosModule }      from './modules/vencimentos.js?v=20260623r';
+import { EpiModule }              from './modules/epi.js?v=20260623r';
+import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623r';
+import { SalariosModule }         from './modules/salarios.js?v=20260623r';
+import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623r';
+import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623r';
+import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623r';
+import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623r';
+import { PrestadoresModule }      from './modules/prestadores.js?v=20260623r';
 
 // faixaIdx depends on FAIXAS which lives in index.html — read from window
 function faixaIdx(valor) {
@@ -73,6 +74,7 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const FEEDBACK         = window.FEEDBACK;
   const CLIMA            = window.CLIMA;
   const POLITICAS        = window.POLITICAS;
+  const PRESTADORES      = window.PRESTADORES;
   const PC_CARGOS        = window.PC_CARGOS;
   const PC_PLANOS        = window.PC_PLANOS;
 
@@ -164,6 +166,11 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
     $, h, iniciais, fmtDate, fmtBRL, tempoCasa,
     COLABORADORES, SALARIOS, PC_CARGOS, PC_PLANOS,
     Auth: window.Auth, PlanoCarreiras: window.PlanoCarreiras, showToast,
+  });
+
+  const prestadores = new PrestadoresModule({
+    $, h, fmtDate, diasAte, PRESTADORES,
+    Auth: window.Auth, PrestadoresServico: window.PrestadoresServico, showToast,
   });
 
   // ─── Expor globais para onclick inline no index.html ────────────────────────
@@ -333,6 +340,13 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   window.fecharModalPolitica          = ()    => feedbackClima.fecharModalPolitica();
   window.salvarPolitica               = (ev)  => feedbackClima.salvarPolitica(ev);
   window.excluirPolitica              = (id)  => feedbackClima.excluirPolitica(id);
+
+  // Prestadores de Serviço
+  window.renderPrestadores    = ()    => prestadores.render();
+  window.abrirModalPrestador  = (id)  => prestadores.abrirModal(id);
+  window.fecharModalPrestador = ()    => prestadores.fecharModal();
+  window.salvarPrestador      = (ev)  => prestadores.salvar(ev);
+  window.excluirPrestador     = (id)  => prestadores.excluir(id);
 
   // Plano de Carreiras
   window.renderPlanoCarreiras    = ()    => planoCarreiras.render();

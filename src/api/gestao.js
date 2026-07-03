@@ -174,6 +174,46 @@ const PoliticasEmpresa = {
   },
 };
 
+const PrestadoresServico = {
+  async listar() {
+    const { data, error } = await withTimeout(
+      sb.from('prestadores_servico')
+        .select('id, empresa, nome, cpf, funcao, aso_valido_ate, treinamentos, ficha_epi, fgts, inss, seguranca_alimentos, observacoes')
+        .order('empresa').order('nome')
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('prestadores_servico').insert(payload).select()
+    );
+    if (error) throw error;
+    Cache.invalidate('prestadores');
+    return data && data[0];
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('prestadores_servico')
+        .update({ ...payload, atualizado_em: new Date().toISOString() })
+        .eq('id', id).select()
+    );
+    if (error) throw error;
+    Cache.invalidate('prestadores');
+    return (data && data[0]) || { id, ...payload };
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('prestadores_servico').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('prestadores');
+  },
+};
+
 const RespostasPesquisa = {
   async listarPorPesquisa(pesquisaId) {
     const { data, error } = await withTimeout(

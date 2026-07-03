@@ -26,6 +26,7 @@
     'feedback-clima':  'Relatório Organizacional',
     cronograma:        'Relatório de Cronograma',
     'plano-carreiras': 'Relatório de Plano de Carreiras',
+    prestadores:       'Relatório de Prestadores de Serviço',
   };
 
   const ESTILO_RELATORIO = `

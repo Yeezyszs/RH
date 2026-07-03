@@ -6,11 +6,11 @@
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/tokens.css?v=20260623q">
-<link rel="stylesheet" href="css/layout.css?v=20260623q">
-<link rel="stylesheet" href="css/components.css?v=20260623q">
-<link rel="stylesheet" href="css/pages.css?v=20260623q">
-<link rel="stylesheet" href="css/login.css?v=20260623q">
+<link rel="stylesheet" href="css/tokens.css?v=20260623r">
+<link rel="stylesheet" href="css/layout.css?v=20260623r">
+<link rel="stylesheet" href="css/components.css?v=20260623r">
+<link rel="stylesheet" href="css/pages.css?v=20260623r">
+<link rel="stylesheet" href="css/login.css?v=20260623r">
 </head>
 <body>
 
@@ -163,6 +163,10 @@
       <div class="nav-item" data-page="plano-carreiras">
         <span class="nav-icon">⤴</span>
         <span>Plano de Carreiras</span>
+      </div>
+      <div class="nav-item" data-page="prestadores">
+        <span class="nav-icon">⚒</span>
+        <span>Prestadores de Serviço</span>
       </div>
     </div>
 
@@ -1666,6 +1670,77 @@
 
     </section>
 
+    <!-- ───── PRESTADORES DE SERVIÇO ───── -->
+    <section id="page-prestadores" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Prestadores de Serviço</h1>
+          <div class="page-subtitle">Documentação de terceiros · ASO · treinamentos · certidões</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="prest-search" placeholder="Buscar por nome, empresa, função ou CPF…">
+        </div>
+        <select id="prest-filter-empresa">
+          <option value="">Todas as empresas</option>
+        </select>
+        <select id="prest-filter-status">
+          <option value="">Todas as situações</option>
+          <option value="regular">Regular</option>
+          <option value="atencao">Atenção</option>
+          <option value="irregular">Irregular</option>
+        </select>
+        <button class="btn" type="button" onclick="abrirModalPrestador()">+ Novo prestador</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Total de prestadores</div>
+          <div class="stat-value" id="prest-stat-total">—</div>
+        </div>
+        <div class="stat stat-success">
+          <div class="stat-label">Regulares</div>
+          <div class="stat-value" id="prest-stat-regular">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Atenção</div>
+          <div class="stat-value" id="prest-stat-atencao">—</div>
+        </div>
+        <div class="stat stat-danger">
+          <div class="stat-label">Irregulares</div>
+          <div class="stat-value" id="prest-stat-irregular">—</div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>Colaborador</th>
+                <th>Função</th>
+                <th>ASO válido até</th>
+                <th>Treinamentos</th>
+                <th>Ficha de EPI</th>
+                <th>FGTS</th>
+                <th>Certidão INSS</th>
+                <th>Seg. alimentos</th>
+                <th>Situação</th>
+                <th style="width:100px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-prestadores"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
   </main>
 
 </div><!-- /.app-shell -->
@@ -2819,6 +2894,90 @@
   </div>
 </div>
 
+<!-- ════════════ MODAL — PRESTADOR DE SERVIÇO ════════════ -->
+<div id="modal-prestador" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="prest-modal-title">Novo prestador de serviço</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalPrestador()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-prestador" class="form-grid" onsubmit="salvarPrestador(event)">
+        <input type="hidden" name="id">
+        <div class="form-group">
+          <label>Empresa</label>
+          <input type="text" name="empresa" required placeholder="Ex.: Fantasia">
+        </div>
+        <div class="form-group">
+          <label>Nome do colaborador</label>
+          <input type="text" name="nome" required placeholder="Ex.: João">
+        </div>
+        <div class="form-group">
+          <label>CPF</label>
+          <input type="text" name="cpf" placeholder="000.000.000-00">
+        </div>
+        <div class="form-group">
+          <label>Função</label>
+          <input type="text" name="funcao" placeholder="Ex.: Mecânico">
+        </div>
+        <div class="form-group">
+          <label>ASO válido até</label>
+          <input type="date" name="aso_valido_ate">
+        </div>
+        <div class="form-group">
+          <label>Comprovante dos treinamentos obrigatórios</label>
+          <select name="treinamentos">
+            <option value="pendente">Pendente</option>
+            <option value="conforme">Conforme</option>
+            <option value="nao_conforme">Não conforme</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ficha de EPI</label>
+          <select name="ficha_epi">
+            <option value="pendente">Pendente</option>
+            <option value="conforme">Conforme</option>
+            <option value="nao_conforme">Não conforme</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Certidão de Regularidade do FGTS</label>
+          <select name="fgts">
+            <option value="pendente">Pendente</option>
+            <option value="negativa">Negativa</option>
+            <option value="positiva">Positiva</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Certidão Negativa de Débitos (INSS/Receita)</label>
+          <select name="inss">
+            <option value="pendente">Pendente</option>
+            <option value="negativa">Negativa</option>
+            <option value="positiva">Positiva</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Requisitos de segurança de alimentos</label>
+          <select name="seguranca_alimentos">
+            <option value="pendente">Pendente</option>
+            <option value="conforme">Conforme</option>
+            <option value="nao_conforme">Não conforme</option>
+            <option value="na">Não se aplica</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea name="observacoes" rows="3"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalPrestador()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-prestador">Salvar prestador</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-respostas-pesquisa" class="modal">
   <div class="modal-box" style="max-width:700px">
     <div class="modal-header">
@@ -3126,18 +3285,18 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260623q"></script>
-<script src="src/utils/base.js?v=20260623q"></script>
-<script src="src/dashboard.js?v=20260623q"></script>
-<script src="src/utils/relatorio.js?v=20260623q"></script>
-<script src="supabase.js?v=20260623q"></script>
-<script src="src/api/pessoas.js?v=20260623q"></script>
-<script src="src/api/compliance.js?v=20260623q"></script>
-<script src="src/api/beneficios.js?v=20260623q"></script>
-<script src="src/api/gestao.js?v=20260623q"></script>
-<script src="src/api/init.js?v=20260623q"></script>
-<script src="src/auth.js?v=20260623q"></script>
-<script type="module" src="src/app.js?v=20260623q"></script>
+<script src="src/data-store.js?v=20260623r"></script>
+<script src="src/utils/base.js?v=20260623r"></script>
+<script src="src/dashboard.js?v=20260623r"></script>
+<script src="src/utils/relatorio.js?v=20260623r"></script>
+<script src="supabase.js?v=20260623r"></script>
+<script src="src/api/pessoas.js?v=20260623r"></script>
+<script src="src/api/compliance.js?v=20260623r"></script>
+<script src="src/api/beneficios.js?v=20260623r"></script>
+<script src="src/api/gestao.js?v=20260623r"></script>
+<script src="src/api/init.js?v=20260623r"></script>
+<script src="src/auth.js?v=20260623r"></script>
+<script type="module" src="src/app.js?v=20260623r"></script>
 
 </body>
 </html>

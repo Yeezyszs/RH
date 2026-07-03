@@ -40,7 +40,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, afastamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -62,6 +62,7 @@ async function inicializarSupabase() {
         PoliticasEmpresa.listar(),
         Epis.listarCatalogo(),
         Epis.listarKits(),
+        PrestadoresServico.listar(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -157,6 +158,14 @@ async function inicializarSupabase() {
       const lista = epiKits.value ?? [];
       lista.forEach(k => { if (k.area) EPI_KITS[k.area] = k.grupos || []; });
       if (lista.length > 0) console.info(`[RH] ${lista.length} kits de EPI carregados.`);
+    }
+
+    if (prestadores.status === 'fulfilled') {
+      const lista = prestadores.value ?? [];
+      if (lista.length > 0) {
+        _preencherArray(PRESTADORES, lista);
+        console.info(`[RH] ${PRESTADORES.length} prestadores de serviço carregados.`);
+      }
     }
 
     if (salarios.status === 'fulfilled') {
@@ -281,6 +290,7 @@ async function inicializarSupabase() {
     if (typeof renderQuadro         === 'function') renderQuadro();
     if (typeof renderPlanoCarreiras === 'function') renderPlanoCarreiras();
     if (typeof renderPoliticas      === 'function') renderPoliticas();
+    if (typeof renderPrestadores    === 'function') renderPrestadores();
     if (typeof renderDashboard      === 'function') renderDashboard();
 
     console.info('[RH] Dados carregados com sucesso.');
@@ -463,6 +473,15 @@ function setupRealTimeListeners() {
       if (typeof renderPoliticas === 'function') renderPoliticas();
     }
 
+    if (table === 'prestadores_servico') {
+      if (eventType === 'DELETE') {
+        _filtrarArray(PRESTADORES, x => x.id !== id);
+      } else {
+        _upsertArray(PRESTADORES, novoReg);
+      }
+      if (typeof renderPrestadores === 'function') renderPrestadores();
+    }
+
     if (table === 'vale_combustivel') {
       if (eventType === 'DELETE') {
         _filtrarArray(VALE_LANCAMENTOS, x => x.id !== id);
@@ -530,7 +549,7 @@ function setupRealTimeListeners() {
     'colaboradores', 'advertencias', 'ferias', 'desligamentos', 'cronograma',
     'epis', 'salario_atual', 'documentos', 'asos', 'feedbacks', 'pesquisas_clima',
     'vale_combustivel', 'vale_alimentacao', 'rotatividade', 'participantes_treinamento',
-    'politicas_empresa', 'epi_catalogo', 'epi_kits',
+    'politicas_empresa', 'epi_catalogo', 'epi_kits', 'prestadores_servico',
   ];
 
   // Supabase JS v2: um único canal acumula vários filtros .on() antes do
@@ -572,6 +591,7 @@ window.ValeAlimentacao        = ValeAlimentacao;
 window.Advertencias           = Advertencias;
 window.FeedbackClima          = FeedbackClima;
 window.PoliticasEmpresa       = PoliticasEmpresa;
+window.PrestadoresServico     = PrestadoresServico;
 window.RespostasPesquisa      = RespostasPesquisa;
 window.Cronograma             = Cronograma;
 window.Dashboard              = Dashboard;
