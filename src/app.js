@@ -3,23 +3,23 @@
 
 // ?v= é cache-busting do grafo de módulos ES. Ao alterar qualquer módulo,
 // incremente esta versão (e a do index.html) para forçar fetch do arquivo novo.
-import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623r';
-import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623r';
+import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623s';
+import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623s';
 
-import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623r';
-import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623r';
-import { FeriasModule }           from './modules/ferias.js?v=20260623r';
-import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623r';
-import { CronogramaModule }       from './modules/cronograma.js?v=20260623r';
-import { VencimentosModule }      from './modules/vencimentos.js?v=20260623r';
-import { EpiModule }              from './modules/epi.js?v=20260623r';
-import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623r';
-import { SalariosModule }         from './modules/salarios.js?v=20260623r';
-import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623r';
-import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623r';
-import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623r';
-import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623r';
-import { PrestadoresModule }      from './modules/prestadores.js?v=20260623r';
+import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623s';
+import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623s';
+import { FeriasModule }           from './modules/ferias.js?v=20260623s';
+import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623s';
+import { CronogramaModule }       from './modules/cronograma.js?v=20260623s';
+import { VencimentosModule }      from './modules/vencimentos.js?v=20260623s';
+import { EpiModule }              from './modules/epi.js?v=20260623s';
+import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623s';
+import { SalariosModule }         from './modules/salarios.js?v=20260623s';
+import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623s';
+import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623s';
+import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623s';
+import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623s';
+import { PrestadoresModule }      from './modules/prestadores.js?v=20260623s';
 
 // faixaIdx depends on FAIXAS which lives in index.html — read from window
 function faixaIdx(valor) {
@@ -261,11 +261,11 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   // Vencimentos
   window.setFiltroVenc            = (st)  => vencimentos.setFiltroStatus(st);
   window.setVencStatus            = (st)  => vencimentos.setFiltroStatus(st);
-  window.abrirModalVencimento     = (id)  => vencimentos.abrirModalVencimento(id);
+  window.abrirModalVencimento     = (id, tabela)  => vencimentos.abrirModalVencimento(id, tabela);
   window.fecharModalVencimento    = ()    => vencimentos.fecharModalVencimento();
   window.salvarVencimento         = async (ev) => { await vencimentos.salvarVencimento(ev); window.atualizarBadgeVencimentos?.(); };
-  window.renovarVencimento        = (id)  => vencimentos.renovarVencimento(id);
-  window.excluirVencimento        = async (id) => { await vencimentos.excluirVencimento(id); window.atualizarBadgeVencimentos?.(); };
+  window.renovarVencimento        = (id, tabela)  => vencimentos.renovarVencimento(id, tabela);
+  window.excluirVencimento        = async (id, tabela) => { await vencimentos.excluirVencimento(id, tabela); window.atualizarBadgeVencimentos?.(); };
   window.renderVencimentos        = ()    => vencimentos.render();
 
   // EPI

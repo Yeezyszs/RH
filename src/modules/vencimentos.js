@@ -103,9 +103,9 @@ export class VencimentosModule {
           <td class="cell-mono">${this._diasFmt(v._dias)}</td>
           <td>${this._vencBadge(v._dias)}</td>
           <td class="actions" onclick="event.stopPropagation()">
-            <button class="btn btn-ghost btn-sm btn-icon" title="Renovar" onclick="renovarVencimento(${v.id})">&#8635;</button>
-            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalVencimento(${v.id})">✎</button>
-            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirVencimento(${v.id})">🗑</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Renovar" onclick="renovarVencimento(${v.id}, '${v._tabela || ''}')">&#8635;</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalVencimento(${v.id}, '${v._tabela || ''}')">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirVencimento(${v.id}, '${v._tabela || ''}')">🗑</button>
           </td>
         </tr>
       `;
@@ -171,9 +171,16 @@ export class VencimentosModule {
     this.render();
   }
 
-  abrirModalVencimento(id = null) {
+  // IDs se repetem entre as tabelas de origem (asos / documentos /
+  // participantes_treinamento) — a chave real é (id, _tabela).
+  _achar(id, tabela) {
+    return this.VENCIMENTOS.find(x => x.id === id && (!tabela || x._tabela === tabela));
+  }
+
+  abrirModalVencimento(id = null, tabela = null) {
     const form = this.$('#form-vencimento');
     form.reset();
+    this._editando = null;
     const sel = this.$('#form-venc-colab');
     sel.innerHTML = this.COLABORADORES
       .filter(c => c.status !== 'inativo')
@@ -182,8 +189,9 @@ export class VencimentosModule {
       .join('');
 
     if (id != null) {
-      const v = this.VENCIMENTOS.find(x => x.id === id);
+      const v = this._achar(id, tabela);
       if (v) {
+        this._editando = { id: v.id, tabela: v._tabela };
         this.$('#modal-venc-title').textContent = 'Editar vencimento';
         for (const [k, val] of Object.entries(v)) {
           const f = form.elements[k];
@@ -224,15 +232,17 @@ export class VencimentosModule {
       observacoes:    payload.observacoes || '',
     };
 
+    // Tabela de origem do registro em edição (chave composta id+tabela,
+    // pois ids colidem entre asos/documentos).
+    const tabela = (this._editando && this._editando.id === id && this._editando.tabela) || 'documentos';
+
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
       try {
         if (id != null) {
           // Atualizar vencimento existente
-          const v = this.VENCIMENTOS.find(x => x.id === id);
-          const tabela = v?._tabela || 'documentos';
           const saved = await this.Vencimentos.atualizar(id, payload, tabela);
-          const i = this.VENCIMENTOS.findIndex(x => x.id === id);
+          const i = this.VENCIMENTOS.findIndex(x => x.id === id && x._tabela === tabela);
           if (i >= 0) this.VENCIMENTOS[i] = { ...frontendItem, id: saved.id, _tabela: saved._tabela };
         } else {
           // Criar novo vencimento
@@ -245,20 +255,21 @@ export class VencimentosModule {
       }
     } else {
       if (id != null) {
-        const i = this.VENCIMENTOS.findIndex(x => x.id === id);
+        const i = this.VENCIMENTOS.findIndex(x => x.id === id && (!this._editando || x._tabela === this._editando.tabela));
         if (i >= 0) this.VENCIMENTOS[i] = { ...this.VENCIMENTOS[i], ...frontendItem };
       } else {
         const newId = Math.max(0, ...this.VENCIMENTOS.map(x => x.id)) + 1;
         this.VENCIMENTOS.unshift({ id: newId, ...frontendItem });
       }
     }
+    this._editando = null;
     this.fecharModalVencimento();
     this.render();
     if (typeof window.atualizarBadgeVencimentos === 'function') window.atualizarBadgeVencimentos();
   }
 
-  renovarVencimento(id) {
-    const v = this.VENCIMENTOS.find(x => x.id === id);
+  renovarVencimento(id, tabela = null) {
+    const v = this._achar(id, tabela);
     if (!v) return;
 
     const meses = /CNH/i.test(v.item) ? 60 : 12;
@@ -278,23 +289,24 @@ export class VencimentosModule {
     this.$('#modal-venc-title').textContent = 'Renovar vencimento';
   }
 
-  async excluirVencimento(id) {
+  async excluirVencimento(id, tabelaParam = null) {
     if (!confirm('Excluir este vencimento?')) return;
+    const v = this._achar(id, tabelaParam);
+    const tabela = tabelaParam || v?._tabela || 'documentos';
+
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
-      const v = this.VENCIMENTOS.find(x => x.id === id);
-      const tabela = v?._tabela || 'documentos';
       try {
         await this.Vencimentos.excluir(id, tabela);
-        // Remove do array local após sucesso no banco
-        this.VENCIMENTOS = this.VENCIMENTOS.filter(x => x.id !== id);
       } catch (err) {
         window.showToast?.('Erro ao excluir: ' + err.message, 'err');
         return;
       }
-    } else {
-      this.VENCIMENTOS = this.VENCIMENTOS.filter(x => x.id !== id);
     }
+    // Remove só o registro da tabela certa (splice preserva a referência
+    // compartilhada do array; ids colidem entre asos/documentos).
+    const i = this.VENCIMENTOS.findIndex(x => x.id === id && x._tabela === tabela);
+    if (i >= 0) this.VENCIMENTOS.splice(i, 1);
     this.render();
     if (typeof window.atualizarBadgeVencimentos === 'function') window.atualizarBadgeVencimentos();
   }
