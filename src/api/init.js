@@ -40,7 +40,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, afastamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -63,6 +63,7 @@ async function inicializarSupabase() {
         Epis.listarCatalogo(),
         Epis.listarKits(),
         PrestadoresServico.listar(),
+        ContatosEmergencia.listar(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -165,6 +166,14 @@ async function inicializarSupabase() {
       if (lista.length > 0) {
         _preencherArray(PRESTADORES, lista);
         console.info(`[RH] ${PRESTADORES.length} prestadores de serviço carregados.`);
+      }
+    }
+
+    if (contatosEmerg.status === 'fulfilled') {
+      const lista = contatosEmerg.value ?? [];
+      if (lista.length > 0) {
+        _preencherArray(CONTATOS_EMERG, lista);
+        console.info(`[RH] ${CONTATOS_EMERG.length} contatos de emergência carregados.`);
       }
     }
 
@@ -482,6 +491,14 @@ function setupRealTimeListeners() {
       if (typeof renderPrestadores === 'function') renderPrestadores();
     }
 
+    if (table === 'contatos_emergencia') {
+      if (eventType === 'DELETE') {
+        _filtrarArray(CONTATOS_EMERG, x => x.id !== id);
+      } else {
+        _upsertArray(CONTATOS_EMERG, novoReg);
+      }
+    }
+
     if (table === 'vale_combustivel') {
       if (eventType === 'DELETE') {
         _filtrarArray(VALE_LANCAMENTOS, x => x.id !== id);
@@ -550,6 +567,7 @@ function setupRealTimeListeners() {
     'epis', 'salario_atual', 'documentos', 'asos', 'feedbacks', 'pesquisas_clima',
     'vale_combustivel', 'vale_alimentacao', 'rotatividade', 'participantes_treinamento',
     'politicas_empresa', 'epi_catalogo', 'epi_kits', 'prestadores_servico',
+    'contatos_emergencia',
   ];
 
   // Supabase JS v2: um único canal acumula vários filtros .on() antes do
@@ -578,6 +596,7 @@ window.Colaboradores          = Colaboradores;
 window.Departamentos          = Departamentos;
 window.Cargos                 = Cargos;
 window.HistoricoColaboradores = HistoricoColaboradores;
+window.ContatosEmergencia     = ContatosEmergencia;
 window.Desligamentos          = Desligamentos;
 window.Afastamentos           = Afastamentos;
 window.Rotatividade           = Rotatividade;

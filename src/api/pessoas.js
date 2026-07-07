@@ -426,3 +426,61 @@ const Rotatividade = {
     Cache.invalidate('rotatividade');
   },
 };
+
+const ContatosEmergencia = {
+  async listar() {
+    const { data, error } = await withTimeout(
+      sb.from('contatos_emergencia')
+        .select('id, colaborador_id, nome, telefone, parentesco')
+        .order('nome')
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('contatos_emergencia').insert(payload).select()
+    );
+    if (error) throw error;
+    return data && data[0];
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('contatos_emergencia')
+        .update({ ...payload, atualizado_em: new Date().toISOString() })
+        .eq('id', id).select()
+    );
+    if (error) throw error;
+    return (data && data[0]) || { id, ...payload };
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('contatos_emergencia').delete().eq('id', id)
+    );
+    if (error) throw error;
+  },
+
+  // Substitui todos os contatos de um colaborador pela lista informada
+  // (usado pelo modal de edição do colaborador, que edita a lista completa).
+  async sincronizar(colabId, contatos) {
+    const { error: delErr } = await withTimeout(
+      sb.from('contatos_emergencia').delete().eq('colaborador_id', colabId)
+    );
+    if (delErr) throw delErr;
+    if (!contatos.length) return [];
+    const rows = contatos.map(c => ({
+      colaborador_id: colabId,
+      nome:           c.nome,
+      telefone:       c.telefone || '',
+      parentesco:     c.parentesco || '',
+    }));
+    const { data, error } = await withTimeout(
+      sb.from('contatos_emergencia').insert(rows).select()
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+};

@@ -21,6 +21,7 @@ export class ColaboradoresModule {
     this.COLABORADORES = deps.COLABORADORES;
     this.DEPENDENTES = deps.DEPENDENTES;
     this.CONTATOS_EMERG = deps.CONTATOS_EMERG;
+    this.ContatosEmergencia = deps.ContatosEmergencia;
     this.EPI_ENTREGAS = deps.EPI_ENTREGAS;
     this.VENCIMENTOS = deps.VENCIMENTOS;
     this.DESLIGAMENTOS = deps.DESLIGAMENTOS;
@@ -713,12 +714,34 @@ export class ColaboradoresModule {
         const existeId = rest.id || Math.max(0, ...this.DEPENDENTES.map(x => x.id), 0) + 1;
         this.DEPENDENTES.push({ ...rest, id: existeId, colaborador_id: colabId });
       });
-      this.CONTATOS_EMERG = this.CONTATOS_EMERG.filter(c => c.colaborador_id !== colabId);
-      this._emergsModal.forEach(c => {
-        const { _sid, ...rest } = c;
-        const existeId = rest.id || Math.max(0, ...this.CONTATOS_EMERG.map(x => x.id), 0) + 1;
-        this.CONTATOS_EMERG.push({ ...rest, id: existeId, colaborador_id: colabId });
-      });
+    }
+
+    // Contatos de emergência editados no modal: persiste no banco (quando há
+    // sessão) e atualiza o array local IN-PLACE (splice/push preservam a
+    // referência compartilhada com o data-store).
+    {
+      let novosContatos = null;
+      if (temSessao && this.ContatosEmergencia) {
+        try {
+          novosContatos = await this.ContatosEmergencia.sincronizar(
+            colabId,
+            this._emergsModal.map(({ _sid, ...rest }) => rest)
+          );
+        } catch (err) {
+          this.showToast('Contatos de emergência não salvos: ' + err.message, 'err');
+        }
+      }
+      if (novosContatos === null) {
+        novosContatos = this._emergsModal.map(({ _sid, ...rest }, idx) => ({
+          ...rest,
+          id: rest.id || Date.now() + idx,
+          colaborador_id: colabId,
+        }));
+      }
+      for (let i = this.CONTATOS_EMERG.length - 1; i >= 0; i--) {
+        if (this.CONTATOS_EMERG[i].colaborador_id === colabId) this.CONTATOS_EMERG.splice(i, 1);
+      }
+      novosContatos.forEach(c => this.CONTATOS_EMERG.push(c));
     }
 
     this.fecharModalColaborador();
@@ -807,7 +830,7 @@ export class ColaboradoresModule {
     this._editandoContatoId = null;
   }
 
-  salvarContato(e) {
+  async salvarContato(e) {
     e.preventDefault();
     const form = this.$('#form-contato');
     const nome       = form.elements['nome'].value.trim();
@@ -815,25 +838,45 @@ export class ColaboradoresModule {
     const parentesco = form.elements['parentesco'].value;
     if (!nome) { this.showToast('Informe o nome do contato', 'err'); return; }
 
+    const payload = { colaborador_id: this._drawerColabId, nome, telefone, parentesco };
+    const temSessao = this.ContatosEmergencia && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+
     if (this._editandoContatoId) {
+      if (temSessao) {
+        try {
+          await this.ContatosEmergencia.atualizar(this._editandoContatoId, { nome, telefone, parentesco });
+        } catch (err) { this.showToast('Erro ao salvar: ' + err.message, 'err'); return; }
+      }
       const c = this.CONTATOS_EMERG.find(x => x.id === this._editandoContatoId);
       if (c) Object.assign(c, { nome, telefone, parentesco });
       this.showToast('Contato atualizado', 'ok');
     } else {
-      this.CONTATOS_EMERG.push({
-        id: Math.max(0, ...this.CONTATOS_EMERG.map(x => x.id)) + 1,
-        colaborador_id: this._drawerColabId,
-        nome, telefone, parentesco,
-      });
+      if (temSessao) {
+        try {
+          const saved = await this.ContatosEmergencia.criar(payload);
+          if (saved) this.CONTATOS_EMERG.push(saved);
+        } catch (err) { this.showToast('Erro ao salvar: ' + err.message, 'err'); return; }
+      } else {
+        this.CONTATOS_EMERG.push({
+          id: Math.max(0, ...this.CONTATOS_EMERG.map(x => x.id)) + 1,
+          ...payload,
+        });
+      }
       this.showToast('Contato cadastrado', 'ok');
     }
     this.fecharModalContato();
     this.renderContatosEmergencia(this._drawerColabId);
   }
 
-  excluirContato(id) {
+  async excluirContato(id) {
     if (!confirm('Remover este contato de emergência?')) return;
-    this.CONTATOS_EMERG = this.CONTATOS_EMERG.filter(x => x.id !== id);
+    const temSessao = this.ContatosEmergencia && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try { await this.ContatosEmergencia.excluir(id); } catch (err) { this.showToast('Erro: ' + err.message, 'err'); return; }
+    }
+    // splice preserva a referência compartilhada do array com o data-store
+    const i = this.CONTATOS_EMERG.findIndex(x => x.id === id);
+    if (i >= 0) this.CONTATOS_EMERG.splice(i, 1);
     this.renderContatosEmergencia(this._drawerColabId);
     this.showToast('Contato removido');
   }
