@@ -295,6 +295,69 @@ function renderDashboard() {
   renderDashboardCharts();
 }
 
+// ─── Modal Aniversariantes do mês ────────────────────────────────────────────
+
+const ANIV_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+let _anivMesVisto = null; // Date (dia 1 do mês exibido no modal)
+
+function abrirModalAniversariantes() {
+  const hoje = new Date();
+  _anivMesVisto = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  renderModalAniversariantes();
+  document.getElementById('modal-aniversariantes')?.classList.add('active');
+}
+
+function fecharModalAniversariantes() {
+  document.getElementById('modal-aniversariantes')?.classList.remove('active');
+}
+
+function navAniversariantes(delta) {
+  if (!_anivMesVisto) return;
+  _anivMesVisto = new Date(_anivMesVisto.getFullYear(), _anivMesVisto.getMonth() + delta, 1);
+  renderModalAniversariantes();
+}
+
+function renderModalAniversariantes() {
+  const lista  = document.getElementById('aniv-modal-lista');
+  const titulo = document.getElementById('aniv-modal-mes');
+  const total  = document.getElementById('aniv-modal-total');
+  if (!lista || !_anivMesVisto) return;
+
+  const ano = _anivMesVisto.getFullYear();
+  const mes = _anivMesVisto.getMonth(); // 0-11
+  titulo.textContent = `${ANIV_MESES[mes]} ${ano}`;
+
+  const hoje = new Date();
+  const ehMesAtual = hoje.getFullYear() === ano && hoje.getMonth() === mes;
+
+  const aniv = COLABORADORES
+    .filter(c => c.status !== 'inativo' && c.nascimento)
+    .map(c => {
+      const d = new Date(c.nascimento + 'T00:00:00');
+      return { c, dia: d.getDate(), mesNasc: d.getMonth(), anoNasc: d.getFullYear() };
+    })
+    .filter(x => x.mesNasc === mes)
+    .sort((a, b) => a.dia - b.dia || a.c.nome.localeCompare(b.c.nome));
+
+  lista.innerHTML = aniv.length
+    ? aniv.map(({ c, dia, anoNasc }) => {
+        const idade  = ano - anoNasc;
+        const ehHoje = ehMesAtual && dia === hoje.getDate();
+        const role   = [c.setor, c.area].filter(Boolean).join(' · ');
+        const diaFmt = `${String(dia).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}`;
+        return `<li class="bday-item"${ehHoje ? ' style="background:rgba(46,122,184,.07); border-radius:8px;"' : ''}>
+          <div class="bday-avatar">${h(window.iniciais ? window.iniciais(c.nome) : c.nome.charAt(0))}</div>
+          <div class="bday-name">${h(c.nome)}${ehHoje ? ' 🎉' : ''}<div class="bday-role">${h(role)} · faz ${idade} anos</div></div>
+          <div class="bday-date">${diaFmt}</div>
+        </li>`;
+      }).join('')
+    : `<li style="padding:16px 12px; color:var(--text-soft); font-size:.88rem">Nenhum aniversariante em ${ANIV_MESES[mes]}</li>`;
+
+  if (total) total.textContent = `${aniv.length} ${aniv.length === 1 ? 'aniversariante' : 'aniversariantes'}`;
+}
+
 // ─── renderAll ───────────────────────────────────────────────────────────────
 
 function renderAll() {
