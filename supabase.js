@@ -137,13 +137,18 @@ function mapColaborador(row) {
 
 function mapAdvertencia(row) {
   return {
-    id:        row.id,
-    colab_id:  row.colaborador_id,
-    data:      row.data_advertencia,
-    tipo:      row.tipo,
-    motivo:    row.motivo,
-    descricao: row.descricao || '',
-    status:    row.resposta_colaborador ? 'respondida' : 'pendente',
+    id:             row.id,
+    colab_id:       row.colaborador_id,
+    colaborador_id: row.colaborador_id,
+    data:           row.data_advertencia,
+    tipo:           row.tipo,
+    categoria:      row.categoria || '',
+    motivo:         row.motivo,
+    descricao:      row.descricao || '',
+    gestor:         row.gestor || '',
+    testemunhas:    row.testemunhas || '',
+    dias_suspensao: row.dias_suspensao ?? null,
+    status:         row.resposta_colaborador ? 'respondida' : 'pendente',
   };
 }
 

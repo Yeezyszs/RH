@@ -477,6 +477,7 @@ export class AdvertenciasModule {
       colaborador_id: parseInt(data.colaborador_id, 10),
       data_advertencia: data.data,
       tipo:             data.tipo,
+      categoria:        data.categoria || '',
       motivo:           data.descricao,
       descricao:        data.descricao,
       gestor:           data.gestor,
