@@ -107,7 +107,7 @@ export class AdvertenciasModule {
               <div class="cell-person">
                 <div class="cell-avatar" style="background:linear-gradient(135deg,#B45309,#92400E);">${this.h(this.iniciais(c.nome))}</div>
                 <div>
-                  <div class="cell-person-name">${this.h(c.nome)}</div>
+                  <div class="cell-person-name">${this.h(c.nome)}${c.status === 'inativo' ? ' <span class="badge neutral" style="font-size:.62rem;">inativo</span>' : ''}</div>
                   <div class="cell-person-sub">${this.h(c.setor)}</div>
                 </div>
               </div>` : `<span style="color:var(--text-soft)">—</span>`}
@@ -405,11 +405,23 @@ export class AdvertenciasModule {
     this.$('#adv-form-alert').innerHTML = '';
     this.$('#adv-suspensao-dias').style.display = 'none';
 
-    this.$('#form-adv-colab').innerHTML = this.COLABORADORES
-      .filter(c => c.status !== 'inativo')
-      .sort((a, b) => a.nome.localeCompare(b.nome))
-      .map(c => `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor)}</option>`)
-      .join('');
+    // Ativos primeiro; inativos/desligados também aparecem (agrupados) para
+    // permitir registro no histórico após o desligamento.
+    const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo')
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+    const inativos = this.COLABORADORES.filter(c => c.status === 'inativo')
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+
+    const opt = (c, sufixo = '') =>
+      `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor)}${sufixo}</option>`;
+
+    let optionsHtml = ativos.map(c => opt(c)).join('');
+    if (inativos.length) {
+      optionsHtml += `<optgroup label="Inativos / Desligados">` +
+        inativos.map(c => opt(c, ' (inativo)')).join('') +
+        `</optgroup>`;
+    }
+    this.$('#form-adv-colab').innerHTML = optionsHtml;
 
     if (id != null) {
       const a = this.ADVERTENCIAS.find(x => x.id === id);
