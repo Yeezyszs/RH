@@ -43,6 +43,22 @@ export class ValeCombustivelModule {
     return [...meses].sort().reverse();
   }
 
+  // Options de colaboradores: ativos primeiro; inativos/desligados agrupados
+  // ao final para permitir lançar/ajustar valores para fins de auditoria.
+  _optionsColabs() {
+    const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo')
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+    const inativos = this.COLABORADORES.filter(c => c.status === 'inativo')
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+    const opt = (c, sfx = '') => `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor)}${sfx}</option>`;
+    let html = ativos.map(c => opt(c)).join('');
+    if (inativos.length) {
+      html += `<optgroup label="Inativos / Desligados">` +
+        inativos.map(c => opt(c, ' (inativo)')).join('') + `</optgroup>`;
+    }
+    return html;
+  }
+
   render() {
     const selMes = this.$('#vale-mes');
     if (selMes) {
@@ -181,10 +197,7 @@ export class ValeCombustivelModule {
   abrirModalLancamento(id = null, preColabId = null) {
     const form = this.$('#form-vale-lancamento');
     form.reset();
-    this.$('#form-vale-colab').innerHTML = this.COLABORADORES
-      .filter(c => c.status !== 'inativo')
-      .sort((a, b) => a.nome.localeCompare(b.nome))
-      .map(c => `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor)}</option>`).join('');
+    this.$('#form-vale-colab').innerHTML = this._optionsColabs();
 
     if (id != null) {
       const l = this.VALE_LANCAMENTOS.find(x => x.id === id);
@@ -316,19 +329,23 @@ export class ValeCombustivelModule {
     const ativos = this.COLABORADORES
       .filter(c => c.status !== 'inativo')
       .sort((a, b) => a.nome.localeCompare(b.nome));
+    const inativos = this.COLABORADORES
+      .filter(c => c.status === 'inativo')
+      .sort((a, b) => a.nome.localeCompare(b.nome));
 
-    const tb = this.$('#tb-vale-cotas');
-    tb.innerHTML = ativos.map(c => `
-        <tr data-setor="${this.h(c.setor || '')}">
-          <td>${this.h(c.nome)}</td>
+    const linha = (c, inativo = false) => `
+        <tr data-setor="${this.h(c.setor || '')}"${inativo ? ' style="opacity:.72"' : ''}>
+          <td>${this.h(c.nome)}${inativo ? ' <span class="badge neutral" style="font-size:.62rem;">inativo</span>' : ''}</td>
           <td>${this.h(c.setor)}</td>
           <td style="text-align:right">
             <input type="number" step="0.01" min="0" value="${this.VALE_COTAS[c.id] || 0}"
                    id="cota-input-${c.id}" data-colab="${c.id}"
                    style="width:130px; text-align:right; background:var(--bluish-bg); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--mono); font-size:.85rem;">
           </td>
-        </tr>
-      `).join('');
+        </tr>`;
+
+    const tb = this.$('#tb-vale-cotas');
+    tb.innerHTML = ativos.map(c => linha(c)).join('') + inativos.map(c => linha(c, true)).join('');
 
     // Popula o seletor de setor da padronização
     const setores = [...new Set(ativos.map(c => c.setor).filter(Boolean))].sort();

@@ -195,11 +195,19 @@ export class ValeAlimentacaoModule {
     const form = this.$('#form-vale-alimentacao');
     form.reset();
 
+    // Ativos primeiro; inativos/desligados agrupados ao final (auditoria).
+    const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo')
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+    const inativos = this.COLABORADORES.filter(c => c.status === 'inativo')
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+    const opt = (c, sfx = '') => `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor)}${sfx}</option>`;
+    let optionsHtml = ativos.map(c => opt(c)).join('');
+    if (inativos.length) {
+      optionsHtml += `<optgroup label="Inativos / Desligados">` +
+        inativos.map(c => opt(c, ' (inativo)')).join('') + `</optgroup>`;
+    }
     const sel = this.$('#va-form-colab');
-    sel.innerHTML = this.COLABORADORES
-      .filter(c => c.status !== 'inativo')
-      .sort((a, b) => a.nome.localeCompare(b.nome))
-      .map(c => `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor)}</option>`).join('');
+    sel.innerHTML = optionsHtml;
 
     if (colabId != null) sel.value = colabId;
     sel.disabled = colabId != null;
