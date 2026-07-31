@@ -27,6 +27,7 @@
     cronograma:        'Relatório de Cronograma',
     'plano-carreiras': 'Relatório de Plano de Carreiras',
     prestadores:       'Relatório de Prestadores de Serviço',
+    beneficios:        'Relatório de Benefícios (consolidado)',
   };
 
   const ESTILO_RELATORIO = `

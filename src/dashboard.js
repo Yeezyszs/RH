@@ -379,6 +379,8 @@ function renderAll() {
   if (typeof renderClima          === 'function') renderClima();
   if (typeof renderCronograma     === 'function') renderCronograma();
   if (typeof renderPlanoCarreiras === 'function') renderPlanoCarreiras();
+  if (typeof renderBeneficios     === 'function') renderBeneficios();
+  if (typeof renderPrestadores    === 'function') renderPrestadores();
 }
 
 if (document.readyState === 'loading') {

@@ -300,6 +300,7 @@ async function inicializarSupabase() {
     if (typeof renderPlanoCarreiras === 'function') renderPlanoCarreiras();
     if (typeof renderPoliticas      === 'function') renderPoliticas();
     if (typeof renderPrestadores    === 'function') renderPrestadores();
+    if (typeof renderBeneficios     === 'function') renderBeneficios();
     if (typeof renderDashboard      === 'function') renderDashboard();
 
     console.info('[RH] Dados carregados com sucesso.');

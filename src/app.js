@@ -3,23 +3,24 @@
 
 // ?v= é cache-busting do grafo de módulos ES. Ao alterar qualquer módulo,
 // incremente esta versão (e a do index.html) para forçar fetch do arquivo novo.
-import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623w';
-import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623w';
+import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623x';
+import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623x';
 
-import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623w';
-import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623w';
-import { FeriasModule }           from './modules/ferias.js?v=20260623w';
-import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623w';
-import { CronogramaModule }       from './modules/cronograma.js?v=20260623w';
-import { VencimentosModule }      from './modules/vencimentos.js?v=20260623w';
-import { EpiModule }              from './modules/epi.js?v=20260623w';
-import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623w';
-import { SalariosModule }         from './modules/salarios.js?v=20260623w';
-import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623w';
-import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623w';
-import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623w';
-import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623w';
-import { PrestadoresModule }      from './modules/prestadores.js?v=20260623w';
+import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623x';
+import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623x';
+import { FeriasModule }           from './modules/ferias.js?v=20260623x';
+import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623x';
+import { CronogramaModule }       from './modules/cronograma.js?v=20260623x';
+import { VencimentosModule }      from './modules/vencimentos.js?v=20260623x';
+import { EpiModule }              from './modules/epi.js?v=20260623x';
+import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623x';
+import { SalariosModule }         from './modules/salarios.js?v=20260623x';
+import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623x';
+import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623x';
+import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623x';
+import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623x';
+import { PrestadoresModule }      from './modules/prestadores.js?v=20260623x';
+import { BeneficiosModule }       from './modules/beneficios.js?v=20260623x';
 
 // faixaIdx depends on FAIXAS which lives in index.html — read from window
 function faixaIdx(valor) {
@@ -172,6 +173,11 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const prestadores = new PrestadoresModule({
     $, h, fmtDate, diasAte, PRESTADORES,
     Auth: window.Auth, PrestadoresServico: window.PrestadoresServico, showToast,
+  });
+
+  const beneficios = new BeneficiosModule({
+    $, h, iniciais, fmtBRL, fmtDate,
+    COLABORADORES, VALE_COTAS, VA_BENEFICIOS, SALARIOS, FERIAS,
   });
 
   // ─── Expor globais para onclick inline no index.html ────────────────────────
@@ -341,6 +347,9 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   window.fecharModalPolitica          = ()    => feedbackClima.fecharModalPolitica();
   window.salvarPolitica               = (ev)  => feedbackClima.salvarPolitica(ev);
   window.excluirPolitica              = (id)  => feedbackClima.excluirPolitica(id);
+
+  // Painel de Benefícios
+  window.renderBeneficios     = ()    => beneficios.render();
 
   // Prestadores de Serviço
   window.renderPrestadores    = ()    => prestadores.render();
