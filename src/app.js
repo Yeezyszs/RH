@@ -3,24 +3,24 @@
 
 // ?v= é cache-busting do grafo de módulos ES. Ao alterar qualquer módulo,
 // incremente esta versão (e a do index.html) para forçar fetch do arquivo novo.
-import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623y';
-import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623y';
+import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623z';
+import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623z';
 
-import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623y';
-import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623y';
-import { FeriasModule }           from './modules/ferias.js?v=20260623y';
-import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623y';
-import { CronogramaModule }       from './modules/cronograma.js?v=20260623y';
-import { VencimentosModule }      from './modules/vencimentos.js?v=20260623y';
-import { EpiModule }              from './modules/epi.js?v=20260623y';
-import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623y';
-import { SalariosModule }         from './modules/salarios.js?v=20260623y';
-import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623y';
-import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623y';
-import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623y';
-import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623y';
-import { PrestadoresModule }      from './modules/prestadores.js?v=20260623y';
-import { BeneficiosModule }       from './modules/beneficios.js?v=20260623y';
+import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623z';
+import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623z';
+import { FeriasModule }           from './modules/ferias.js?v=20260623z';
+import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623z';
+import { CronogramaModule }       from './modules/cronograma.js?v=20260623z';
+import { VencimentosModule }      from './modules/vencimentos.js?v=20260623z';
+import { EpiModule }              from './modules/epi.js?v=20260623z';
+import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623z';
+import { SalariosModule }         from './modules/salarios.js?v=20260623z';
+import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623z';
+import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623z';
+import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623z';
+import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623z';
+import { PrestadoresModule }      from './modules/prestadores.js?v=20260623z';
+import { BeneficiosModule }       from './modules/beneficios.js?v=20260623z';
 
 // faixaIdx depends on FAIXAS which lives in index.html — read from window
 function faixaIdx(valor) {
@@ -75,6 +75,7 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const FEEDBACK         = window.FEEDBACK;
   const CLIMA            = window.CLIMA;
   const POLITICAS        = window.POLITICAS;
+  const PROCEDIMENTOS    = window.PROCEDIMENTOS;
   const PRESTADORES      = window.PRESTADORES;
   const PC_CARGOS        = window.PC_CARGOS;
   const PC_PLANOS        = window.PC_PLANOS;
@@ -158,9 +159,11 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
 
   const feedbackClima = new FeedbackClimaModule({
     $, h, iniciais, fmtDate,
-    COLABORADORES, FEEDBACK, CLIMA, POLITICAS, CHART_COLORS,
+    COLABORADORES, FEEDBACK, CLIMA, POLITICAS, PROCEDIMENTOS, CHART_COLORS,
     Auth: window.Auth, FeedbackClima: window.FeedbackClima,
     PoliticasEmpresa: window.PoliticasEmpresa,
+    ProcedimentosEmpresa: window.ProcedimentosEmpresa,
+    StorageDocs: window.StorageDocs,
     RespostasPesquisa: window.RespostasPesquisa, showToast,
   });
 
@@ -347,6 +350,13 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   window.fecharModalPolitica          = ()    => feedbackClima.fecharModalPolitica();
   window.salvarPolitica               = (ev)  => feedbackClima.salvarPolitica(ev);
   window.excluirPolitica              = (id)  => feedbackClima.excluirPolitica(id);
+  window.verArquivoPolitica           = (id)  => feedbackClima.verArquivoPolitica(id);
+  window.renderProcedimentos          = ()    => feedbackClima.renderProcedimentos();
+  window.abrirModalProcedimento       = (id)  => feedbackClima.abrirModalProcedimento(id);
+  window.fecharModalProcedimento      = ()    => feedbackClima.fecharModalProcedimento();
+  window.salvarProcedimento           = (ev)  => feedbackClima.salvarProcedimento(ev);
+  window.excluirProcedimento          = (id)  => feedbackClima.excluirProcedimento(id);
+  window.verArquivoProcedimento       = (id)  => feedbackClima.verArquivoProcedimento(id);
 
   // Painel de Benefícios
   window.renderBeneficios     = ()    => beneficios.render();

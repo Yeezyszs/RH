@@ -21,10 +21,13 @@ export class FeedbackClimaModule {
     this.FEEDBACK         = deps.FEEDBACK;
     this.CLIMA            = deps.CLIMA;
     this.POLITICAS        = deps.POLITICAS;
+    this.PROCEDIMENTOS    = deps.PROCEDIMENTOS;
     this.CHART_COLORS     = deps.CHART_COLORS;
     this.Auth             = deps.Auth;
     this.FeedbackClima    = deps.FeedbackClima;
     this.PoliticasEmpresa = deps.PoliticasEmpresa;
+    this.ProcedimentosEmpresa = deps.ProcedimentosEmpresa;
+    this.StorageDocs      = deps.StorageDocs;
     this.RespostasPesquisa = deps.RespostasPesquisa;
     this.showToast        = deps.showToast;
 
@@ -46,6 +49,7 @@ export class FeedbackClimaModule {
         this.renderFeedback();
         this.renderClima();
         this.renderPoliticas();
+        this.renderProcedimentos();
       }, 60));
     });
   }
@@ -464,6 +468,44 @@ export class FeedbackClimaModule {
     this.$('#modal-respostas-pesquisa')?.classList.remove('active');
   }
 
+  // ─── Anexos (compartilhado entre Políticas e Procedimentos) ────────────────
+
+  _anexoCell(item, verFn) {
+    if (!item.arquivo_path) return `<span style="color:var(--text-soft)">—</span>`;
+    const nome = item.arquivo_nome || 'documento.pdf';
+    return `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); ${verFn}(${item.id})" title="${this.h(nome)}">📎 ${this.h(nome.length > 24 ? nome.slice(0, 24) + '…' : nome)}</button>`;
+  }
+
+  async _abrirAnexo(item) {
+    if (!item?.arquivo_path) return;
+    if (this.StorageDocs) {
+      try {
+        const url = await this.StorageDocs.urlAssinada(item.arquivo_path);
+        window.open(url, '_blank');
+      } catch (err) { this.showToast('Erro ao abrir anexo: ' + err.message, 'err'); }
+    }
+  }
+
+  // Faz upload do arquivo do input (se houver) e devolve {arquivo_path, arquivo_nome}
+  // a mesclar no payload. Retorna null se não houver arquivo novo.
+  async _uploadSeHouver(form, prefixo) {
+    const input = form.elements['arquivo'];
+    const file = input && input.files && input.files[0];
+    if (!file) return null;
+    if (file.type && file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+      throw new Error('Anexe um arquivo PDF');
+    }
+    if (file.size > 15 * 1024 * 1024) throw new Error('Arquivo muito grande (máx. 15MB)');
+    if (!this.StorageDocs) throw new Error('Upload indisponível sem sessão');
+    const { path, nome } = await this.StorageDocs.upload(file, prefixo);
+    return { arquivo_path: path, arquivo_nome: nome };
+  }
+
+  verArquivoPolitica(id) { this._abrirAnexo(this.POLITICAS.find(x => x.id === id)); }
+  verArquivoProcedimento(id) { this._abrirAnexo(this.PROCEDIMENTOS.find(x => x.id === id)); }
+
+  // ─── Políticas ─────────────────────────────────────────────────────────────
+
   renderPoliticas() {
     const tb = this.$('#tb-politicas');
     if (!tb) return;
@@ -475,11 +517,12 @@ export class FeedbackClimaModule {
       const data = p.atualizado_em || p.criado_em;
       const dataFmt = data ? this.fmtDate(data.slice(0, 10)) : '—';
       const desc = (p.descricao || '').trim();
-      const descCurta = desc.length > 140 ? desc.slice(0, 140) + '…' : (desc || '—');
+      const descCurta = desc.length > 120 ? desc.slice(0, 120) + '…' : (desc || '—');
       return `
         <tr onclick="abrirModalPolitica(${p.id})" style="cursor:pointer">
           <td style="font-weight:600">${this.h(p.titulo)}</td>
           <td style="white-space:pre-line; color:var(--text-soft)">${this.h(descCurta)}</td>
+          <td>${this._anexoCell(p, 'verArquivoPolitica')}</td>
           <td class="cell-mono">${dataFmt}</td>
           <td class="actions" onclick="event.stopPropagation()">
             <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalPolitica(${p.id})">✎</button>
@@ -487,16 +530,18 @@ export class FeedbackClimaModule {
           </td>
         </tr>
       `;
-    }).join('') : `<tr><td colspan="4" class="empty">Nenhuma política cadastrada</td></tr>`;
+    }).join('') : `<tr><td colspan="5" class="empty">Nenhuma política cadastrada</td></tr>`;
   }
 
   abrirModalPolitica(id = null) {
     const form = this.$('#form-politica');
     if (!form) return;
     form.reset();
+    let atual = null;
     if (id != null) {
       const p = this.POLITICAS.find(x => x.id === id);
       if (p) {
+        atual = p;
         this.$('#pol-modal-title').textContent = 'Editar política';
         form.elements['id'].value        = p.id;
         form.elements['titulo'].value     = p.titulo ?? '';
@@ -505,7 +550,18 @@ export class FeedbackClimaModule {
     } else {
       this.$('#pol-modal-title').textContent = 'Nova política';
     }
+    this._anexoAtualLabel('pol-anexo-atual', atual, 'verArquivoPolitica');
     this.$('#modal-politica').classList.add('active');
+  }
+
+  _anexoAtualLabel(elId, item, verFn) {
+    const el = this.$('#' + elId);
+    if (!el) return;
+    if (item && item.arquivo_path) {
+      el.innerHTML = `Anexo atual: <a href="#" onclick="event.preventDefault(); ${verFn}(${item.id})">📎 ${this.h(item.arquivo_nome || 'documento.pdf')}</a> <span style="color:var(--text-soft)">— envie outro para substituir</span>`;
+    } else {
+      el.innerHTML = '';
+    }
   }
 
   fecharModalPolitica() {
@@ -522,15 +578,14 @@ export class FeedbackClimaModule {
       titulo:    (data.titulo || '').trim(),
       descricao: (data.descricao || '').trim(),
     };
-
-    if (!payload.titulo) {
-      this.showToast('Informe o título da política', 'err');
-      return;
-    }
+    if (!payload.titulo) { this.showToast('Informe o título da política', 'err'); return; }
 
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+
     if (temSessao && this.PoliticasEmpresa) {
       try {
+        const anexo = await this._uploadSeHouver(form, 'politicas');
+        if (anexo) Object.assign(payload, anexo);
         if (id != null) {
           const saved = await this.PoliticasEmpresa.atualizar(id, payload);
           const i = this.POLITICAS.findIndex(x => x.id === id);
@@ -557,14 +612,126 @@ export class FeedbackClimaModule {
 
   async excluirPolitica(id) {
     if (!confirm('Excluir esta política?')) return;
+    const p = this.POLITICAS.find(x => x.id === id);
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao && this.PoliticasEmpresa) {
       try { await this.PoliticasEmpresa.excluir(id); } catch (err) { this.showToast('Erro: ' + err.message, 'err'); return; }
+      if (p?.arquivo_path && this.StorageDocs) this.StorageDocs.remover(p.arquivo_path);
     }
     const idx = this.POLITICAS.findIndex(x => x.id === id);
     if (idx >= 0) this.POLITICAS.splice(idx, 1);
     this.renderPoliticas();
     this.showToast('Política excluída');
+  }
+
+  // ─── Procedimentos ─────────────────────────────────────────────────────────
+
+  renderProcedimentos() {
+    const tb = this.$('#tb-procedimentos');
+    if (!tb) return;
+
+    const lista = [...this.PROCEDIMENTOS].sort((a, b) =>
+      (b.atualizado_em || '').localeCompare(a.atualizado_em || ''));
+
+    tb.innerHTML = lista.length ? lista.map(p => {
+      const data = p.atualizado_em || p.criado_em;
+      const dataFmt = data ? this.fmtDate(data.slice(0, 10)) : '—';
+      const desc = (p.descricao || '').trim();
+      const descCurta = desc.length > 120 ? desc.slice(0, 120) + '…' : (desc || '—');
+      return `
+        <tr onclick="abrirModalProcedimento(${p.id})" style="cursor:pointer">
+          <td style="font-weight:600">${this.h(p.titulo)}</td>
+          <td style="white-space:pre-line; color:var(--text-soft)">${this.h(descCurta)}</td>
+          <td>${this._anexoCell(p, 'verArquivoProcedimento')}</td>
+          <td class="cell-mono">${dataFmt}</td>
+          <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalProcedimento(${p.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirProcedimento(${p.id})">🗑</button>
+          </td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="5" class="empty">Nenhum procedimento cadastrado</td></tr>`;
+  }
+
+  abrirModalProcedimento(id = null) {
+    const form = this.$('#form-procedimento');
+    if (!form) return;
+    form.reset();
+    let atual = null;
+    if (id != null) {
+      const p = this.PROCEDIMENTOS.find(x => x.id === id);
+      if (p) {
+        atual = p;
+        this.$('#proc-modal-title').textContent = 'Editar procedimento';
+        form.elements['id'].value        = p.id;
+        form.elements['titulo'].value     = p.titulo ?? '';
+        form.elements['descricao'].value  = p.descricao ?? '';
+      }
+    } else {
+      this.$('#proc-modal-title').textContent = 'Novo procedimento';
+    }
+    this._anexoAtualLabel('proc-anexo-atual', atual, 'verArquivoProcedimento');
+    this.$('#modal-procedimento').classList.add('active');
+  }
+
+  fecharModalProcedimento() {
+    this.$('#modal-procedimento')?.classList.remove('active');
+  }
+
+  async salvarProcedimento(ev) {
+    if (ev) ev.preventDefault();
+    const form = this.$('#form-procedimento');
+    const data = Object.fromEntries(new FormData(form));
+    const id   = data.id ? parseInt(data.id, 10) : null;
+
+    const payload = {
+      titulo:    (data.titulo || '').trim(),
+      descricao: (data.descricao || '').trim(),
+    };
+    if (!payload.titulo) { this.showToast('Informe o título do procedimento', 'err'); return; }
+
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+
+    if (temSessao && this.ProcedimentosEmpresa) {
+      try {
+        const anexo = await this._uploadSeHouver(form, 'procedimentos');
+        if (anexo) Object.assign(payload, anexo);
+        if (id != null) {
+          const saved = await this.ProcedimentosEmpresa.atualizar(id, payload);
+          const i = this.PROCEDIMENTOS.findIndex(x => x.id === id);
+          if (i >= 0) this.PROCEDIMENTOS[i] = saved;
+        } else {
+          const saved = await this.ProcedimentosEmpresa.criar(payload);
+          this.PROCEDIMENTOS.unshift(saved);
+        }
+      } catch (err) { this.showToast('Erro ao salvar: ' + err.message, 'err'); return; }
+    } else {
+      const agora = new Date().toISOString();
+      if (id != null) {
+        const i = this.PROCEDIMENTOS.findIndex(x => x.id === id);
+        if (i >= 0) this.PROCEDIMENTOS[i] = { ...this.PROCEDIMENTOS[i], ...payload, atualizado_em: agora };
+      } else {
+        const nextId = Math.max(0, ...this.PROCEDIMENTOS.map(x => x.id)) + 1;
+        this.PROCEDIMENTOS.unshift({ id: nextId, ...payload, criado_em: agora, atualizado_em: agora });
+      }
+    }
+    this.showToast(id != null ? 'Procedimento atualizado' : 'Procedimento cadastrado', 'ok');
+    this.fecharModalProcedimento();
+    this.renderProcedimentos();
+  }
+
+  async excluirProcedimento(id) {
+    if (!confirm('Excluir este procedimento?')) return;
+    const p = this.PROCEDIMENTOS.find(x => x.id === id);
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao && this.ProcedimentosEmpresa) {
+      try { await this.ProcedimentosEmpresa.excluir(id); } catch (err) { this.showToast('Erro: ' + err.message, 'err'); return; }
+      if (p?.arquivo_path && this.StorageDocs) this.StorageDocs.remover(p.arquivo_path);
+    }
+    const idx = this.PROCEDIMENTOS.findIndex(x => x.id === id);
+    if (idx >= 0) this.PROCEDIMENTOS.splice(idx, 1);
+    this.renderProcedimentos();
+    this.showToast('Procedimento excluído');
   }
 }
 

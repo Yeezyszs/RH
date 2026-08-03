@@ -6,11 +6,11 @@
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/tokens.css?v=20260623y">
-<link rel="stylesheet" href="css/layout.css?v=20260623y">
-<link rel="stylesheet" href="css/components.css?v=20260623y">
-<link rel="stylesheet" href="css/pages.css?v=20260623y">
-<link rel="stylesheet" href="css/login.css?v=20260623y">
+<link rel="stylesheet" href="css/tokens.css?v=20260623z">
+<link rel="stylesheet" href="css/layout.css?v=20260623z">
+<link rel="stylesheet" href="css/components.css?v=20260623z">
+<link rel="stylesheet" href="css/pages.css?v=20260623z">
+<link rel="stylesheet" href="css/login.css?v=20260623z">
 </head>
 <body>
 
@@ -1422,7 +1422,7 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Organizacional</h1>
-          <div class="page-subtitle">Avaliações 1:1, pesquisas de clima e políticas da empresa</div>
+          <div class="page-subtitle">Avaliações 1:1, clima, políticas e procedimentos da empresa</div>
         </div>
       </div>
 
@@ -1431,6 +1431,7 @@
         <div class="view-tab active" data-view="feedback">Feedback individual</div>
         <div class="view-tab" data-view="clima">Clima organizacional</div>
         <div class="view-tab" data-view="politicas">Políticas da Empresa</div>
+        <div class="view-tab" data-view="procedimentos">Procedimentos</div>
       </div>
 
       <!-- ══════ FEEDBACK ══════ -->
@@ -1569,12 +1570,49 @@
                 <tr>
                   <th>Política</th>
                   <th>Descrição</th>
+                  <th>Anexo</th>
                   <th>Data de atualização</th>
                   <th style="width:100px; text-align:right">Ações</th>
                 </tr>
               </thead>
               <tbody id="tb-politicas">
-                <tr><td colspan="4" class="empty">Nenhuma política cadastrada</td></tr>
+                <tr><td colspan="5" class="empty">Nenhuma política cadastrada</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ PROCEDIMENTOS ══════ -->
+      <div id="view-procedimentos" class="view-content">
+
+        <div class="sensitive-banner" style="background:linear-gradient(135deg,#DBEAFE,#F0F7FF); border-color:#93C5FD; border-left-color:var(--info); margin-bottom:14px;">
+          <div class="sb-icon" style="background:var(--info);">ℹ</div>
+          <div>
+            <div class="sb-title" style="color:var(--phthalo-dark);">Procedimentos da empresa</div>
+            <div class="sb-sub" style="color:var(--text-muted);">Documente os processos internos (admissão, demissão, etc.) e anexe os PDFs correspondentes.</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-spacer"></div>
+          <button class="btn" type="button" onclick="abrirModalProcedimento()">+ Adicionar procedimento</button>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Procedimento</th>
+                  <th>Descrição</th>
+                  <th>Anexo</th>
+                  <th>Data de atualização</th>
+                  <th style="width:100px; text-align:right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tb-procedimentos">
+                <tr><td colspan="5" class="empty">Nenhum procedimento cadastrado</td></tr>
               </tbody>
             </table>
           </div>
@@ -2957,13 +2995,50 @@
         </div>
         <div class="form-group">
           <label>Descrição</label>
-          <textarea name="descricao" rows="8" placeholder="Descreva a política, regras, responsabilidades e demais detalhes…"></textarea>
+          <textarea name="descricao" rows="7" placeholder="Descreva a política, regras, responsabilidades e demais detalhes…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Anexo (PDF)</label>
+          <input type="file" name="arquivo" accept="application/pdf,.pdf">
+          <div id="pol-anexo-atual" style="font-size:.8rem; margin-top:6px;"></div>
         </div>
       </form>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalPolitica()">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-politica">Salvar política</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — PROCEDIMENTO ════════════ -->
+<div id="modal-procedimento" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="proc-modal-title">Novo procedimento</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalProcedimento()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-procedimento" onsubmit="salvarProcedimento(event)" style="display:flex; flex-direction:column; gap:14px;">
+        <input type="hidden" name="id">
+        <div class="form-group">
+          <label>Título do procedimento</label>
+          <input type="text" name="titulo" required placeholder="Ex.: Procedimento de Admissão">
+        </div>
+        <div class="form-group">
+          <label>Descrição</label>
+          <textarea name="descricao" rows="7" placeholder="Descreva o passo a passo do procedimento, responsáveis e demais detalhes…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Anexo (PDF)</label>
+          <input type="file" name="arquivo" accept="application/pdf,.pdf">
+          <div id="proc-anexo-atual" style="font-size:.8rem; margin-top:6px;"></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalProcedimento()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-procedimento">Salvar procedimento</button>
     </div>
   </div>
 </div>
@@ -3381,18 +3456,18 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260623y"></script>
-<script src="src/utils/base.js?v=20260623y"></script>
-<script src="src/dashboard.js?v=20260623y"></script>
-<script src="src/utils/relatorio.js?v=20260623y"></script>
-<script src="supabase.js?v=20260623y"></script>
-<script src="src/api/pessoas.js?v=20260623y"></script>
-<script src="src/api/compliance.js?v=20260623y"></script>
-<script src="src/api/beneficios.js?v=20260623y"></script>
-<script src="src/api/gestao.js?v=20260623y"></script>
-<script src="src/api/init.js?v=20260623y"></script>
-<script src="src/auth.js?v=20260623y"></script>
-<script type="module" src="src/app.js?v=20260623y"></script>
+<script src="src/data-store.js?v=20260623z"></script>
+<script src="src/utils/base.js?v=20260623z"></script>
+<script src="src/dashboard.js?v=20260623z"></script>
+<script src="src/utils/relatorio.js?v=20260623z"></script>
+<script src="supabase.js?v=20260623z"></script>
+<script src="src/api/pessoas.js?v=20260623z"></script>
+<script src="src/api/compliance.js?v=20260623z"></script>
+<script src="src/api/beneficios.js?v=20260623z"></script>
+<script src="src/api/gestao.js?v=20260623z"></script>
+<script src="src/api/init.js?v=20260623z"></script>
+<script src="src/auth.js?v=20260623z"></script>
+<script type="module" src="src/app.js?v=20260623z"></script>
 
 </body>
 </html>

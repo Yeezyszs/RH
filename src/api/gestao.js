@@ -131,13 +131,40 @@ const FeedbackClima = {
   },
 };
 
+// Storage de documentos organizacionais (bucket privado 'organizacional')
+const StorageDocs = {
+  bucket: 'organizacional',
+
+  async upload(file, prefixo) {
+    const safe = file.name.replace(/[^\w.\-]+/g, '_');
+    const path = `${prefixo}/${Date.now()}_${safe}`;
+    const { error } = await sb.storage.from(this.bucket).upload(path, file, {
+      contentType: file.type || 'application/pdf',
+      upsert: false,
+    });
+    if (error) throw error;
+    return { path, nome: file.name };
+  },
+
+  async urlAssinada(path) {
+    const { data, error } = await sb.storage.from(this.bucket).createSignedUrl(path, 120);
+    if (error) throw error;
+    return data.signedUrl;
+  },
+
+  async remover(path) {
+    if (!path) return;
+    await sb.storage.from(this.bucket).remove([path]).catch(() => {});
+  },
+};
+
 const PoliticasEmpresa = {
   async listar() {
     const cached = Cache.get('politicas_empresa');
     if (cached) return cached;
     const { data, error } = await withTimeout(
       sb.from('politicas_empresa')
-        .select('id, titulo, descricao, criado_em, atualizado_em')
+        .select('id, titulo, descricao, arquivo_path, arquivo_nome, criado_em, atualizado_em')
         .order('atualizado_em', { ascending: false })
     );
     if (error) throw error;
@@ -147,22 +174,22 @@ const PoliticasEmpresa = {
 
   async criar(payload) {
     const { data, error } = await withTimeout(
-      sb.from('politicas_empresa').insert(payload).select().single()
+      sb.from('politicas_empresa').insert(payload).select()
     );
     if (error) throw error;
     Cache.invalidate('politicas_empresa');
-    return data;
+    return data && data[0];
   },
 
   async atualizar(id, payload) {
     const { data, error } = await withTimeout(
       sb.from('politicas_empresa')
         .update({ ...payload, atualizado_em: new Date().toISOString() })
-        .eq('id', id).select().single()
+        .eq('id', id).select()
     );
     if (error) throw error;
     Cache.invalidate('politicas_empresa');
-    return data;
+    return (data && data[0]) || { id, ...payload };
   },
 
   async excluir(id) {
@@ -171,6 +198,49 @@ const PoliticasEmpresa = {
     );
     if (error) throw error;
     Cache.invalidate('politicas_empresa');
+  },
+};
+
+const ProcedimentosEmpresa = {
+  async listar() {
+    const cached = Cache.get('procedimentos_empresa');
+    if (cached) return cached;
+    const { data, error } = await withTimeout(
+      sb.from('procedimentos_empresa')
+        .select('id, titulo, descricao, arquivo_path, arquivo_nome, criado_em, atualizado_em')
+        .order('atualizado_em', { ascending: false })
+    );
+    if (error) throw error;
+    Cache.set('procedimentos_empresa', data);
+    return data;
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('procedimentos_empresa').insert(payload).select()
+    );
+    if (error) throw error;
+    Cache.invalidate('procedimentos_empresa');
+    return data && data[0];
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('procedimentos_empresa')
+        .update({ ...payload, atualizado_em: new Date().toISOString() })
+        .eq('id', id).select()
+    );
+    if (error) throw error;
+    Cache.invalidate('procedimentos_empresa');
+    return (data && data[0]) || { id, ...payload };
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('procedimentos_empresa').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('procedimentos_empresa');
   },
 };
 
