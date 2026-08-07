@@ -31,7 +31,7 @@ export class PrestadoresModule {
 
   init() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'prest-search') this.render();
+      if (e.target.id === 'prest-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this.render(), 250); }
     });
     document.addEventListener('change', (e) => {
       if (['prest-filter-empresa', 'prest-filter-status'].includes(e.target.id)) this.render();

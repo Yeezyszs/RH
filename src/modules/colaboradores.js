@@ -56,9 +56,13 @@ export class ColaboradoresModule {
     document.addEventListener('input', (e) => {
       if (e.target.id === 'col-search') {
         this.state.page = 1;
-        this.render();
+        clearTimeout(this._searchT);
+        this._searchT = setTimeout(() => this.render(), 250);
       }
-      if (e.target.id === 'quad-search') this.renderQuadro();
+      if (e.target.id === 'quad-search') {
+        clearTimeout(this._quadSearchT);
+        this._quadSearchT = setTimeout(() => this.renderQuadro(), 250);
+      }
     });
 
     document.addEventListener('change', (e) => {

@@ -38,7 +38,7 @@ export class AdvertenciasModule {
 
   setupEventListeners() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'adv-search') this.render();
+      if (e.target.id === 'adv-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this.render(), 250); }
     });
 
     document.addEventListener('change', (e) => {

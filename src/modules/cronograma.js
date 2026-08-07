@@ -30,7 +30,7 @@ export class CronogramaModule {
 
   setupEventListeners() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'cron-search') this.render();
+      if (e.target.id === 'cron-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this.render(), 250); }
     });
 
     document.addEventListener('change', (e) => {

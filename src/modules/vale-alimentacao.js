@@ -23,7 +23,7 @@ export class ValeAlimentacaoModule {
 
   init() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'va-search') this.render();
+      if (e.target.id === 'va-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this.render(), 250); }
     });
     document.addEventListener('change', (e) => {
       if (['va-mes', 'va-filter-setor', 'va-filter-tipo'].includes(e.target.id)) this.render();

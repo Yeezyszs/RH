@@ -28,7 +28,7 @@ export class SalariosModule {
 
   setupEventListeners() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'sal-search') this.render();
+      if (e.target.id === 'sal-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this.render(), 250); }
     });
 
     document.addEventListener('change', (e) => {

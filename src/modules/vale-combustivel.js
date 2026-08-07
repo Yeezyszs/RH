@@ -27,7 +27,7 @@ export class ValeCombustivelModule {
 
   init() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'vale-search') this.render();
+      if (e.target.id === 'vale-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this.render(), 250); }
     });
     document.addEventListener('change', (e) => {
       if (e.target.id === 'vale-mes' || e.target.id === 'vale-filter-setor') this.render();

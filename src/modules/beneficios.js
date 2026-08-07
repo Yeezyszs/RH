@@ -27,7 +27,7 @@ export class BeneficiosModule {
 
   init() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'ben-search') this.render();
+      if (e.target.id === 'ben-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this.render(), 250); }
     });
     document.addEventListener('change', (e) => {
       if (['ben-filter-setor', 'ben-filter-status'].includes(e.target.id)) this.render();

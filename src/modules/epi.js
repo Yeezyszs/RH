@@ -27,7 +27,7 @@ export class EpiModule {
 
   setupEventListeners() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'epi-search') this.render();
+      if (e.target.id === 'epi-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this.render(), 250); }
     });
 
     document.addEventListener('change', (e) => {

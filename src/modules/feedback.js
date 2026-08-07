@@ -39,7 +39,7 @@ export class FeedbackClimaModule {
 
   init() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'fb-search') this.renderFeedback();
+      if (e.target.id === 'fb-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this.renderFeedback(), 250); }
     });
     document.addEventListener('change', (e) => {
       if (e.target.id === 'fb-filter-setor') this.renderFeedback();

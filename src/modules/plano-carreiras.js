@@ -27,7 +27,7 @@ export class PlanoCarreirasModule {
 
   init() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'pc-search') this._renderIndividuais();
+      if (e.target.id === 'pc-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this._renderIndividuais(), 250); }
     });
     document.addEventListener('change', (e) => {
       if (e.target.id === 'pc-filter-trilha' || e.target.id === 'pc-filter-status') this._renderIndividuais();

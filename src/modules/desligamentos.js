@@ -25,7 +25,7 @@ export class DesligamentosModule {
 
   setupEventListeners() {
     document.addEventListener('input', (e) => {
-      if (e.target.id === 'desl-search') this.render();
+      if (e.target.id === 'desl-search') { clearTimeout(this._searchT); this._searchT = setTimeout(() => this.render(), 250); }
     });
 
     document.addEventListener('change', (e) => {
