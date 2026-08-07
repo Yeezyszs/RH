@@ -16,6 +16,7 @@ export class ProlaboreModule {
 
     this._itensModal = [];  // itens do Cooper no modal em edição
     this._itemSeq = 0;
+    this._compAlvo = null;  // competência a forçar na tela após salvar
 
     this.init();
   }
@@ -66,7 +67,12 @@ export class ProlaboreModule {
     const sel = this.$('#prolab-competencia');
     const comps = [...new Set([this._competenciaAtual(), ...this.PROLABORE.map(r => r.competencia)])]
       .filter(Boolean).sort().reverse();
-    const compAtual = sel?.value && comps.includes(sel.value) ? sel.value : comps[0];
+    // Prioriza a competência-alvo (recém-salva), depois a selecionada, depois a mais recente.
+    const alvo = this._compAlvo;
+    this._compAlvo = null;
+    const compAtual = (alvo && comps.includes(alvo)) ? alvo
+      : (sel?.value && comps.includes(sel.value)) ? sel.value
+      : comps[0];
     if (sel) {
       sel.innerHTML = comps.map(c => `<option value="${c}">${this._labelCompetencia(c)}</option>`).join('');
       sel.value = compAtual;
@@ -262,11 +268,17 @@ export class ProlaboreModule {
       }
     }
 
-    // Garante que a competência salva seja a exibida
-    const sel = this.$('#prolab-competencia');
-    if (sel && payload.competencia) sel.value = payload.competencia;
+    // Força a tela a exibir a competência do lançamento salvo (mesmo se for um
+    // mês novo, que ainda não existia no seletor). Também limpa o filtro de
+    // sócio para garantir que o lançamento apareça.
+    this._compAlvo = payload.competencia;
+    const selSoc = this.$('#prolab-filter-socio');
+    if (selSoc && selSoc.value && selSoc.value !== payload.socio) selSoc.value = '';
 
-    this.showToast(id != null ? 'Lançamento atualizado' : 'Lançamento cadastrado', 'ok');
+    this.showToast(
+      `${id != null ? 'Lançamento atualizado' : 'Lançamento cadastrado'} · ${this._labelCompetencia(payload.competencia)}`,
+      'ok'
+    );
     this.fecharModal();
     this.render();
   }
