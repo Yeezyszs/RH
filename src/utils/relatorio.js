@@ -116,6 +116,12 @@
     escopos.forEach(e => wrapper.appendChild(e.cloneNode(true)));
     limparClone(wrapper, escopos);
 
+    // Pró-labore: o relatório é por sócio; os cards de resumo do mês não fazem
+    // parte do documento impresso.
+    if (modulo === 'prolabore') {
+      wrapper.querySelectorAll('.stats-row').forEach(el => el.remove());
+    }
+
     const agora = new Date().toLocaleString('pt-BR');
     const html =
       '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">' +
