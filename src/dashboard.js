@@ -381,6 +381,7 @@ function renderAll() {
   if (typeof renderPlanoCarreiras === 'function') renderPlanoCarreiras();
   if (typeof renderBeneficios     === 'function') renderBeneficios();
   if (typeof renderPrestadores    === 'function') renderPrestadores();
+  if (typeof renderProlabore      === 'function') renderProlabore();
 }
 
 if (document.readyState === 'loading') {

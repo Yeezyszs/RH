@@ -3,24 +3,25 @@
 
 // ?v= é cache-busting do grafo de módulos ES. Ao alterar qualquer módulo,
 // incremente esta versão (e a do index.html) para forçar fetch do arquivo novo.
-import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260623z';
-import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260623z';
+import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260624a';
+import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260624a';
 
-import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260623z';
-import { AdvertenciasModule }     from './modules/advertencias.js?v=20260623z';
-import { FeriasModule }           from './modules/ferias.js?v=20260623z';
-import { DesligamentosModule }    from './modules/desligamentos.js?v=20260623z';
-import { CronogramaModule }       from './modules/cronograma.js?v=20260623z';
-import { VencimentosModule }      from './modules/vencimentos.js?v=20260623z';
-import { EpiModule }              from './modules/epi.js?v=20260623z';
-import { RotatividadeModule }     from './modules/rotatividade.js?v=20260623z';
-import { SalariosModule }         from './modules/salarios.js?v=20260623z';
-import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260623z';
-import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260623z';
-import { FeedbackClimaModule }    from './modules/feedback.js?v=20260623z';
-import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260623z';
-import { PrestadoresModule }      from './modules/prestadores.js?v=20260623z';
-import { BeneficiosModule }       from './modules/beneficios.js?v=20260623z';
+import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260624a';
+import { AdvertenciasModule }     from './modules/advertencias.js?v=20260624a';
+import { FeriasModule }           from './modules/ferias.js?v=20260624a';
+import { DesligamentosModule }    from './modules/desligamentos.js?v=20260624a';
+import { CronogramaModule }       from './modules/cronograma.js?v=20260624a';
+import { VencimentosModule }      from './modules/vencimentos.js?v=20260624a';
+import { EpiModule }              from './modules/epi.js?v=20260624a';
+import { RotatividadeModule }     from './modules/rotatividade.js?v=20260624a';
+import { SalariosModule }         from './modules/salarios.js?v=20260624a';
+import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260624a';
+import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260624a';
+import { FeedbackClimaModule }    from './modules/feedback.js?v=20260624a';
+import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260624a';
+import { PrestadoresModule }      from './modules/prestadores.js?v=20260624a';
+import { BeneficiosModule }       from './modules/beneficios.js?v=20260624a';
+import { ProlaboreModule }        from './modules/prolabore.js?v=20260624a';
 
 // faixaIdx depends on FAIXAS which lives in index.html — read from window
 function faixaIdx(valor) {
@@ -76,6 +77,7 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const CLIMA            = window.CLIMA;
   const POLITICAS        = window.POLITICAS;
   const PROCEDIMENTOS    = window.PROCEDIMENTOS;
+  const PROLABORE        = window.PROLABORE;
   const PRESTADORES      = window.PRESTADORES;
   const PC_CARGOS        = window.PC_CARGOS;
   const PC_PLANOS        = window.PC_PLANOS;
@@ -181,6 +183,11 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const beneficios = new BeneficiosModule({
     $, h, iniciais, fmtBRL, fmtDate,
     COLABORADORES, VALE_COTAS, VA_BENEFICIOS, SALARIOS, FERIAS,
+  });
+
+  const prolabore = new ProlaboreModule({
+    $, h, fmtBRL, PROLABORE,
+    Auth: window.Auth, ProlaboreSocios: window.ProlaboreSocios, showToast,
   });
 
   // ─── Expor globais para onclick inline no index.html ────────────────────────
@@ -360,6 +367,14 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
 
   // Painel de Benefícios
   window.renderBeneficios     = ()    => beneficios.render();
+
+  // Pró-labore Sócios
+  window.renderProlabore        = ()     => prolabore.render();
+  window.abrirModalProlabore    = (id)   => prolabore.abrirModal(id);
+  window.fecharModalProlabore   = ()     => prolabore.fecharModal();
+  window.salvarProlabore        = (ev)   => prolabore.salvar(ev);
+  window.excluirProlabore       = (id)   => prolabore.excluir(id);
+  window.atualizarCamposProlabore = ()   => prolabore.atualizarCamposTipo();
 
   // Prestadores de Serviço
   window.renderPrestadores    = ()    => prestadores.render();

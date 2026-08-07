@@ -28,6 +28,7 @@
     'plano-carreiras': 'Relatório de Plano de Carreiras',
     prestadores:       'Relatório de Prestadores de Serviço',
     beneficios:        'Relatório de Benefícios (consolidado)',
+    prolabore:         'Relatório de Pró-labore dos Sócios',
   };
 
   const ESTILO_RELATORIO = `

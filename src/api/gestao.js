@@ -284,6 +284,46 @@ const PrestadoresServico = {
   },
 };
 
+const ProlaboreSocios = {
+  async listar() {
+    const { data, error } = await withTimeout(
+      sb.from('prolabore_socios')
+        .select('id, socio, competencia, tipo, valor_base, inss, unimed, adiantamento, telefone, observacoes')
+        .order('competencia', { ascending: false }).order('socio')
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('prolabore_socios').insert(payload).select()
+    );
+    if (error) throw error;
+    Cache.invalidate('prolabore');
+    return data && data[0];
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('prolabore_socios')
+        .update({ ...payload, atualizado_em: new Date().toISOString() })
+        .eq('id', id).select()
+    );
+    if (error) throw error;
+    Cache.invalidate('prolabore');
+    return (data && data[0]) || { id, ...payload };
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('prolabore_socios').delete().eq('id', id)
+    );
+    if (error) throw error;
+    Cache.invalidate('prolabore');
+  },
+};
+
 const RespostasPesquisa = {
   async listarPorPesquisa(pesquisaId) {
     const { data, error } = await withTimeout(
