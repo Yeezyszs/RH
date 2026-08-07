@@ -288,7 +288,7 @@ const ProlaboreSocios = {
   async listar() {
     const { data, error } = await withTimeout(
       sb.from('prolabore_socios')
-        .select('id, socio, competencia, tipo, valor_base, inss, unimed, adiantamento, telefone, observacoes')
+        .select('id, socio, competencia, tipo, valor_base, inss, unimed, adiantamento, telefone, itens, observacoes')
         .order('competencia', { ascending: false }).order('socio')
     );
     if (error) throw error;

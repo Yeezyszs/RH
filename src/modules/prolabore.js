@@ -14,6 +14,9 @@ export class ProlaboreModule {
     this.ProlaboreSocios = deps.ProlaboreSocios;
     this.showToast = deps.showToast;
 
+    this._itensModal = [];  // itens do Cooper no modal em edição
+    this._itemSeq = 0;
+
     this.init();
   }
 
@@ -40,10 +43,15 @@ export class ProlaboreModule {
     return `${meses[parseInt(mes, 10) - 1] || mes}/${ano}`;
   }
 
+  _itensDe(r) {
+    return Array.isArray(r.itens) ? r.itens : [];
+  }
+
   _descontos(r) {
-    return r.tipo === 'cooper'
-      ? (parseFloat(r.unimed) || 0) + (parseFloat(r.telefone) || 0)
-      : (parseFloat(r.inss) || 0) + (parseFloat(r.unimed) || 0) + (parseFloat(r.adiantamento) || 0);
+    if (r.tipo === 'cooper') {
+      return this._itensDe(r).reduce((s, it) => s + (parseFloat(it.valor) || 0), 0);
+    }
+    return (parseFloat(r.inss) || 0) + (parseFloat(r.unimed) || 0) + (parseFloat(r.adiantamento) || 0);
   }
 
   _liquido(r) {
@@ -81,7 +89,9 @@ export class ProlaboreModule {
       const headerBg = isCooper ? 'linear-gradient(135deg,#166534,#14532D)' : 'linear-gradient(135deg,#1f2937,#111827)';
 
       const descontosHtml = isCooper
-        ? linha('Unimed', r.unimed || null) + linha('Telefone', r.telefone || null)
+        ? (this._itensDe(r).length
+            ? this._itensDe(r).map(it => linha(it.descricao || 'Item', (parseFloat(it.valor) || 0) || null)).join('')
+            : linha('Sem descontos', null))
         : linha('INSS', r.inss || null) + linha('Unimed', r.unimed || null) + linha('Adiantamento', r.adiantamento || null);
 
       return `
@@ -113,14 +123,16 @@ export class ProlaboreModule {
   abrirModal(id = null) {
     const form = this.$('#form-prolabore');
     form.reset();
+    this._itensModal = [];
     if (id != null) {
       const r = this.PROLABORE.find(x => x.id === id);
       if (r) {
         this.$('#prolab-modal-title').textContent = 'Editar lançamento';
         for (const [k, v] of Object.entries(r)) {
           const f = form.elements[k];
-          if (f) f.value = v ?? '';
+          if (f && k !== 'itens') f.value = v ?? '';
         }
+        this._itensModal = this._itensDe(r).map(it => ({ _sid: ++this._itemSeq, descricao: it.descricao || '', valor: it.valor ?? '' }));
       }
     } else {
       this.$('#prolab-modal-title').textContent = 'Novo lançamento';
@@ -136,11 +148,50 @@ export class ProlaboreModule {
     const tipo = this.$('#form-prolabore')?.elements['tipo']?.value || 'prolabore';
     const isCooper = tipo === 'cooper';
     const setDisplay = (id, show) => { const el = this.$('#' + id); if (el) el.style.display = show ? '' : 'none'; };
+    // Pró-labore: campos fixos. Cooper: lista dinâmica de itens.
     setDisplay('prolab-grp-inss', !isCooper);
+    setDisplay('prolab-grp-unimed', !isCooper);
     setDisplay('prolab-grp-adiant', !isCooper);
-    setDisplay('prolab-grp-telefone', isCooper);
+    setDisplay('prolab-itens-section', isCooper);
     const lbl = this.$('#prolab-lbl-base');
     if (lbl) lbl.textContent = isCooper ? 'Benefício (R$)' : 'Salário Base (R$)';
+    // Ao mudar para Cooper sem itens, sugere Unimed e Telefone como base editável
+    if (isCooper && this._itensModal.length === 0) {
+      this._itensModal = [
+        { _sid: ++this._itemSeq, descricao: 'Unimed', valor: '' },
+        { _sid: ++this._itemSeq, descricao: 'Telefone', valor: '' },
+      ];
+    }
+    if (isCooper) this.renderItensModal();
+  }
+
+  renderItensModal() {
+    const cont = this.$('#prolab-itens-lista');
+    if (!cont) return;
+    cont.innerHTML = this._itensModal.map(it => `
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;" data-sid="${it._sid}">
+        <input type="text" value="${this.h(it.descricao)}" placeholder="Descrição (ex.: Pá carregadeira)"
+               oninput="prolabItemInput(${it._sid}, 'descricao', this.value)" style="flex:1;">
+        <input type="number" step="0.01" min="0" value="${it.valor}" placeholder="0,00"
+               oninput="prolabItemInput(${it._sid}, 'valor', this.value)" style="width:120px; text-align:right;">
+        <button type="button" class="btn btn-ghost btn-sm btn-icon" title="Remover" onclick="prolabRemoverItem(${it._sid})">🗑</button>
+      </div>
+    `).join('') || `<div class="cell-person-sub" style="padding:4px 0;">Nenhum item — clique em “+ Adicionar item”.</div>`;
+  }
+
+  adicionarItem() {
+    this._itensModal.push({ _sid: ++this._itemSeq, descricao: '', valor: '' });
+    this.renderItensModal();
+  }
+
+  removerItem(sid) {
+    this._itensModal = this._itensModal.filter(x => x._sid !== sid);
+    this.renderItensModal();
+  }
+
+  itemInput(sid, campo, valor) {
+    const it = this._itensModal.find(x => x._sid === sid);
+    if (it) it[campo] = valor;
   }
 
   fecharModal() {
@@ -154,15 +205,23 @@ export class ProlaboreModule {
     const id = data.id ? parseInt(data.id, 10) : null;
 
     const num = (v) => parseFloat(String(v).replace(',', '.')) || 0;
+    const isCooper = (data.tipo || 'prolabore') === 'cooper';
+    const itens = isCooper
+      ? this._itensModal
+          .map(it => ({ descricao: (it.descricao || '').trim(), valor: num(it.valor) }))
+          .filter(it => it.descricao || it.valor)
+      : [];
+
     const payload = {
       socio:        (data.socio || '').trim(),
       competencia:  data.competencia,
       tipo:         data.tipo || 'prolabore',
       valor_base:   num(data.valor_base),
-      inss:         num(data.inss),
-      unimed:       num(data.unimed),
-      adiantamento: num(data.adiantamento),
-      telefone:     num(data.telefone),
+      inss:         isCooper ? 0 : num(data.inss),
+      unimed:       isCooper ? 0 : num(data.unimed),
+      adiantamento: isCooper ? 0 : num(data.adiantamento),
+      telefone:     0,
+      itens:        itens,
       observacoes:  data.observacoes || '',
     };
 
