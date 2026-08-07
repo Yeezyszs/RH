@@ -22,7 +22,7 @@ export class ProlaboreModule {
 
   init() {
     document.addEventListener('change', (e) => {
-      if (e.target.id === 'prolab-competencia') this.render();
+      if (['prolab-competencia', 'prolab-filter-socio'].includes(e.target.id)) this.render();
     });
     document.querySelectorAll('.nav-item[data-page="prolabore"]').forEach(el => {
       el.addEventListener('click', () => setTimeout(() => this.render(), 60));
@@ -72,8 +72,20 @@ export class ProlaboreModule {
       sel.value = compAtual;
     }
 
+    // Popula o filtro de sócio (com os sócios que têm lançamento na competência)
+    const selSoc = this.$('#prolab-filter-socio');
+    const socios = [...new Set(this.PROLABORE.filter(r => r.competencia === compAtual).map(r => r.socio).filter(Boolean))].sort();
+    let socioSel = selSoc?.value || '';
+    if (selSoc) {
+      if (socioSel && !socios.includes(socioSel)) socioSel = '';
+      selSoc.innerHTML = '<option value="">Todos os sócios</option>' +
+        socios.map(s => `<option value="${this.h(s)}">${this.h(s)}</option>`).join('');
+      selSoc.value = socioSel;
+    }
+
     const lista = this.PROLABORE
       .filter(r => r.competencia === compAtual)
+      .filter(r => !socioSel || r.socio === socioSel)
       .sort((a, b) => (a.socio || '').localeCompare(b.socio || '') || a.tipo.localeCompare(b.tipo));
 
     const linha = (label, valor, opts = {}) => `
@@ -114,8 +126,8 @@ export class ProlaboreModule {
 
     // Stats
     const totLiquido = lista.reduce((s, r) => s + Math.max(0, this._liquido(r)), 0);
-    const socios = new Set(lista.map(r => r.socio)).size;
-    if (this.$('#prolab-stat-socios')) this.$('#prolab-stat-socios').textContent = socios;
+    const qtdSocios = new Set(lista.map(r => r.socio)).size;
+    if (this.$('#prolab-stat-socios')) this.$('#prolab-stat-socios').textContent = qtdSocios;
     if (this.$('#prolab-stat-lancamentos')) this.$('#prolab-stat-lancamentos').textContent = lista.length;
     if (this.$('#prolab-stat-liquido')) this.$('#prolab-stat-liquido').textContent = this.fmtBRL(totLiquido);
   }

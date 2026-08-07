@@ -94,11 +94,22 @@
     });
   }
 
+  // Sufixo opcional no título (ex.: pró-labore usa o sócio/competência selecionados)
+  function sufixoTitulo(modulo, page) {
+    if (modulo !== 'prolabore') return '';
+    const partes = [];
+    const soc = page.querySelector('#prolab-filter-socio');
+    if (soc && soc.value) partes.push(soc.options[soc.selectedIndex]?.text || soc.value);
+    const comp = page.querySelector('#prolab-competencia');
+    if (comp && comp.value) partes.push(comp.options[comp.selectedIndex]?.text || comp.value);
+    return partes.length ? ' — ' + partes.join(' · ') : '';
+  }
+
   function imprimirRelatorio(modulo) {
     const page = document.getElementById('page-' + modulo);
     if (!page) { window.showToast?.('Módulo não encontrado para impressão', 'err'); return; }
 
-    const titulo = MODULOS[modulo] || 'Relatório';
+    const titulo = (MODULOS[modulo] || 'Relatório') + sufixoTitulo(modulo, page);
     const escopos = escopoDaPagina(page);
 
     const wrapper = document.createElement('div');
