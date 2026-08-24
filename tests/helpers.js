@@ -109,6 +109,7 @@ export function mapFerias(row) {
     saldo:       row.dias_saldo,
     ano:         row.ano_referencia,
     aprovado:    row.aprovado,
+    valor:       row.valor_pago != null ? parseFloat(row.valor_pago) : null,
     observacoes: row.observacoes || '',
   };
 }

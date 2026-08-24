@@ -283,19 +283,24 @@ export class FeriasModule {
         em_curso:  `<span class="badge info">Em curso</span>`,
         concluida: `<span class="badge neutral">Concluída</span>`,
       }[st];
+      const valorTxt = p.valor != null
+        ? `<span class="cell-mono" style="font-weight:600; color:var(--phthalo-dark)">${this.fmtBRL(p.valor)}</span>`
+        : `<span style="color:var(--text-soft)">—</span>`;
       return `
         <tr>
           <td class="cell-mono">${this.fmtDate(p.inicio)}</td>
           <td class="cell-mono">${this.fmtDate(p.fim)}</td>
           <td class="cell-mono" style="text-align:right">${p.dias}</td>
           <td class="cell-mono">${p.abono ? p.abono + 'd' : '—'}</td>
+          <td style="text-align:right">${valorTxt}</td>
           <td>${stBadge}</td>
           <td class="actions">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar valor pago" onclick="editarValorFerias(${p.id})">✎</button>
             <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirFerias(${p.id})">🗑</button>
           </td>
         </tr>
       `;
-    }).join('') : `<tr><td colspan="6" class="empty">Sem períodos registrados</td></tr>`;
+    }).join('') : `<tr><td colspan="7" class="empty">Sem períodos registrados</td></tr>`;
   }
 
   calcDiasFerias() {
@@ -314,6 +319,8 @@ export class FeriasModule {
     const colabId = parseInt(data.colaborador_id, 10);
     const dias  = parseInt(data.dias, 10) || this._diasEntre(data.inicio, data.fim);
     const abono = parseInt(data.abono, 10) || 0;
+    const valorPago = data.valor_pago !== '' && data.valor_pago != null
+      ? parseFloat(String(data.valor_pago).replace(',', '.')) : null;
 
     if (!data.inicio || !data.fim || dias <= 0) {
       window.showToast?.('Período inválido', 'err');
@@ -336,6 +343,9 @@ export class FeriasModule {
       aprovado:         true,
       observacoes:      data.observacoes || '',
     };
+    // Só envia valor_pago quando informado (mantém o agendamento normal
+    // funcionando mesmo antes de a coluna existir no banco).
+    if (valorPago != null) payload.valor_pago = valorPago;
 
     const temSessao = this.Ferias && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
@@ -354,7 +364,7 @@ export class FeriasModule {
       const newId = Math.max(0, ...this.FERIAS.map(x => x.id)) + 1;
       this.FERIAS.push({
         id: newId, colaborador_id: colabId,
-        inicio: data.inicio, fim: data.fim, dias, abono,
+        inicio: data.inicio, fim: data.fim, dias, abono, valor: valorPago,
         observacoes: data.observacoes || '',
         status: data.inicio > new Date().toISOString().slice(0, 10) ? 'planejada' : 'em_curso',
       });
@@ -386,6 +396,34 @@ export class FeriasModule {
       window.FERIAS = this.FERIAS;
       window.showToast?.('Período excluído');
     }
+    this.renderFeriasModal();
+    this.render();
+  }
+
+  async editarValorFerias(id) {
+    const p = this.FERIAS.find(x => x.id === id);
+    if (!p) return;
+    const atual = p.valor != null ? String(p.valor) : '';
+    const entrada = window.prompt('Valor pago das férias (R$):', atual);
+    if (entrada === null) return; // cancelou
+    const txt = entrada.trim();
+    const valorPago = txt === '' ? null : parseFloat(txt.replace(',', '.'));
+    if (txt !== '' && (isNaN(valorPago) || valorPago < 0)) {
+      window.showToast?.('Valor inválido', 'err');
+      return;
+    }
+
+    const temSessao = this.Ferias && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao) {
+      try {
+        await this.Ferias.atualizar(id, { valor_pago: valorPago });
+      } catch (err) {
+        window.showToast?.('Erro ao salvar valor: ' + err.message, 'err');
+        return;
+      }
+    }
+    p.valor = valorPago;
+    window.showToast?.('Valor atualizado', 'ok');
     this.renderFeriasModal();
     this.render();
   }
