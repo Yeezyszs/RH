@@ -6,11 +6,11 @@
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/tokens.css?v=20260624h">
-<link rel="stylesheet" href="css/layout.css?v=20260624h">
-<link rel="stylesheet" href="css/components.css?v=20260624h">
-<link rel="stylesheet" href="css/pages.css?v=20260624h">
-<link rel="stylesheet" href="css/login.css?v=20260624h">
+<link rel="stylesheet" href="css/tokens.css?v=20260624i">
+<link rel="stylesheet" href="css/layout.css?v=20260624i">
+<link rel="stylesheet" href="css/components.css?v=20260624i">
+<link rel="stylesheet" href="css/pages.css?v=20260624i">
+<link rel="stylesheet" href="css/login.css?v=20260624i">
 </head>
 <body>
 
@@ -1918,41 +1918,88 @@
         </div>
       </div>
 
-      <div class="toolbar">
-        <div class="toolbar-search">
-          <input type="text" id="sac-search" placeholder="Buscar no texto das mensagens…">
-        </div>
-        <select id="sac-filter-cat">
-          <option value="">Todas as categorias</option>
-          <option value="sugestao">Sugestão</option>
-          <option value="reclamacao">Reclamação</option>
-          <option value="elogio">Elogio</option>
-          <option value="duvida">Dúvida</option>
-          <option value="outro">Outro</option>
-        </select>
-        <select id="sac-filter-lido">
-          <option value="">Todas</option>
-          <option value="nao">Não lidas</option>
-          <option value="sim">Lidas</option>
-        </select>
+      <!-- Sub-abas -->
+      <div class="view-tabs">
+        <div class="view-tab active" data-view="sac-recebidas">Mensagens recebidas</div>
+        <div class="view-tab" data-view="sac-tratativas">Tratativa</div>
       </div>
 
-      <div class="stats-row">
-        <div class="stat">
-          <div class="stat-label">Total recebidas</div>
-          <div class="stat-value" id="sac-stat-total">—</div>
+      <!-- ══════ RECEBIDAS ══════ -->
+      <div id="view-sac-recebidas" class="view-content active">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <input type="text" id="sac-search" placeholder="Buscar no texto das mensagens…">
+          </div>
+          <select id="sac-filter-cat">
+            <option value="">Todas as categorias</option>
+            <option value="sugestao">Sugestão</option>
+            <option value="reclamacao">Reclamação</option>
+            <option value="elogio">Elogio</option>
+            <option value="duvida">Dúvida</option>
+            <option value="outro">Outro</option>
+          </select>
+          <select id="sac-filter-lido">
+            <option value="">Todas</option>
+            <option value="nao">Não lidas</option>
+            <option value="sim">Lidas</option>
+          </select>
         </div>
-        <div class="stat stat-warn">
-          <div class="stat-label">Não lidas</div>
-          <div class="stat-value" id="sac-stat-novas">—</div>
+
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-label">Total recebidas</div>
+            <div class="stat-value" id="sac-stat-total">—</div>
+          </div>
+          <div class="stat stat-warn">
+            <div class="stat-label">Não lidas</div>
+            <div class="stat-value" id="sac-stat-novas">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Exibidas</div>
+            <div class="stat-value" id="sac-stat-exibidas">—</div>
+          </div>
         </div>
-        <div class="stat">
-          <div class="stat-label">Exibidas</div>
-          <div class="stat-value" id="sac-stat-exibidas">—</div>
-        </div>
+
+        <div id="sac-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:14px;"></div>
       </div>
 
-      <div id="sac-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:14px;"></div>
+      <!-- ══════ TRATATIVA ══════ -->
+      <div id="view-sac-tratativas" class="view-content">
+        <div class="toolbar">
+          <div class="toolbar-spacer"></div>
+          <select id="sac-trat-filter-cat">
+            <option value="">Todas as categorias</option>
+            <option value="sugestao">Sugestão</option>
+            <option value="reclamacao">Reclamação</option>
+            <option value="elogio">Elogio</option>
+            <option value="duvida">Dúvida</option>
+            <option value="outro">Outro</option>
+          </select>
+          <select id="sac-trat-filter-status">
+            <option value="">Todos os status</option>
+            <option value="aberta">Aberta</option>
+            <option value="em_andamento">Em andamento</option>
+            <option value="resolvida">Resolvida</option>
+          </select>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat stat-warn">
+            <div class="stat-label">Abertas</div>
+            <div class="stat-value" id="sac-trat-stat-abertas">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Em andamento</div>
+            <div class="stat-value" id="sac-trat-stat-andamento">—</div>
+          </div>
+          <div class="stat stat-success">
+            <div class="stat-label">Resolvidas</div>
+            <div class="stat-value" id="sac-trat-stat-resolvidas">—</div>
+          </div>
+        </div>
+
+        <div id="sac-trat-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap:14px;"></div>
+      </div>
 
     </section>
 
@@ -3232,6 +3279,45 @@
 </div>
 
 <!-- ════════════ MODAL — PRESTADOR DE SERVIÇO ════════════ -->
+<!-- ════════════ MODAL — TRATATIVA DO SAC ════════════ -->
+<div id="modal-tratativa" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Tratativa da mensagem</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalTratativa()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--bluish-bg); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:16px;">
+        <div id="trat-msg-cat" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"></div>
+        <div id="trat-msg-texto" style="white-space:pre-wrap; font-size:.92rem; color:var(--text); line-height:1.5;"></div>
+      </div>
+      <form id="form-tratativa" onsubmit="salvarTratativa(event)" style="display:flex; flex-direction:column; gap:14px;">
+        <input type="hidden" name="id">
+        <div class="form-group">
+          <label>Status da tratativa</label>
+          <select name="status_tratativa">
+            <option value="aberta">Aberta</option>
+            <option value="em_andamento">Em andamento</option>
+            <option value="resolvida">Resolvida</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Responsável (RH)</label>
+          <input type="text" name="responsavel" placeholder="Quem está tratando">
+        </div>
+        <div class="form-group">
+          <label>Providências / encaminhamento</label>
+          <textarea name="tratativa" rows="5" placeholder="Descreva o que foi feito, encaminhamentos, retorno ao setor, etc."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalTratativa()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-tratativa">Salvar tratativa</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-prestador" class="modal">
   <div class="modal-box">
     <div class="modal-header">
@@ -3622,18 +3708,18 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260624h"></script>
-<script src="src/utils/base.js?v=20260624h"></script>
-<script src="src/dashboard.js?v=20260624h"></script>
-<script src="src/utils/relatorio.js?v=20260624h"></script>
-<script src="supabase.js?v=20260624h"></script>
-<script src="src/api/pessoas.js?v=20260624h"></script>
-<script src="src/api/compliance.js?v=20260624h"></script>
-<script src="src/api/beneficios.js?v=20260624h"></script>
-<script src="src/api/gestao.js?v=20260624h"></script>
-<script src="src/api/init.js?v=20260624h"></script>
-<script src="src/auth.js?v=20260624h"></script>
-<script type="module" src="src/app.js?v=20260624h"></script>
+<script src="src/data-store.js?v=20260624i"></script>
+<script src="src/utils/base.js?v=20260624i"></script>
+<script src="src/dashboard.js?v=20260624i"></script>
+<script src="src/utils/relatorio.js?v=20260624i"></script>
+<script src="supabase.js?v=20260624i"></script>
+<script src="src/api/pessoas.js?v=20260624i"></script>
+<script src="src/api/compliance.js?v=20260624i"></script>
+<script src="src/api/beneficios.js?v=20260624i"></script>
+<script src="src/api/gestao.js?v=20260624i"></script>
+<script src="src/api/init.js?v=20260624i"></script>
+<script src="src/auth.js?v=20260624i"></script>
+<script type="module" src="src/app.js?v=20260624i"></script>
 
 </body>
 </html>

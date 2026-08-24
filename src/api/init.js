@@ -329,6 +329,7 @@ async function inicializarSupabase() {
     if (typeof renderProcedimentos  === 'function') renderProcedimentos();
     if (typeof renderProlabore      === 'function') renderProlabore();
     if (typeof renderSac            === 'function') renderSac();
+    if (typeof renderSacTratativas  === 'function') renderSacTratativas();
     if (typeof renderPrestadores    === 'function') renderPrestadores();
     if (typeof renderBeneficios     === 'function') renderBeneficios();
     if (typeof renderDashboard      === 'function') renderDashboard();
@@ -547,6 +548,7 @@ function setupRealTimeListeners() {
         _upsertArray(SAC, novoReg);
       }
       if (typeof renderSac === 'function') renderSac();
+      if (typeof renderSacTratativas === 'function') renderSacTratativas();
       if (typeof atualizarBadgeSac === 'function') atualizarBadgeSac();
     }
 

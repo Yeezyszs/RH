@@ -328,7 +328,7 @@ const SacMensagens = {
   async listar() {
     const { data, error } = await withTimeout(
       sb.from('sac_mensagens')
-        .select('id, categoria, mensagem, lido, criado_em')
+        .select('id, categoria, mensagem, lido, status_tratativa, tratativa, responsavel, tratado_em, criado_em')
         .order('criado_em', { ascending: false })
     );
     if (error) throw error;
@@ -338,6 +338,15 @@ const SacMensagens = {
   async marcarLido(id, lido) {
     const { error } = await withTimeout(
       sb.from('sac_mensagens').update({ lido }).eq('id', id)
+    );
+    if (error) throw error;
+  },
+
+  async atualizarTratativa(id, payload) {
+    const { error } = await withTimeout(
+      sb.from('sac_mensagens')
+        .update({ ...payload, tratado_em: new Date().toISOString() })
+        .eq('id', id)
     );
     if (error) throw error;
   },
