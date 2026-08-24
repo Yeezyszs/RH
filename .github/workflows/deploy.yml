@@ -48,7 +48,10 @@ jobs:
           cp supabase.js _site/
           cp -r css _site/
           cp -r src _site/
-          # Cria 404.html (SPA redirect)
+          # Páginas públicas avulsas (não fazem parte do SPA)
+          cp sac.html _site/
+          cp privacidade.html _site/
+          # Cria 404.html (SPA redirect) — depois das páginas avulsas para não sobrescrevê-las
           cp index.html _site/404.html
           echo "Arquivos prontos para deploy:"
           find _site -type f | sort
