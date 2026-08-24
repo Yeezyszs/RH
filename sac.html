@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>SAC — Canal do Colaborador</title>
+<style>
+  :root {
+    --phthalo: #123e6b; --phthalo-dark: #0d2d4f; --phthalo-light: #2e7ab8;
+    --bg: #eef3f8; --white: #ffffff; --border: #d7e0ea;
+    --text: #1a2430; --text-muted: #5b6b7d; --text-soft: #8a98a8;
+    --success: #10b981; --danger: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(160deg, #dbeafe 0%, var(--bg) 45%);
+    color: var(--text); min-height: 100vh;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: var(--white); width: 100%; max-width: 520px;
+    border-radius: 16px; box-shadow: 0 12px 40px rgba(18,62,107,.15);
+    overflow: hidden; border: 1px solid var(--border);
+  }
+  .head {
+    background: linear-gradient(135deg, var(--phthalo), var(--phthalo-dark));
+    color: #fff; padding: 26px 28px;
+  }
+  .head h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em; }
+  .head p { font-size: .86rem; opacity: .85; margin-top: 6px; line-height: 1.5; }
+  .body { padding: 24px 28px 28px; }
+  .anon {
+    display: flex; align-items: center; gap: 10px;
+    background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46;
+    border-radius: 10px; padding: 10px 14px; font-size: .82rem; margin-bottom: 20px;
+  }
+  label { display: block; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+          color: var(--text-muted); font-weight: 600; margin-bottom: 7px; }
+  .field { margin-bottom: 18px; }
+  select, textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; font-size: .95rem; font-family: inherit; color: var(--text);
+    background: #f8fafc; transition: border-color .15s, box-shadow .15s;
+  }
+  select:focus, textarea:focus {
+    outline: none; border-color: var(--phthalo-light);
+    box-shadow: 0 0 0 3px rgba(46,122,184,.15); background: #fff;
+  }
+  textarea { min-height: 140px; resize: vertical; line-height: 1.5; }
+  .cats { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; }
+  .cat {
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 6px;
+    text-align: center; cursor: pointer; font-size: .82rem; font-weight: 600;
+    background: #f8fafc; color: var(--text-muted); transition: all .12s; user-select: none;
+  }
+  .cat .emoji { display: block; font-size: 1.3rem; margin-bottom: 3px; }
+  .cat.active { border-color: var(--phthalo-light); background: #eaf3fb; color: var(--phthalo-dark); box-shadow: 0 0 0 2px rgba(46,122,184,.18); }
+  button.enviar {
+    width: 100%; background: linear-gradient(135deg, var(--phthalo-light), var(--phthalo));
+    color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 1rem;
+    font-weight: 700; cursor: pointer; transition: filter .15s, transform .05s; margin-top: 4px;
+  }
+  button.enviar:hover { filter: brightness(1.05); }
+  button.enviar:active { transform: translateY(1px); }
+  button.enviar:disabled { opacity: .6; cursor: not-allowed; }
+  .msg { text-align: center; font-size: .9rem; margin-top: 16px; min-height: 20px; }
+  .msg.ok { color: var(--success); font-weight: 600; }
+  .msg.err { color: var(--danger); font-weight: 600; }
+  .sucesso {
+    text-align: center; padding: 20px 10px;
+  }
+  .sucesso .check {
+    width: 64px; height: 64px; border-radius: 50%; background: #ecfdf5;
+    display: grid; place-items: center; margin: 0 auto 16px; font-size: 2rem;
+  }
+  .sucesso h2 { color: var(--phthalo-dark); font-size: 1.2rem; margin-bottom: 8px; }
+  .sucesso p { color: var(--text-muted); font-size: .9rem; line-height: 1.5; margin-bottom: 20px; }
+  .foot { text-align: center; font-size: .72rem; color: var(--text-soft); padding: 0 28px 20px; }
+  .btn-outline {
+    background: #fff; color: var(--phthalo); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="head">
+      <h1>🗣️ Canal do Colaborador (SAC)</h1>
+      <p>Deixe sua opinião, sugestão, elogio ou reclamação. Sua identidade não é registrada.</p>
+    </div>
+
+    <div class="body" id="form-wrap">
+      <div class="anon">🔒 Envio 100% anônimo — não coletamos seu nome, e-mail ou qualquer identificação.</div>
+
+      <div class="field">
+        <label>Categoria</label>
+        <div class="cats" id="cats">
+          <div class="cat" data-v="sugestao"><span class="emoji">💡</span>Sugestão</div>
+          <div class="cat" data-v="reclamacao"><span class="emoji">⚠️</span>Reclamação</div>
+          <div class="cat" data-v="elogio"><span class="emoji">👏</span>Elogio</div>
+          <div class="cat" data-v="duvida"><span class="emoji">❓</span>Dúvida</div>
+          <div class="cat" data-v="outro"><span class="emoji">✍️</span>Outro</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Sua mensagem</label>
+        <textarea id="mensagem" maxlength="2000" placeholder="Escreva aqui sua opinião, sugestão, pedido…"></textarea>
+      </div>
+
+      <button class="enviar" id="btn-enviar" onclick="enviarSac()">Enviar anonimamente</button>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div class="body sucesso" id="sucesso-wrap" style="display:none;">
+      <div class="check">✅</div>
+      <h2>Mensagem enviada!</h2>
+      <p>Obrigado pela sua contribuição. Ela foi registrada de forma anônima e será analisada pela equipe.</p>
+      <button class="btn-outline" onclick="novoEnvio()">Enviar outra mensagem</button>
+    </div>
+
+    <div class="foot">Recursos Humanos · Este canal é confidencial e anônimo.</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL  = 'https://smfiujgaxaodyfwvoxwy.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtZml1amdheGFvZHlmd3ZveHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NjczOTQsImV4cCI6MjA5MzA0MzM5NH0.8zj1LtQOMZWOkaoYIxSQHG1xnpQFxtHVRtQ6vXHnrPY';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    let categoria = '';
+    document.getElementById('cats').addEventListener('click', (e) => {
+      const el = e.target.closest('.cat');
+      if (!el) return;
+      document.querySelectorAll('.cat').forEach(c => c.classList.toggle('active', c === el));
+      categoria = el.dataset.v;
+      document.getElementById('msg').textContent = '';
+    });
+
+    async function enviarSac() {
+      const mensagem = document.getElementById('mensagem').value.trim();
+      const msgEl = document.getElementById('msg');
+      msgEl.className = 'msg';
+      if (!categoria) { msgEl.textContent = 'Escolha uma categoria.'; msgEl.classList.add('err'); return; }
+      if (mensagem.length < 3) { msgEl.textContent = 'Escreva sua mensagem.'; msgEl.classList.add('err'); return; }
+
+      const btn = document.getElementById('btn-enviar');
+      btn.disabled = true; btn.textContent = 'Enviando…';
+      try {
+        // Sem .select(): a role anônima só tem permissão de INSERT, não de leitura.
+        const { error } = await sb.from('sac_mensagens').insert({ categoria, mensagem });
+        if (error) throw error;
+        document.getElementById('form-wrap').style.display = 'none';
+        document.getElementById('sucesso-wrap').style.display = 'block';
+      } catch (err) {
+        msgEl.textContent = 'Não foi possível enviar. Tente novamente.';
+        msgEl.classList.add('err');
+        console.error(err);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Enviar anonimamente';
+      }
+    }
+
+    function novoEnvio() {
+      document.getElementById('mensagem').value = '';
+      categoria = '';
+      document.querySelectorAll('.cat').forEach(c => c.classList.remove('active'));
+      document.getElementById('msg').textContent = '';
+      document.getElementById('sucesso-wrap').style.display = 'none';
+      document.getElementById('form-wrap').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

@@ -324,6 +324,32 @@ const ProlaboreSocios = {
   },
 };
 
+const SacMensagens = {
+  async listar() {
+    const { data, error } = await withTimeout(
+      sb.from('sac_mensagens')
+        .select('id, categoria, mensagem, lido, criado_em')
+        .order('criado_em', { ascending: false })
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async marcarLido(id, lido) {
+    const { error } = await withTimeout(
+      sb.from('sac_mensagens').update({ lido }).eq('id', id)
+    );
+    if (error) throw error;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('sac_mensagens').delete().eq('id', id)
+    );
+    if (error) throw error;
+  },
+};
+
 const RespostasPesquisa = {
   async listarPorPesquisa(pesquisaId) {
     const { data, error } = await withTimeout(

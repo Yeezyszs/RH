@@ -6,11 +6,11 @@
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/tokens.css?v=20260624g">
-<link rel="stylesheet" href="css/layout.css?v=20260624g">
-<link rel="stylesheet" href="css/components.css?v=20260624g">
-<link rel="stylesheet" href="css/pages.css?v=20260624g">
-<link rel="stylesheet" href="css/login.css?v=20260624g">
+<link rel="stylesheet" href="css/tokens.css?v=20260624h">
+<link rel="stylesheet" href="css/layout.css?v=20260624h">
+<link rel="stylesheet" href="css/components.css?v=20260624h">
+<link rel="stylesheet" href="css/pages.css?v=20260624h">
+<link rel="stylesheet" href="css/login.css?v=20260624h">
 </head>
 <body>
 
@@ -177,6 +177,11 @@
       <div class="nav-item" data-page="prestadores">
         <span class="nav-icon">⚒</span>
         <span>Prestadores de Serviço</span>
+      </div>
+      <div class="nav-item" data-page="sac">
+        <span class="nav-icon">🗣</span>
+        <span>SAC (Canal Anônimo)</span>
+        <span id="sac-nav-badge" class="nav-badge" style="display:none;"></span>
       </div>
     </div>
 
@@ -1895,6 +1900,62 @@
 
     </section>
 
+    <!-- ───── SAC — CANAL DO COLABORADOR ───── -->
+    <section id="page-sac" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">SAC — Canal do Colaborador</h1>
+          <div class="page-subtitle">Mensagens anônimas dos funcionários · opiniões, sugestões e reclamações</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="copiarLinkSac()">🔗 Copiar link do canal</button>
+      </div>
+
+      <div class="sensitive-banner" style="background:linear-gradient(135deg,#DBEAFE,#F0F7FF); border-color:#93C5FD; border-left-color:var(--info); margin-bottom:14px;">
+        <div class="sb-icon" style="background:var(--info);">ℹ</div>
+        <div>
+          <div class="sb-title" style="color:var(--phthalo-dark);">Canal anônimo</div>
+          <div class="sb-sub" style="color:var(--text-muted);">Compartilhe o link (ou um QR code dele) com os funcionários — ex.: <strong>sac.html</strong>. As mensagens chegam aqui sem qualquer identificação de quem enviou.</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="sac-search" placeholder="Buscar no texto das mensagens…">
+        </div>
+        <select id="sac-filter-cat">
+          <option value="">Todas as categorias</option>
+          <option value="sugestao">Sugestão</option>
+          <option value="reclamacao">Reclamação</option>
+          <option value="elogio">Elogio</option>
+          <option value="duvida">Dúvida</option>
+          <option value="outro">Outro</option>
+        </select>
+        <select id="sac-filter-lido">
+          <option value="">Todas</option>
+          <option value="nao">Não lidas</option>
+          <option value="sim">Lidas</option>
+        </select>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Total recebidas</div>
+          <div class="stat-value" id="sac-stat-total">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Não lidas</div>
+          <div class="stat-value" id="sac-stat-novas">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Exibidas</div>
+          <div class="stat-value" id="sac-stat-exibidas">—</div>
+        </div>
+      </div>
+
+      <div id="sac-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:14px;"></div>
+
+    </section>
+
   </main>
 
 </div><!-- /.app-shell -->
@@ -3561,18 +3622,18 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260624g"></script>
-<script src="src/utils/base.js?v=20260624g"></script>
-<script src="src/dashboard.js?v=20260624g"></script>
-<script src="src/utils/relatorio.js?v=20260624g"></script>
-<script src="supabase.js?v=20260624g"></script>
-<script src="src/api/pessoas.js?v=20260624g"></script>
-<script src="src/api/compliance.js?v=20260624g"></script>
-<script src="src/api/beneficios.js?v=20260624g"></script>
-<script src="src/api/gestao.js?v=20260624g"></script>
-<script src="src/api/init.js?v=20260624g"></script>
-<script src="src/auth.js?v=20260624g"></script>
-<script type="module" src="src/app.js?v=20260624g"></script>
+<script src="src/data-store.js?v=20260624h"></script>
+<script src="src/utils/base.js?v=20260624h"></script>
+<script src="src/dashboard.js?v=20260624h"></script>
+<script src="src/utils/relatorio.js?v=20260624h"></script>
+<script src="supabase.js?v=20260624h"></script>
+<script src="src/api/pessoas.js?v=20260624h"></script>
+<script src="src/api/compliance.js?v=20260624h"></script>
+<script src="src/api/beneficios.js?v=20260624h"></script>
+<script src="src/api/gestao.js?v=20260624h"></script>
+<script src="src/api/init.js?v=20260624h"></script>
+<script src="src/auth.js?v=20260624h"></script>
+<script type="module" src="src/app.js?v=20260624h"></script>
 
 </body>
 </html>

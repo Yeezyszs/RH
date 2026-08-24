@@ -29,6 +29,7 @@
     prestadores:       'Relatório de Prestadores de Serviço',
     beneficios:        'Relatório de Benefícios (consolidado)',
     prolabore:         'Relatório de Pró-labore dos Sócios',
+    sac:               'Relatório de Mensagens do SAC',
   };
 
   const ESTILO_RELATORIO = `

@@ -382,6 +382,7 @@ function renderAll() {
   if (typeof renderBeneficios     === 'function') renderBeneficios();
   if (typeof renderPrestadores    === 'function') renderPrestadores();
   if (typeof renderProlabore      === 'function') renderProlabore();
+  if (typeof renderSac            === 'function') renderSac();
 }
 
 if (document.readyState === 'loading') {

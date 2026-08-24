@@ -40,7 +40,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, afastamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -66,6 +66,7 @@ async function inicializarSupabase() {
         ContatosEmergencia.listar(),
         ProcedimentosEmpresa.listar(),
         ProlaboreSocios.listar(),
+        SacMensagens.listar(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -195,6 +196,14 @@ async function inicializarSupabase() {
       }
     }
 
+    if (sac.status === 'fulfilled') {
+      const lista = sac.value ?? [];
+      if (lista.length > 0) {
+        _preencherArray(SAC, lista);
+        console.info(`[RH] ${SAC.length} mensagens de SAC carregadas.`);
+      }
+    }
+
     if (salarios.status === 'fulfilled') {
       const lista = salarios.value ?? [];
       if (lista.length > 0) {
@@ -319,6 +328,7 @@ async function inicializarSupabase() {
     if (typeof renderPoliticas      === 'function') renderPoliticas();
     if (typeof renderProcedimentos  === 'function') renderProcedimentos();
     if (typeof renderProlabore      === 'function') renderProlabore();
+    if (typeof renderSac            === 'function') renderSac();
     if (typeof renderPrestadores    === 'function') renderPrestadores();
     if (typeof renderBeneficios     === 'function') renderBeneficios();
     if (typeof renderDashboard      === 'function') renderDashboard();
@@ -530,6 +540,16 @@ function setupRealTimeListeners() {
       if (typeof renderProlabore === 'function') renderProlabore();
     }
 
+    if (table === 'sac_mensagens') {
+      if (eventType === 'DELETE') {
+        _filtrarArray(SAC, x => x.id !== id);
+      } else {
+        _upsertArray(SAC, novoReg);
+      }
+      if (typeof renderSac === 'function') renderSac();
+      if (typeof atualizarBadgeSac === 'function') atualizarBadgeSac();
+    }
+
     if (table === 'contatos_emergencia') {
       if (eventType === 'DELETE') {
         _filtrarArray(CONTATOS_EMERG, x => x.id !== id);
@@ -606,7 +626,7 @@ function setupRealTimeListeners() {
     'epis', 'salario_atual', 'documentos', 'asos', 'feedbacks', 'pesquisas_clima',
     'vale_combustivel', 'vale_alimentacao', 'rotatividade', 'participantes_treinamento',
     'politicas_empresa', 'epi_catalogo', 'epi_kits', 'prestadores_servico',
-    'contatos_emergencia', 'procedimentos_empresa', 'prolabore_socios',
+    'contatos_emergencia', 'procedimentos_empresa', 'prolabore_socios', 'sac_mensagens',
   ];
 
   // Supabase JS v2: um único canal acumula vários filtros .on() antes do
@@ -651,6 +671,7 @@ window.FeedbackClima          = FeedbackClima;
 window.PoliticasEmpresa       = PoliticasEmpresa;
 window.ProcedimentosEmpresa   = ProcedimentosEmpresa;
 window.ProlaboreSocios        = ProlaboreSocios;
+window.SacMensagens           = SacMensagens;
 window.StorageDocs            = StorageDocs;
 window.PrestadoresServico     = PrestadoresServico;
 window.RespostasPesquisa      = RespostasPesquisa;
