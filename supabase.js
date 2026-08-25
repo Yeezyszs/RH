@@ -148,7 +148,8 @@ function mapAdvertencia(row) {
     gestor:         row.gestor || '',
     testemunhas:    row.testemunhas || '',
     dias_suspensao: row.dias_suspensao ?? null,
-    status:         row.resposta_colaborador ? 'respondida' : 'pendente',
+    assinada_em:    row.assinada_em || null,
+    status:         row.status || (row.resposta_colaborador ? 'respondida' : 'pendente'),
   };
 }
 

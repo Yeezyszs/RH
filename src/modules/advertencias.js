@@ -359,14 +359,27 @@ export class AdvertenciasModule {
     this.state.drawerAdvId = null;
   }
 
-  marcarAssinada() {
+  async marcarAssinada() {
     if (this.state.drawerAdvId == null) return;
-    const a = this.ADVERTENCIAS.find(x => x.id === this.state.drawerAdvId);
+    const id = this.state.drawerAdvId;
+    const a = this.ADVERTENCIAS.find(x => x.id === id);
     if (!a) return;
+    const assinadaEm = new Date().toISOString().slice(0, 10);
+
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao && this.Advertencias) {
+      try {
+        await this.Advertencias.atualizar(id, { status: 'assinada', assinada_em: assinadaEm });
+      } catch (err) {
+        window.showToast?.('Erro ao assinar: ' + err.message, 'err');
+        return;
+      }
+    }
     a.status = 'assinada';
-    a.assinada_em = new Date().toISOString().slice(0, 10);
+    a.assinada_em = assinadaEm;
+    window.showToast?.('Advertência marcada como assinada', 'ok');
     this.render();
-    this.abrirDrawer(this.state.drawerAdvId);
+    this.abrirDrawer(id);
   }
 
   mostrarAlertaReincidencia() {
@@ -482,7 +495,8 @@ export class AdvertenciasModule {
       descricao:        data.descricao,
       gestor:           data.gestor,
       testemunhas:      data.testemunhas || '',
-      resposta_colaborador: data.status === 'respondida' ? data.descricao : null,
+      status:           data.status || 'pendente',
+      assinada_em:      data.status === 'assinada' ? new Date().toISOString().slice(0, 10) : null,
       dias_suspensao:   data.tipo === 'suspensao' ? parseInt(data.dias_suspensao, 10) || 1 : null,
     };
 
