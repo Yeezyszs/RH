@@ -16,9 +16,9 @@ export class AdvertenciasModule {
     this.Advertencias = deps.Advertencias;
 
     this.ADV_COLOR = {
-      verbal:    '#F59E0B',
-      escrita:   '#F97316',
-      suspensao: '#DC2626',
+      verbal:    '#FDE047',  // amarelo claro
+      escrita:   '#EA580C',  // laranja forte
+      suspensao: '#991B1B',  // vermelho escuro
     };
 
     this.state = {
@@ -305,7 +305,13 @@ export class AdvertenciasModule {
       <div class="info-item"><div class="info-label">Data</div><div class="info-value mono">${this.fmtDate(a.data)}</div></div>
       <div class="info-item"><div class="info-label">Tipo</div><div class="info-value"><span class="badge ${tipoBadge.cls}">${tipoBadge.t}${a.tipo === 'suspensao' && a.dias_suspensao ? ` ${a.dias_suspensao}d` : ''}</span></div></div>
       <div class="info-item"><div class="info-label">Categoria</div><div class="info-value">${this.h(a.categoria)}</div></div>
-      <div class="info-item"><div class="info-label">Status</div><div class="info-value">${this.ADV_STATUS_BADGE[a.status] || '—'}</div></div>
+      <div class="info-item"><div class="info-label">Status</div><div class="info-value">
+        <select onchange="mudarStatusAdv(this.value)" style="padding:5px 8px; border:1px solid var(--line); border-radius:7px; font-size:.8rem; background:var(--surface); cursor:pointer;">
+          <option value="pendente" ${a.status === 'pendente' ? 'selected' : ''}>Pendente assinatura</option>
+          <option value="assinada" ${a.status === 'assinada' ? 'selected' : ''}>Assinada</option>
+          <option value="recusada" ${a.status === 'recusada' ? 'selected' : ''}>Recusada</option>
+        </select>
+      </div></div>
       <div class="info-item"><div class="info-label">Gestor</div><div class="info-value">${this.h(a.gestor)}</div></div>
       <div class="info-item"><div class="info-label">Testemunhas</div><div class="info-value">${this.h(a.testemunhas || '—')}</div></div>
       ${a.assinada_em ? `<div class="info-item"><div class="info-label">Assinada em</div><div class="info-value mono">${this.fmtDate(a.assinada_em)}</div></div>` : ''}
@@ -378,6 +384,35 @@ export class AdvertenciasModule {
     a.status = 'assinada';
     a.assinada_em = assinadaEm;
     window.showToast?.('Advertência marcada como assinada', 'ok');
+    this.render();
+    this.abrirDrawer(id);
+  }
+
+  async mudarStatus(novoStatus) {
+    if (this.state.drawerAdvId == null) return;
+    if (!['pendente', 'assinada', 'recusada'].includes(novoStatus)) return;
+    const id = this.state.drawerAdvId;
+    const a = this.ADVERTENCIAS.find(x => x.id === id);
+    if (!a || a.status === novoStatus) return;
+
+    const assinadaEm = novoStatus === 'assinada' ? new Date().toISOString().slice(0, 10) : null;
+    const payload = { status: novoStatus, assinada_em: assinadaEm };
+
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao && this.Advertencias) {
+      try {
+        const saved = await this.Advertencias.atualizar(id, payload);
+        if (saved) Object.assign(a, saved);
+      } catch (err) {
+        window.showToast?.('Erro ao alterar status: ' + err.message, 'err');
+        this.abrirDrawer(id); // reverte o select para o valor anterior
+        return;
+      }
+    } else {
+      a.status = novoStatus;
+      a.assinada_em = assinadaEm;
+    }
+    window.showToast?.('Status atualizado', 'ok');
     this.render();
     this.abrirDrawer(id);
   }
@@ -503,10 +538,14 @@ export class AdvertenciasModule {
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
       try {
-        if (id != null) {
-          await this.Advertencias.atualizar(id, payload);
-        } else {
-          await this.Advertencias.criar(payload);
+        const saved = id != null
+          ? await this.Advertencias.atualizar(id, payload)
+          : await this.Advertencias.criar(payload);
+        // Atualiza o array local na hora — não espera o realtime.
+        if (saved) {
+          const i = this.ADVERTENCIAS.findIndex(x => x.id === saved.id);
+          if (i >= 0) this.ADVERTENCIAS[i] = saved;
+          else this.ADVERTENCIAS.unshift(saved);
         }
       } catch (err) {
         window.showToast?.('Erro ao salvar: ' + err.message, 'err');
