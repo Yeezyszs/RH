@@ -77,6 +77,22 @@
   }
   .sucesso h2 { color: var(--phthalo-dark); font-size: 1.2rem; margin-bottom: 8px; }
   .sucesso p { color: var(--text-muted); font-size: .9rem; line-height: 1.5; margin-bottom: 20px; }
+  .protocolo-box {
+    background: #f1f6fb; border: 1px dashed var(--phthalo-light); border-radius: 12px;
+    padding: 16px; margin: 0 0 20px;
+  }
+  .protocolo-label { display: block; font-size: .7rem; letter-spacing: .09em; text-transform: uppercase;
+                     color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+  .protocolo-num {
+    font-family: 'Consolas', 'SF Mono', monospace; font-size: 1.5rem; font-weight: 800;
+    color: var(--phthalo-dark); letter-spacing: .04em; margin-bottom: 12px; user-select: all;
+  }
+  .btn-copiar {
+    background: var(--phthalo); color: #fff; border: none; border-radius: 8px;
+    padding: 9px 16px; font-size: .85rem; font-weight: 600; cursor: pointer;
+  }
+  .btn-copiar:hover { filter: brightness(1.08); }
+  .protocolo-hint { display: block; font-size: .76rem; color: var(--text-muted); margin-top: 10px; line-height: 1.4; }
   .foot { text-align: center; font-size: .72rem; color: var(--text-soft); padding: 0 28px 20px; }
   .btn-outline {
     background: #fff; color: var(--phthalo); border: 1px solid var(--border);
@@ -118,6 +134,12 @@
       <div class="check">✅</div>
       <h2>Mensagem enviada!</h2>
       <p>Obrigado pela sua contribuição. Ela foi registrada de forma anônima e será analisada pela equipe.</p>
+      <div class="protocolo-box">
+        <span class="protocolo-label">Seu número de protocolo</span>
+        <div class="protocolo-num" id="protocolo-num">—</div>
+        <button class="btn-copiar" type="button" onclick="copiarProtocolo()">📋 Copiar protocolo</button>
+        <span class="protocolo-hint">Anote este número. Ele identifica sua mensagem e pode ser usado para acompanhar a resposta junto ao RH — sem revelar sua identidade.</span>
+      </div>
       <button class="btn-outline" onclick="novoEnvio()">Enviar outra mensagem</button>
     </div>
 
@@ -131,6 +153,28 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     let categoria = '';
+    let ultimoProtocolo = '';
+
+    // Protocolo gerado no cliente para poder exibi-lo ao autor na hora
+    // (a role anônima não tem permissão de leitura para buscá-lo de volta).
+    // Formato: SAC-AAAAMMDD-XXXXX
+    function gerarProtocolo() {
+      const now = new Date();
+      const data = now.getFullYear().toString()
+        + String(now.getMonth() + 1).padStart(2, '0')
+        + String(now.getDate()).padStart(2, '0');
+      let suf = '';
+      for (let i = 0; i < 5; i++) suf += Math.floor(Math.random() * 36).toString(36).toUpperCase();
+      return `SAC-${data}-${suf}`;
+    }
+
+    function copiarProtocolo() {
+      if (!ultimoProtocolo) return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(ultimoProtocolo).catch(() => {});
+      }
+    }
+
     document.getElementById('cats').addEventListener('click', (e) => {
       const el = e.target.closest('.cat');
       if (!el) return;
@@ -149,9 +193,20 @@
       const btn = document.getElementById('btn-enviar');
       btn.disabled = true; btn.textContent = 'Enviando…';
       try {
+        // Gera o protocolo no cliente e reenvia caso (raríssimo) colida com um já existente.
         // Sem .select(): a role anônima só tem permissão de INSERT, não de leitura.
-        const { error } = await sb.from('sac_mensagens').insert({ categoria, mensagem });
-        if (error) throw error;
+        let protocolo = '', enviado = false;
+        for (let tent = 0; tent < 5 && !enviado; tent++) {
+          protocolo = gerarProtocolo();
+          const { error } = await sb.from('sac_mensagens').insert({ categoria, mensagem, protocolo });
+          if (!error) { enviado = true; break; }
+          if (error.code === '23505') continue; // protocolo duplicado — tenta outro
+          throw error;
+        }
+        if (!enviado) throw new Error('Não foi possível gerar um protocolo. Tente novamente.');
+
+        ultimoProtocolo = protocolo;
+        document.getElementById('protocolo-num').textContent = protocolo;
         document.getElementById('form-wrap').style.display = 'none';
         document.getElementById('sucesso-wrap').style.display = 'block';
       } catch (err) {

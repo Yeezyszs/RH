@@ -53,6 +53,11 @@ export class SacModule {
   _cat(m)  { return SAC_CAT[m.categoria] || { t: m.categoria, cls: 'neutral', emoji: '•' }; }
   _trat(m) { return TRAT_STATUS[m.status_tratativa || 'aberta'] || TRAT_STATUS.aberta; }
 
+  _protoTag(m) {
+    if (!m.protocolo) return '';
+    return `<span class="cell-mono" title="Nº de protocolo (o mesmo da tratativa)" style="font-size:.72rem; font-weight:700; color:var(--phthalo); letter-spacing:.03em;">${this.h(m.protocolo)}</span>`;
+  }
+
   _corBorda(cls) {
     return cls === 'danger' ? 'var(--danger)' : cls === 'ok' ? 'var(--success)' : cls === 'warn' ? 'var(--warning)' : 'var(--phthalo-light)';
   }
@@ -88,7 +93,10 @@ export class SacModule {
               <span class="badge ${cat.cls}">${cat.t}</span>
               ${m.lido ? '' : '<span class="badge info" style="font-size:.6rem;">novo</span>'}
             </div>
-            <span class="widget-badge">${this._dataHora(m.criado_em)}</span>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+              ${this._protoTag(m)}
+              <span class="widget-badge">${this._dataHora(m.criado_em)}</span>
+            </div>
           </div>
           <div style="white-space:pre-wrap; font-size:.92rem; color:var(--text); line-height:1.5; padding:4px 2px 10px;">${this.h(m.mensagem)}</div>
           <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; border-top:1px solid var(--border-soft); padding-top:8px;">
@@ -143,7 +151,10 @@ export class SacModule {
               <span class="badge ${cat.cls}">${cat.t}</span>
               <span class="badge ${trat.cls}">${trat.t}</span>
             </div>
-            <span class="widget-badge">${this._dataHora(m.criado_em)}</span>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+              ${this._protoTag(m)}
+              <span class="widget-badge">${this._dataHora(m.criado_em)}</span>
+            </div>
           </div>
           <div style="white-space:pre-wrap; font-size:.9rem; color:var(--text-muted); line-height:1.45; padding:4px 2px 8px; border-bottom:1px dashed var(--border-soft);">${this.h(m.mensagem)}</div>
           <div style="padding:8px 2px;">
@@ -172,7 +183,7 @@ export class SacModule {
     form.reset();
     form.elements['id'].value = m.id;
     const cat = this._cat(m);
-    this.$('#trat-msg-cat').innerHTML = `${cat.emoji} <span class="badge ${cat.cls}">${cat.t}</span> <span class="cell-person-sub">${this._dataHora(m.criado_em)}</span>`;
+    this.$('#trat-msg-cat').innerHTML = `${cat.emoji} <span class="badge ${cat.cls}">${cat.t}</span> ${this._protoTag(m)} <span class="cell-person-sub">${this._dataHora(m.criado_em)}</span>`;
     this.$('#trat-msg-texto').textContent = m.mensagem || '';
     form.elements['status_tratativa'].value = m.status_tratativa || 'aberta';
     form.elements['responsavel'].value = m.responsavel || '';
