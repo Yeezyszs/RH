@@ -267,10 +267,15 @@ async function inicializarSupabase() {
     if (valeCotas.status === 'fulfilled') {
       const lista = valeCotas.value ?? [];
       if (lista.length > 0) {
-        // Cota mais recente por colaborador (lista ordenada por ano/mês desc).
+        // Cota mais recente por colaborador (lista ordenada por ano/mês desc)
+        // + histórico mês a mês em VALE_COTAS_MES.
         lista.forEach(c => {
+          const valor = parseFloat(c.valor_mensal) || 0;
+          if (c.mes != null && c.ano != null) {
+            VALE_COTAS_MES[`${c.colaborador_id}|${c.ano}-${String(c.mes).padStart(2, '0')}`] = valor;
+          }
           if (VALE_COTAS[c.colaborador_id] != null) return;
-          VALE_COTAS[c.colaborador_id] = parseFloat(c.valor_mensal) || 0;
+          VALE_COTAS[c.colaborador_id] = valor;
         });
         console.info(`[RH] ${Object.keys(VALE_COTAS).length} cotas de vale combustível carregadas.`);
       }
@@ -569,6 +574,10 @@ function setupRealTimeListeners() {
       } else if (novoReg && novoReg.colaborador_id != null) {
         // Linha sem data = cota mensal
         VALE_COTAS[novoReg.colaborador_id] = parseFloat(novoReg.valor_mensal) || 0;
+        if (novoReg.mes != null && novoReg.ano != null) {
+          VALE_COTAS_MES[`${novoReg.colaborador_id}|${novoReg.ano}-${String(novoReg.mes).padStart(2, '0')}`] =
+            parseFloat(novoReg.valor_mensal) || 0;
+        }
       }
       if (typeof renderVale === 'function') renderVale();
     }

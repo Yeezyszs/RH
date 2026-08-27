@@ -17,6 +17,8 @@ var EPI_CATALOGO   = [];
 var EPI_ENTREGAS   = [];
 var EPI_KITS       = {};
 var VALE_COTAS     = {};
+// Cota por mês: chave `${colaborador_id}|AAAA-MM` (VALE_COTAS guarda a mais recente).
+var VALE_COTAS_MES = {};
 var VALE_LANCAMENTOS = [];
 var VA_BENEFICIOS  = {};
 var SALARIOS       = {};
@@ -56,6 +58,7 @@ window.EPI_CATALOGO     = EPI_CATALOGO;
 window.EPI_ENTREGAS     = EPI_ENTREGAS;
 window.EPI_KITS         = EPI_KITS;
 window.VALE_COTAS       = VALE_COTAS;
+window.VALE_COTAS_MES   = VALE_COTAS_MES;
 window.VALE_LANCAMENTOS = VALE_LANCAMENTOS;
 window.VA_BENEFICIOS    = VA_BENEFICIOS;
 window.SALARIOS         = SALARIOS;

@@ -13,6 +13,7 @@ export class ValeCombustivelModule {
     this.COLABORADORES        = deps.COLABORADORES;
     this.VALE_LANCAMENTOS     = deps.VALE_LANCAMENTOS;
     this.VALE_COTAS           = deps.VALE_COTAS;
+    this.VALE_COTAS_MES       = deps.VALE_COTAS_MES || {};
     this.CHART_COLORS         = deps.CHART_COLORS;
     this.Auth                 = deps.Auth;
     this.ValeCombustivel      = deps.ValeCombustivel;
@@ -37,10 +38,19 @@ export class ValeCombustivelModule {
     });
   }
 
+  // Meses com movimento: lançamentos e/ou cotas creditadas.
   _mesesDisponiveis() {
     const meses = new Set();
     this.VALE_LANCAMENTOS.forEach(l => { if (l.data) meses.add(this.mesChave(l.data)); });
+    Object.keys(this.VALE_COTAS_MES).forEach(k => meses.add(k.split('|')[1]));
     return [...meses].sort().reverse();
+  }
+
+  // Cota do mês informado; sem registro do mês, usa a cota vigente do colaborador.
+  _cotaDe(colabId, mes) {
+    const doMes = this.VALE_COTAS_MES[`${colabId}|${mes}`];
+    if (doMes != null) return parseFloat(doMes) || 0;
+    return parseFloat(this.VALE_COTAS[colabId] || 0);
   }
 
   // Options de colaboradores: ativos primeiro; inativos/desligados agrupados
@@ -73,12 +83,17 @@ export class ValeCombustivelModule {
     const fSet = this.$('#vale-filter-setor')?.value || '';
 
     const lancMes = this.VALE_LANCAMENTOS.filter(l => this.mesChave(l.data) === mesAtual);
-    const ativos  = this.COLABORADORES.filter(c => c.status !== 'inativo');
+    // Ativos + quem teve movimento no mês (inclui desligados, para que meses
+    // passados fechem com o total realmente creditado na competência).
+    const ativos  = this.COLABORADORES.filter(c =>
+      c.status !== 'inativo'
+      || this.VALE_COTAS_MES[`${c.id}|${mesAtual}`] != null
+      || lancMes.some(l => l.colaborador_id === c.id));
 
     const resumo = ativos.map(c => {
       const lancs = lancMes.filter(l => l.colaborador_id === c.id);
       const usado = lancs.reduce((s, l) => s + (parseFloat(l.valor) || 0), 0);
-      const cota  = parseFloat(this.VALE_COTAS[c.id] || 0);
+      const cota  = this._cotaDe(c.id, mesAtual);
       const saldo = cota - usado;
       return { colab: c, lancs, usado, cota, saldo };
     });
@@ -129,7 +144,7 @@ export class ValeCombustivelModule {
               <div class="cell-person">
                 <div class="cell-avatar">${this.h(this.iniciais(c.nome))}</div>
                 <div>
-                  <div class="cell-person-name">${this.h(c.nome)}</div>
+                  <div class="cell-person-name">${this.h(c.nome)}${c.status === 'inativo' ? ' <span class="badge neutral" style="font-size:.62rem;">inativo</span>' : ''}</div>
                   <div class="cell-person-sub">${this.h(c.setor)}${c.area ? ' · ' + this.h(c.area) : ''}</div>
                 </div>
               </div>
@@ -157,17 +172,20 @@ export class ValeCombustivelModule {
 
   _renderEvolucao() {
     const meses = this._mesesDisponiveis().slice(0, 6).reverse();
-    const cotaGlobal = Object.values(this.VALE_COTAS).reduce((a, b) => a + parseFloat(b || 0), 0);
     const totais = meses.map(m => {
       const lancs = this.VALE_LANCAMENTOS.filter(l => this.mesChave(l.data) === m);
       const total = lancs.reduce((s, l) => s + parseFloat(l.valor || 0), 0);
-      let desconto = 0;
+      // Cota do mês: soma do que foi efetivamente creditado naquela competência.
+      let cotaMes = 0, desconto = 0;
       this.COLABORADORES.forEach(c => {
         const usado = lancs.filter(l => l.colaborador_id === c.id).reduce((s, l) => s + parseFloat(l.valor || 0), 0);
-        const cota  = parseFloat(this.VALE_COTAS[c.id] || 0);
+        const doMes = this.VALE_COTAS_MES[`${c.id}|${m}`];
+        const cota  = doMes != null ? parseFloat(doMes) || 0
+                    : c.status !== 'inativo' ? parseFloat(this.VALE_COTAS[c.id] || 0) : 0;
+        cotaMes  += cota;
         desconto += Math.max(0, usado - cota);
       });
-      return { total, desconto, cota: cotaGlobal };
+      return { total, desconto, cota: cotaMes };
     });
 
     this._chartValeEvo?.destroy();
@@ -292,7 +310,7 @@ export class ValeCombustivelModule {
       .filter(l => l.colaborador_id === colabId && this.mesChave(l.data) === mes)
       .sort((a, b) => a.data.localeCompare(b.data));
     const usado = lancs.reduce((s, l) => s + parseFloat(l.valor || 0), 0);
-    const cota  = parseFloat(this.VALE_COTAS[colabId] || 0);
+    const cota  = this._cotaDe(colabId, mes);
     const saldo = cota - usado;
 
     this.$('#vale-det-title').textContent = `${c.nome} — ${this.mesLabel(mes)}`;

@@ -3,26 +3,26 @@
 
 // ?v= é cache-busting do grafo de módulos ES. Ao alterar qualquer módulo,
 // incremente esta versão (e a do index.html) para forçar fetch do arquivo novo.
-import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260624l';
-import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260624l';
+import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260624m';
+import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260624m';
 
-import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260624l';
-import { AdvertenciasModule }     from './modules/advertencias.js?v=20260624l';
-import { FeriasModule }           from './modules/ferias.js?v=20260624l';
-import { DesligamentosModule }    from './modules/desligamentos.js?v=20260624l';
-import { CronogramaModule }       from './modules/cronograma.js?v=20260624l';
-import { VencimentosModule }      from './modules/vencimentos.js?v=20260624l';
-import { EpiModule }              from './modules/epi.js?v=20260624l';
-import { RotatividadeModule }     from './modules/rotatividade.js?v=20260624l';
-import { SalariosModule }         from './modules/salarios.js?v=20260624l';
-import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260624l';
-import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260624l';
-import { FeedbackClimaModule }    from './modules/feedback.js?v=20260624l';
-import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260624l';
-import { PrestadoresModule }      from './modules/prestadores.js?v=20260624l';
-import { BeneficiosModule }       from './modules/beneficios.js?v=20260624l';
-import { ProlaboreModule }        from './modules/prolabore.js?v=20260624l';
-import { SacModule }              from './modules/sac.js?v=20260624l';
+import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260624m';
+import { AdvertenciasModule }     from './modules/advertencias.js?v=20260624m';
+import { FeriasModule }           from './modules/ferias.js?v=20260624m';
+import { DesligamentosModule }    from './modules/desligamentos.js?v=20260624m';
+import { CronogramaModule }       from './modules/cronograma.js?v=20260624m';
+import { VencimentosModule }      from './modules/vencimentos.js?v=20260624m';
+import { EpiModule }              from './modules/epi.js?v=20260624m';
+import { RotatividadeModule }     from './modules/rotatividade.js?v=20260624m';
+import { SalariosModule }         from './modules/salarios.js?v=20260624m';
+import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260624m';
+import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260624m';
+import { FeedbackClimaModule }    from './modules/feedback.js?v=20260624m';
+import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260624m';
+import { PrestadoresModule }      from './modules/prestadores.js?v=20260624m';
+import { BeneficiosModule }       from './modules/beneficios.js?v=20260624m';
+import { ProlaboreModule }        from './modules/prolabore.js?v=20260624m';
+import { SacModule }              from './modules/sac.js?v=20260624m';
 
 // faixaIdx depends on FAIXAS which lives in index.html — read from window
 function faixaIdx(valor) {
@@ -73,6 +73,7 @@ function bootstrap() {
   const FAIXAS           = window.FAIXAS;
 const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const VALE_COTAS       = window.VALE_COTAS;
+  const VALE_COTAS_MES   = window.VALE_COTAS_MES;
   const VA_BENEFICIOS    = window.VA_BENEFICIOS;
   const FEEDBACK         = window.FEEDBACK;
   const CLIMA            = window.CLIMA;
@@ -151,7 +152,7 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
 
   const valeCombustivel = new ValeCombustivelModule({
     $, h, iniciais, fmtDate, fmtBRL, mesChave, mesLabel,
-    COLABORADORES, VALE_LANCAMENTOS, VALE_COTAS, CHART_COLORS,
+    COLABORADORES, VALE_LANCAMENTOS, VALE_COTAS, VALE_COTAS_MES, CHART_COLORS,
     Auth: window.Auth, ValeCombustivel: window.ValeCombustivel, showToast,
   });
 
