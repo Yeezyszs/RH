@@ -155,19 +155,6 @@
     let categoria = '';
     let ultimoProtocolo = '';
 
-    // Protocolo gerado no cliente para poder exibi-lo ao autor na hora
-    // (a role anônima não tem permissão de leitura para buscá-lo de volta).
-    // Formato: SAC-AAAAMMDD-XXXXX
-    function gerarProtocolo() {
-      const now = new Date();
-      const data = now.getFullYear().toString()
-        + String(now.getMonth() + 1).padStart(2, '0')
-        + String(now.getDate()).padStart(2, '0');
-      let suf = '';
-      for (let i = 0; i < 5; i++) suf += Math.floor(Math.random() * 36).toString(36).toUpperCase();
-      return `SAC-${data}-${suf}`;
-    }
-
     function copiarProtocolo() {
       if (!ultimoProtocolo) return;
       if (navigator.clipboard) {
@@ -193,17 +180,12 @@
       const btn = document.getElementById('btn-enviar');
       btn.disabled = true; btn.textContent = 'Enviando…';
       try {
-        // Gera o protocolo no cliente e reenvia caso (raríssimo) colida com um já existente.
-        // Sem .select(): a role anônima só tem permissão de INSERT, não de leitura.
-        let protocolo = '', enviado = false;
-        for (let tent = 0; tent < 5 && !enviado; tent++) {
-          protocolo = gerarProtocolo();
-          const { error } = await sb.from('sac_mensagens').insert({ categoria, mensagem, protocolo });
-          if (!error) { enviado = true; break; }
-          if (error.code === '23505') continue; // protocolo duplicado — tenta outro
-          throw error;
-        }
-        if (!enviado) throw new Error('Não foi possível gerar um protocolo. Tente novamente.');
+        // O banco gera o protocolo sequencial e devolve o número aqui.
+        const { data: protocolo, error } = await sb.rpc('sac_enviar', {
+          p_categoria: categoria,
+          p_mensagem: mensagem,
+        });
+        if (error) throw error;
 
         ultimoProtocolo = protocolo;
         document.getElementById('protocolo-num').textContent = protocolo;
