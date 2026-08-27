@@ -38,19 +38,53 @@ export class ValeCombustivelModule {
     });
   }
 
-  // Meses com movimento: lançamentos e/ou cotas creditadas.
+  _mesCorrente() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  // Meses com movimento (lançamentos e/ou cotas creditadas) + o mês corrente,
+  // que fica sempre disponível para lançar antes de existir qualquer registro.
   _mesesDisponiveis() {
-    const meses = new Set();
+    const meses = new Set([this._mesCorrente()]);
     this.VALE_LANCAMENTOS.forEach(l => { if (l.data) meses.add(this.mesChave(l.data)); });
     Object.keys(this.VALE_COTAS_MES).forEach(k => meses.add(k.split('|')[1]));
     return [...meses].sort().reverse();
   }
 
-  // Cota do mês informado; sem registro do mês, usa a cota vigente do colaborador.
-  _cotaDe(colabId, mes) {
+  // Competências que já têm crédito registrado.
+  _mesesComCota() {
+    return new Set(Object.keys(this.VALE_COTAS_MES).map(k => k.split('|')[1]));
+  }
+
+  // Cota do colaborador na competência informada.
+  _cotaDe(colabId, mes, mesesComCota = this._mesesComCota()) {
     const doMes = this.VALE_COTAS_MES[`${colabId}|${mes}`];
     if (doMes != null) return parseFloat(doMes) || 0;
+    // Competência já fechada: quem não consta no crédito não recebeu nada.
+    if (mesesComCota.has(mes)) return 0;
+    // Competência ainda sem crédito lançado: projeta pela cota vigente.
     return parseFloat(this.VALE_COTAS[colabId] || 0);
+  }
+
+  // Base única da competência — usada pela tabela e pelo gráfico, para os dois
+  // sempre mostrarem os mesmos números.
+  _resumoDoMes(mes) {
+    const lancMes = this.VALE_LANCAMENTOS.filter(l => this.mesChave(l.data) === mes);
+    // Ativos + quem teve movimento no mês (inclui desligados, para que meses
+    // passados fechem com o total realmente creditado na competência).
+    const pessoas = this.COLABORADORES.filter(c =>
+      c.status !== 'inativo'
+      || this.VALE_COTAS_MES[`${c.id}|${mes}`] != null
+      || lancMes.some(l => l.colaborador_id === c.id));
+
+    const mesesComCota = this._mesesComCota();
+    return pessoas.map(c => {
+      const lancs = lancMes.filter(l => l.colaborador_id === c.id);
+      const usado = lancs.reduce((s, l) => s + (parseFloat(l.valor) || 0), 0);
+      const cota  = this._cotaDe(c.id, mes, mesesComCota);
+      return { colab: c, lancs, usado, cota, saldo: cota - usado };
+    });
   }
 
   // Options de colaboradores: ativos primeiro; inativos/desligados agrupados
@@ -82,21 +116,7 @@ export class ValeCombustivelModule {
     const q    = (this.$('#vale-search')?.value || '').trim().toLowerCase();
     const fSet = this.$('#vale-filter-setor')?.value || '';
 
-    const lancMes = this.VALE_LANCAMENTOS.filter(l => this.mesChave(l.data) === mesAtual);
-    // Ativos + quem teve movimento no mês (inclui desligados, para que meses
-    // passados fechem com o total realmente creditado na competência).
-    const ativos  = this.COLABORADORES.filter(c =>
-      c.status !== 'inativo'
-      || this.VALE_COTAS_MES[`${c.id}|${mesAtual}`] != null
-      || lancMes.some(l => l.colaborador_id === c.id));
-
-    const resumo = ativos.map(c => {
-      const lancs = lancMes.filter(l => l.colaborador_id === c.id);
-      const usado = lancs.reduce((s, l) => s + (parseFloat(l.valor) || 0), 0);
-      const cota  = this._cotaDe(c.id, mesAtual);
-      const saldo = cota - usado;
-      return { colab: c, lancs, usado, cota, saldo };
-    });
+    const resumo = this._resumoDoMes(mesAtual);
 
     const filtrados = resumo.filter(r => {
       if (fSet && r.colab.setor !== fSet) return false;
@@ -104,10 +124,12 @@ export class ValeCombustivelModule {
       return true;
     });
 
+    const creditadoMes = resumo.reduce((s, r) => s + r.cota, 0);
     const totalMes     = resumo.reduce((s, r) => s + r.usado, 0);
     const descontoMes  = resumo.reduce((s, r) => s + Math.max(0, r.usado - r.cota), 0);
     const acimaCota    = resumo.filter(r => r.usado > r.cota && r.cota > 0).length;
     const comLanc      = resumo.filter(r => r.lancs.length > 0).length;
+    if (this.$('#vale-stat-creditado')) this.$('#vale-stat-creditado').textContent = this.fmtBRL(creditadoMes);
     this.$('#vale-stat-total').textContent    = this.fmtBRL(totalMes);
     this.$('#vale-stat-desconto').textContent = this.fmtBRL(descontoMes);
     this.$('#vale-stat-acima').textContent    = acimaCota;
@@ -116,10 +138,15 @@ export class ValeCombustivelModule {
     const tb = this.$('#tb-vale-resumo');
     if (tb) {
       const lista = filtrados.sort((a, b) => {
-        const ea = a.usado - a.cota;
-        const eb = b.usado - b.cota;
-        if (ea > 0 && eb <= 0) return -1;
-        if (eb > 0 && ea <= 0) return 1;
+        // Quem tem cota ou lançamento no mês vem primeiro; sem isso, quem não
+        // recebe nada ficaria no topo e o que importa iria para o fim da lista.
+        const ma = (a.cota > 0 || a.lancs.length) ? 0 : 1;
+        const mb = (b.cota > 0 || b.lancs.length) ? 0 : 1;
+        if (ma !== mb) return ma - mb;
+        // Depois, quem estourou a cota (só o excedente ordena — sem consumo
+        // registrado, ordenar por "quanto falta" só embaralharia a lista).
+        const ea = Math.max(0, a.usado - a.cota);
+        const eb = Math.max(0, b.usado - b.cota);
         if (ea !== eb) return eb - ea;
         return a.colab.nome.localeCompare(b.colab.nome);
       });
@@ -172,20 +199,14 @@ export class ValeCombustivelModule {
 
   _renderEvolucao() {
     const meses = this._mesesDisponiveis().slice(0, 6).reverse();
+    // Mesma base da tabela, mês a mês.
     const totais = meses.map(m => {
-      const lancs = this.VALE_LANCAMENTOS.filter(l => this.mesChave(l.data) === m);
-      const total = lancs.reduce((s, l) => s + parseFloat(l.valor || 0), 0);
-      // Cota do mês: soma do que foi efetivamente creditado naquela competência.
-      let cotaMes = 0, desconto = 0;
-      this.COLABORADORES.forEach(c => {
-        const usado = lancs.filter(l => l.colaborador_id === c.id).reduce((s, l) => s + parseFloat(l.valor || 0), 0);
-        const doMes = this.VALE_COTAS_MES[`${c.id}|${m}`];
-        const cota  = doMes != null ? parseFloat(doMes) || 0
-                    : c.status !== 'inativo' ? parseFloat(this.VALE_COTAS[c.id] || 0) : 0;
-        cotaMes  += cota;
-        desconto += Math.max(0, usado - cota);
-      });
-      return { total, desconto, cota: cotaMes };
+      const r = this._resumoDoMes(m);
+      return {
+        cota:     r.reduce((s, x) => s + x.cota, 0),
+        total:    r.reduce((s, x) => s + x.usado, 0),
+        desconto: r.reduce((s, x) => s + Math.max(0, x.usado - x.cota), 0),
+      };
     });
 
     this._chartValeEvo?.destroy();
@@ -194,8 +215,9 @@ export class ValeCombustivelModule {
       data: {
         labels: meses.map(m => this.mesLabel(m)),
         datasets: [
-          { label: 'Dentro da cota',   data: totais.map(t => t.total - t.desconto), backgroundColor: this.CHART_COLORS.phthaloLight, stack: 'g', borderRadius: 3 },
-          { label: 'Desconto em folha', data: totais.map(t => t.desconto),          backgroundColor: '#EF4444',                      stack: 'g', borderRadius: 3 },
+          { label: 'Creditado',         data: totais.map(t => t.cota),               backgroundColor: '#94A3B8',                      stack: 'c', borderRadius: 3 },
+          { label: 'Dentro da cota',    data: totais.map(t => t.total - t.desconto), backgroundColor: this.CHART_COLORS.phthaloLight, stack: 'g', borderRadius: 3 },
+          { label: 'Desconto em folha', data: totais.map(t => t.desconto),           backgroundColor: '#EF4444',                      stack: 'g', borderRadius: 3 },
         ],
       },
       options: {
