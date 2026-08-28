@@ -4,7 +4,7 @@ import { ValeCombustivelModule } from '../src/modules/vale-combustivel.js';
 // O módulo mexe no DOM só dentro de render(); aqui exercitamos apenas o cálculo
 // (_resumoDoMes / _saldoAnterior), que é a regra do saldo acumulativo.
 
-function novoModulo({ cotas = {}, uso = {}, descontos = [], padrao = '150', colaboradores } = {}) {
+function novoModulo({ cotas = {}, uso = {}, saldoIni = {}, descontos = [], padrao = '150', colaboradores } = {}) {
   globalThis.document = globalThis.document || { addEventListener() {}, querySelectorAll: () => [] };
   return new ValeCombustivelModule({
     $: () => null,
@@ -18,6 +18,7 @@ function novoModulo({ cotas = {}, uso = {}, descontos = [], padrao = '150', cola
     VALE_COTAS: {},
     VALE_COTAS_MES: cotas,
     VALE_USO_MES: uso,
+    VALE_SALDO_INI: saldoIni,
     VALE_DESCONTOS: descontos,
     CONFIG: { vale_combustivel_valor_padrao: padrao },
     CHART_COLORS: { grid: '#eee' },
@@ -131,5 +132,41 @@ describe('vale combustível — valor padrão', () => {
     });
     expect(m._baseDe(1, '2026-01')).toBe(0);
     expect(m._baseDe(2, '2026-01')).toBe(150);
+  });
+});
+
+describe('vale combustível — saldo de abertura editável', () => {
+  // Histórico: Jan/Fev com crédito 150 e nenhum consumo → acumularia 300.
+  const historico = { '1|2026-01': 150, '1|2026-02': 150, '1|2026-03': 150 };
+
+  it('sem saldo de abertura, acumula o histórico inteiro', () => {
+    const m = novoModulo({ cotas: historico });
+    expect(m._saldoAnterior(1, '2026-03')).toBe(300);
+  });
+
+  it('saldo de abertura zerado corta o histórico', () => {
+    const m = novoModulo({ cotas: historico, saldoIni: { '1|2026-03': 0 } });
+    expect(m._saldoAnterior(1, '2026-03')).toBe(0);
+    expect(linha(m, '2026-03').saldo).toBe(150);
+  });
+
+  it('saldo de abertura com valor substitui o acumulado', () => {
+    const m = novoModulo({ cotas: historico, saldoIni: { '1|2026-03': 80 } });
+    expect(m._saldoAnterior(1, '2026-03')).toBe(80);
+    expect(linha(m, '2026-03').saldo).toBe(230);
+  });
+
+  it('meses seguintes acumulam a partir do saldo de abertura', () => {
+    const m = novoModulo({
+      cotas: { ...historico, '1|2026-04': 150 },
+      saldoIni: { '1|2026-02': 0 },
+    });
+    // Zerado em Fev: Fev fecha com 150, Mar com 300, entrando em Abr com 300.
+    expect(m._saldoAnterior(1, '2026-04')).toBe(300);
+  });
+
+  it('zerar não afeta as competências anteriores', () => {
+    const m = novoModulo({ cotas: historico, saldoIni: { '1|2026-03': 0 } });
+    expect(m._saldoAnterior(1, '2026-02')).toBe(150);
   });
 });

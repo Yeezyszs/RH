@@ -28,6 +28,7 @@ export class ValeCombustivelModule {
     this.VALE_COTAS_MES       = deps.VALE_COTAS_MES || {};
     this.VALE_DESCONTOS       = deps.VALE_DESCONTOS || [];
     this.VALE_USO_MES         = deps.VALE_USO_MES || {};
+    this.VALE_SALDO_INI       = deps.VALE_SALDO_INI || {};
     this.CONFIG               = deps.CONFIG || {};
     this.CHART_COLORS         = deps.CHART_COLORS;
     this.Auth                 = deps.Auth;
@@ -103,16 +104,32 @@ export class ValeCombustivelModule {
     return this.VALE_DESCONTOS.filter(d => d.colaborador_id === colabId && this._compet(d) === mes);
   }
 
+  // Saldo de abertura fixado manualmente (null = calcular pelo histórico).
+  _saldoInicialDe(colabId, mes) {
+    const v = this.VALE_SALDO_INI[`${colabId}|${mes}`];
+    return v == null ? null : parseFloat(v) || 0;
+  }
+
   // O benefício é acumulativo: o que sobra num mês soma ao crédito do seguinte.
   //   saldo do mês = saldo anterior + crédito − descontos − utilizado
-  // Devolve o saldo fechado de todas as competências ANTERIORES a `mes`.
+  // Devolve o saldo com que o colaborador ENTRA na competência `mes`. Um saldo
+  // de abertura gravado corta o histórico: nada antes dele é somado.
   _saldoAnterior(colabId, mes, mesesComValor = this._mesesComValor()) {
+    const fixado = this._saldoInicialDe(colabId, mes);
+    if (fixado != null) return Math.max(0, fixado);
+
     const anteriores = this._mesesDisponiveis().filter(m => m < mes).sort();
-    let saldo = 0;
-    anteriores.forEach(m => {
+    // Recomeça do último mês que tenha saldo de abertura definido.
+    let inicio = 0, saldo = 0;
+    for (let i = anteriores.length - 1; i >= 0; i--) {
+      const ini = this._saldoInicialDe(colabId, anteriores[i]);
+      if (ini != null) { inicio = i; saldo = Math.max(0, ini); break; }
+    }
+    for (let i = inicio; i < anteriores.length; i++) {
+      const m = anteriores[i];
       const perdido = this._descontosDe(colabId, m).reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
       saldo += this._baseDe(colabId, m, mesesComValor) - perdido - this._utilizadoDe(colabId, m);
-    });
+    }
     return Math.max(0, saldo);
   }
 
@@ -479,6 +496,11 @@ export class ValeCombustivelModule {
           <td>${this.h(c.nome)}${inativo ? ' <span class="badge neutral" style="font-size:.62rem;">inativo</span>' : ''}</td>
           <td>${this.h(c.setor)}</td>
           <td style="text-align:right">
+            <input type="number" step="0.01" min="0" value="${this._saldoAnterior(c.id, mes, mesesComValor)}"
+                   data-saldo="${c.id}"
+                   style="width:110px; text-align:right; background:var(--bluish-bg); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--mono); font-size:.85rem;">
+          </td>
+          <td style="text-align:right">
             <input type="number" step="0.01" min="0" value="${this._baseDe(c.id, mes, mesesComValor)}"
                    id="cota-input-${c.id}" data-colab="${c.id}"
                    style="width:110px; text-align:right; background:var(--bluish-bg); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--mono); font-size:.85rem;">
@@ -534,13 +556,15 @@ export class ValeCombustivelModule {
     const tb = this.$('#tb-vale-cotas');
     const linhas = [...tb.querySelectorAll('input[data-colab]')].map(input => {
       const colabId = parseInt(input.dataset.colab, 10);
-      const uso = tb.querySelector(`input[data-uso="${colabId}"]`);
+      const uso   = tb.querySelector(`input[data-uso="${colabId}"]`);
+      const saldo = tb.querySelector(`input[data-saldo="${colabId}"]`);
       return {
         colaborador_id: colabId,
         mes:            mesNum,
         ano,
         valor_mensal:   parseFloat(input.value) || 0,
         utilizado:      parseFloat(uso?.value) || 0,
+        saldo_inicial:  parseFloat(saldo?.value) || 0,
         data_concessao: hoje,
         status:         'ativo',
       };
@@ -564,6 +588,7 @@ export class ValeCombustivelModule {
     linhas.forEach(l => {
       this.VALE_COTAS_MES[`${l.colaborador_id}|${mes}`] = l.valor_mensal;
       this.VALE_USO_MES[`${l.colaborador_id}|${mes}`]   = l.utilizado;
+      this.VALE_SALDO_INI[`${l.colaborador_id}|${mes}`] = l.saldo_inicial;
       this.VALE_COTAS[l.colaborador_id] = l.valor_mensal;
     });
     if (padraoMudou) this.CONFIG['vale_combustivel_valor_padrao'] = String(padrao);

@@ -6,11 +6,11 @@
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/tokens.css?v=20260624p">
-<link rel="stylesheet" href="css/layout.css?v=20260624p">
-<link rel="stylesheet" href="css/components.css?v=20260624p">
-<link rel="stylesheet" href="css/pages.css?v=20260624p">
-<link rel="stylesheet" href="css/login.css?v=20260624p">
+<link rel="stylesheet" href="css/tokens.css?v=20260624q">
+<link rel="stylesheet" href="css/layout.css?v=20260624q">
+<link rel="stylesheet" href="css/components.css?v=20260624q">
+<link rel="stylesheet" href="css/pages.css?v=20260624q">
+<link rel="stylesheet" href="css/login.css?v=20260624q">
 </head>
 <body>
 
@@ -2720,7 +2720,7 @@
 
 <!-- ════════════ MODAL — CONFIG. COTAS ════════════ -->
 <div id="modal-vale-cotas" class="modal">
-  <div class="modal-box" style="max-width:580px;">
+  <div class="modal-box" style="max-width:720px;">
     <div class="modal-header">
       <div class="modal-title">Valores do vale combustível</div>
       <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalCotas()">×</button>
@@ -2728,8 +2728,9 @@
     <div class="modal-body">
       <div style="font-family:var(--mono); font-size:.75rem; color:var(--text-muted); margin-bottom:14px; letter-spacing:.04em;">
         Competência: <strong id="vale-cota-competencia" style="color:var(--text)">—</strong> ·
-        salvar grava crédito e consumo de todos os colaboradores listados neste mês.
-        O que sobrar acumula para o mês seguinte.
+        salvar grava saldo anterior, crédito e consumo de todos os colaboradores
+        listados neste mês. O saldo anterior é editável — ao alterá-lo, o histórico
+        antes desta competência deixa de ser somado. O que sobrar acumula para o mês seguinte.
       </div>
       <!-- Valor padrão -->
       <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px 12px; margin-bottom:10px;">
@@ -2757,7 +2758,7 @@
       <div class="table-card">
         <div class="table-wrapper">
           <table class="data">
-            <thead><tr><th>Colaborador</th><th>Setor</th><th style="width:135px; text-align:right">Crédito do mês</th><th style="width:135px; text-align:right">Utilizado</th></tr></thead>
+            <thead><tr><th>Colaborador</th><th>Setor</th><th style="width:125px; text-align:right">Saldo anterior</th><th style="width:125px; text-align:right">Crédito do mês</th><th style="width:125px; text-align:right">Utilizado</th></tr></thead>
             <tbody id="tb-vale-cotas"></tbody>
           </table>
         </div>
@@ -3725,18 +3726,18 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260624p"></script>
-<script src="src/utils/base.js?v=20260624p"></script>
-<script src="src/dashboard.js?v=20260624p"></script>
-<script src="src/utils/relatorio.js?v=20260624p"></script>
-<script src="supabase.js?v=20260624p"></script>
-<script src="src/api/pessoas.js?v=20260624p"></script>
-<script src="src/api/compliance.js?v=20260624p"></script>
-<script src="src/api/beneficios.js?v=20260624p"></script>
-<script src="src/api/gestao.js?v=20260624p"></script>
-<script src="src/api/init.js?v=20260624p"></script>
-<script src="src/auth.js?v=20260624p"></script>
-<script type="module" src="src/app.js?v=20260624p"></script>
+<script src="src/data-store.js?v=20260624q"></script>
+<script src="src/utils/base.js?v=20260624q"></script>
+<script src="src/dashboard.js?v=20260624q"></script>
+<script src="src/utils/relatorio.js?v=20260624q"></script>
+<script src="supabase.js?v=20260624q"></script>
+<script src="src/api/pessoas.js?v=20260624q"></script>
+<script src="src/api/compliance.js?v=20260624q"></script>
+<script src="src/api/beneficios.js?v=20260624q"></script>
+<script src="src/api/gestao.js?v=20260624q"></script>
+<script src="src/api/init.js?v=20260624q"></script>
+<script src="src/auth.js?v=20260624q"></script>
+<script type="module" src="src/app.js?v=20260624q"></script>
 
 </body>
 </html>

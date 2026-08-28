@@ -289,6 +289,7 @@ async function inicializarSupabase() {
             const chave = `${c.colaborador_id}|${c.ano}-${String(c.mes).padStart(2, '0')}`;
             VALE_COTAS_MES[chave] = valor;
             if (c.utilizado != null) VALE_USO_MES[chave] = parseFloat(c.utilizado) || 0;
+            if (c.saldo_inicial != null) VALE_SALDO_INI[chave] = parseFloat(c.saldo_inicial) || 0;
           }
           if (VALE_COTAS[c.colaborador_id] != null) return;
           VALE_COTAS[c.colaborador_id] = valor;
@@ -594,6 +595,8 @@ function setupRealTimeListeners() {
           const chave = `${novoReg.colaborador_id}|${novoReg.ano}-${String(novoReg.mes).padStart(2, '0')}`;
           VALE_COTAS_MES[chave] = parseFloat(novoReg.valor_mensal) || 0;
           VALE_USO_MES[chave]   = parseFloat(novoReg.utilizado) || 0;
+          if (novoReg.saldo_inicial != null) VALE_SALDO_INI[chave] = parseFloat(novoReg.saldo_inicial) || 0;
+          else delete VALE_SALDO_INI[chave];
         }
       }
       if (typeof renderVale === 'function') renderVale();

@@ -23,6 +23,9 @@ var VALE_LANCAMENTOS = [];
 var VALE_DESCONTOS = [];
 // Consumo por mês: chave `${colaborador_id}|AAAA-MM`.
 var VALE_USO_MES   = {};
+// Saldo de abertura fixado manualmente por competência (mesma chave).
+// A ausência da chave significa "calcular pelo acumulado dos meses anteriores".
+var VALE_SALDO_INI = {};
 // Configurações gerais (chave → valor), ex.: vale_combustivel_valor_padrao.
 var CONFIG         = {};
 var VA_BENEFICIOS  = {};
@@ -67,6 +70,7 @@ window.VALE_COTAS_MES   = VALE_COTAS_MES;
 window.VALE_LANCAMENTOS = VALE_LANCAMENTOS;
 window.VALE_DESCONTOS   = VALE_DESCONTOS;
 window.VALE_USO_MES     = VALE_USO_MES;
+window.VALE_SALDO_INI   = VALE_SALDO_INI;
 window.CONFIG           = CONFIG;
 window.VA_BENEFICIOS    = VA_BENEFICIOS;
 window.SALARIOS         = SALARIOS;
