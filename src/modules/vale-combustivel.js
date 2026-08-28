@@ -27,6 +27,7 @@ export class ValeCombustivelModule {
     this.VALE_COTAS           = deps.VALE_COTAS;
     this.VALE_COTAS_MES       = deps.VALE_COTAS_MES || {};
     this.VALE_DESCONTOS       = deps.VALE_DESCONTOS || [];
+    this.VALE_USO_MES         = deps.VALE_USO_MES || {};
     this.CONFIG               = deps.CONFIG || {};
     this.CHART_COLORS         = deps.CHART_COLORS;
     this.Auth                 = deps.Auth;
@@ -94,6 +95,27 @@ export class ValeCombustivelModule {
     return this._valorPadrao();
   }
 
+  _utilizadoDe(colabId, mes) {
+    return parseFloat(this.VALE_USO_MES[`${colabId}|${mes}`]) || 0;
+  }
+
+  _descontosDe(colabId, mes) {
+    return this.VALE_DESCONTOS.filter(d => d.colaborador_id === colabId && this._compet(d) === mes);
+  }
+
+  // O benefício é acumulativo: o que sobra num mês soma ao crédito do seguinte.
+  //   saldo do mês = saldo anterior + crédito − descontos − utilizado
+  // Devolve o saldo fechado de todas as competências ANTERIORES a `mes`.
+  _saldoAnterior(colabId, mes, mesesComValor = this._mesesComValor()) {
+    const anteriores = this._mesesDisponiveis().filter(m => m < mes).sort();
+    let saldo = 0;
+    anteriores.forEach(m => {
+      const perdido = this._descontosDe(colabId, m).reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
+      saldo += this._baseDe(colabId, m, mesesComValor) - perdido - this._utilizadoDe(colabId, m);
+    });
+    return Math.max(0, saldo);
+  }
+
   // Base única da competência — usada pela tabela, pelos cards e pelo gráfico.
   _resumoDoMes(mes) {
     const descMes = this.VALE_DESCONTOS.filter(d => this._compet(d) === mes);
@@ -109,10 +131,15 @@ export class ValeCombustivelModule {
     return pessoas.map(c => {
       const descontos = descMes.filter(d => d.colaborador_id === c.id);
       const perdido   = descontos.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
-      const base      = c.status === 'inativo' && this.VALE_COTAS_MES[`${c.id}|${mes}`] == null
+      const credito   = c.status === 'inativo' && this.VALE_COTAS_MES[`${c.id}|${mes}`] == null
         ? 0
         : this._baseDe(c.id, mes, mesesComValor);
-      return { colab: c, descontos, base, perdido, receber: Math.max(0, base - perdido) };
+      const anterior  = this._saldoAnterior(c.id, mes, mesesComValor);
+      const utilizado = this._utilizadoDe(c.id, mes);
+      const saldo     = Math.max(0, anterior + credito - perdido - utilizado);
+      // Disponível = tudo que ele podia gastar no mês (antes do consumo).
+      const disponivel = Math.max(0, anterior + credito - perdido);
+      return { colab: c, descontos, anterior, credito, perdido, utilizado, disponivel, saldo };
     });
   }
 
@@ -153,16 +180,16 @@ export class ValeCombustivelModule {
       return true;
     });
 
-    const baseMes    = resumo.reduce((s, r) => s + r.base, 0);
-    const perdidoMes = resumo.reduce((s, r) => s + r.perdido, 0);
-    const pagarMes   = resumo.reduce((s, r) => s + r.receber, 0);
-    const comDesc    = resumo.filter(r => r.perdido > 0).length;
+    const creditoMes   = resumo.reduce((s, r) => s + r.credito, 0);
+    const perdidoMes   = resumo.reduce((s, r) => s + r.perdido, 0);
+    const utilizadoMes = resumo.reduce((s, r) => s + r.utilizado, 0);
+    const saldoMes     = resumo.reduce((s, r) => s + r.saldo, 0);
 
     const set = (sel, val) => { const el = this.$(sel); if (el) el.textContent = val; };
-    set('#vale-stat-base',    this.fmtBRL(baseMes));
-    set('#vale-stat-perdido', this.fmtBRL(perdidoMes));
-    set('#vale-stat-pagar',   this.fmtBRL(pagarMes));
-    set('#vale-stat-comdesc', comDesc);
+    set('#vale-stat-base',      this.fmtBRL(creditoMes));
+    set('#vale-stat-perdido',   this.fmtBRL(perdidoMes));
+    set('#vale-stat-utilizado', this.fmtBRL(utilizadoMes));
+    set('#vale-stat-saldo',     this.fmtBRL(saldoMes));
 
     const tb = this.$('#tb-vale-resumo');
     if (tb) {
@@ -170,19 +197,19 @@ export class ValeCombustivelModule {
         // Quem teve desconto primeiro — é o que precisa de conferência.
         if (a.perdido !== b.perdido) return b.perdido - a.perdido;
         // Depois quem recebe o benefício; quem não recebe nada vai para o fim.
-        const ma = a.base > 0 ? 0 : 1;
-        const mb = b.base > 0 ? 0 : 1;
+        const ma = (a.credito > 0 || a.anterior > 0) ? 0 : 1;
+        const mb = (b.credito > 0 || b.anterior > 0) ? 0 : 1;
         if (ma !== mb) return ma - mb;
         return a.colab.nome.localeCompare(b.colab.nome);
       });
 
       tb.innerHTML = lista.length ? lista.map(r => {
         const c = r.colab;
-        const statusBadge = r.base === 0
+        const statusBadge = r.credito === 0 && r.anterior === 0
           ? `<span class="badge neutral">Sem benefício</span>`
           : r.perdido === 0
             ? `<span class="badge ok">Integral</span>`
-            : r.receber === 0
+            : r.disponivel === 0
               ? `<span class="badge danger">Perdeu tudo</span>`
               : `<span class="badge warn">Parcial</span>`;
         const perdStyle = r.perdido > 0 ? 'color:var(--danger); font-weight:700;' : 'color:var(--text-soft);';
@@ -204,23 +231,21 @@ export class ValeCombustivelModule {
                 </div>
               </div>
             </td>
-            <td>
-              <div>${this.h(c.setor)}</div>
-              ${c.area ? `<div class="cell-person-sub">${this.h(c.area)}</div>` : ''}
-            </td>
-            <td class="cell-mono" style="text-align:right">${this.fmtBRL(r.base)}</td>
+            <td class="cell-mono" style="text-align:right; color:var(--text-muted)">${this.fmtBRL(r.anterior)}</td>
+            <td class="cell-mono" style="text-align:right">${this.fmtBRL(r.credito)}</td>
             <td style="text-align:right">
               <div class="cell-mono" style="${perdStyle}">${r.perdido > 0 ? '− ' : ''}${this.fmtBRL(r.perdido)}</div>
               ${tags}
             </td>
-            <td class="cell-mono" style="text-align:right; font-weight:700;">${this.fmtBRL(r.receber)}</td>
+            <td class="cell-mono" style="text-align:right; ${r.utilizado > 0 ? '' : 'color:var(--text-soft);'}">${r.utilizado > 0 ? '− ' : ''}${this.fmtBRL(r.utilizado)}</td>
+            <td class="cell-mono" style="text-align:right; font-weight:700; color:var(--success);">${this.fmtBRL(r.saldo)}</td>
             <td>${statusBadge}</td>
             <td class="actions" onclick="event.stopPropagation()">
               <button class="btn btn-ghost btn-sm btn-icon" title="Lançar desconto" onclick="abrirModalValeDesconto(null, ${c.id})">−</button>
             </td>
           </tr>
         `;
-      }).join('') : `<tr><td colspan="7" class="empty">Sem dados para ${this.mesLabel(mesAtual)}</td></tr>`;
+      }).join('') : `<tr><td colspan="8" class="empty">Sem dados para ${this.mesLabel(mesAtual)}</td></tr>`;
     }
 
     this._renderEvolucao();
@@ -392,15 +417,19 @@ export class ValeCombustivelModule {
     const descontos = this.VALE_DESCONTOS
       .filter(d => d.colaborador_id === colabId && this._compet(d) === mes)
       .sort((a, b) => (a.data_ocorrencia || '').localeCompare(b.data_ocorrencia || ''));
-    const perdido = descontos.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
-    const base    = this._baseDe(colabId, mes);
-    const receber = Math.max(0, base - perdido);
+    const perdido   = descontos.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
+    const anterior  = this._saldoAnterior(colabId, mes);
+    const credito   = this._baseDe(colabId, mes);
+    const utilizado = this._utilizadoDe(colabId, mes);
+    const saldo     = Math.max(0, anterior + credito - perdido - utilizado);
 
     this.$('#vale-det-title').textContent = `${c.nome} — ${this.mesLabel(mes)}`;
     this.$('#vale-det-summary').innerHTML = `
-      <div class="info-item"><div class="info-label">Valor base</div><div class="info-value mono">${this.fmtBRL(base)}</div></div>
-      <div class="info-item"><div class="info-label">Descontos</div><div class="info-value mono" style="${perdido > 0 ? 'color:var(--danger);font-weight:700' : ''}">${this.fmtBRL(perdido)}</div></div>
-      <div class="info-item"><div class="info-label">A receber</div><div class="info-value mono" style="font-weight:700">${this.fmtBRL(receber)}</div></div>
+      <div class="info-item"><div class="info-label">Saldo anterior</div><div class="info-value mono">${this.fmtBRL(anterior)}</div></div>
+      <div class="info-item"><div class="info-label">Crédito do mês</div><div class="info-value mono">+ ${this.fmtBRL(credito)}</div></div>
+      <div class="info-item"><div class="info-label">Descontos</div><div class="info-value mono" style="${perdido > 0 ? 'color:var(--danger);font-weight:700' : ''}">− ${this.fmtBRL(perdido)}</div></div>
+      <div class="info-item"><div class="info-label">Utilizado</div><div class="info-value mono">− ${this.fmtBRL(utilizado)}</div></div>
+      <div class="info-item" style="grid-column:1/-1"><div class="info-label">Saldo acumulado (vai para o próximo mês)</div><div class="info-value mono" style="font-weight:700; color:var(--success); font-size:1.05rem;">${this.fmtBRL(saldo)}</div></div>
     `;
 
     const tb = this.$('#tb-vale-detalhe');
@@ -452,7 +481,12 @@ export class ValeCombustivelModule {
           <td style="text-align:right">
             <input type="number" step="0.01" min="0" value="${this._baseDe(c.id, mes, mesesComValor)}"
                    id="cota-input-${c.id}" data-colab="${c.id}"
-                   style="width:130px; text-align:right; background:var(--bluish-bg); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--mono); font-size:.85rem;">
+                   style="width:110px; text-align:right; background:var(--bluish-bg); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--mono); font-size:.85rem;">
+          </td>
+          <td style="text-align:right">
+            <input type="number" step="0.01" min="0" value="${this._utilizadoDe(c.id, mes)}"
+                   data-uso="${c.id}"
+                   style="width:110px; text-align:right; background:var(--bluish-bg); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--mono); font-size:.85rem;">
           </td>
         </tr>`;
 
@@ -497,14 +531,20 @@ export class ValeCombustivelModule {
     const [ano, mesNum] = mes.split('-').map(n => parseInt(n, 10));
     const hoje = new Date().toISOString().slice(0, 10);
 
-    const linhas = [...this.$('#tb-vale-cotas').querySelectorAll('input[data-colab]')].map(input => ({
-      colaborador_id: parseInt(input.dataset.colab, 10),
-      mes:            mesNum,
-      ano,
-      valor_mensal:   parseFloat(input.value) || 0,
-      data_concessao: hoje,
-      status:         'ativo',
-    }));
+    const tb = this.$('#tb-vale-cotas');
+    const linhas = [...tb.querySelectorAll('input[data-colab]')].map(input => {
+      const colabId = parseInt(input.dataset.colab, 10);
+      const uso = tb.querySelector(`input[data-uso="${colabId}"]`);
+      return {
+        colaborador_id: colabId,
+        mes:            mesNum,
+        ano,
+        valor_mensal:   parseFloat(input.value) || 0,
+        utilizado:      parseFloat(uso?.value) || 0,
+        data_concessao: hoje,
+        status:         'ativo',
+      };
+    });
 
     const padrao = parseFloat(this.$('#vale-valor-padrao')?.value);
     const padraoMudou = !isNaN(padrao) && padrao >= 0 && padrao !== this._valorPadrao();
@@ -523,6 +563,7 @@ export class ValeCombustivelModule {
     // Estado local
     linhas.forEach(l => {
       this.VALE_COTAS_MES[`${l.colaborador_id}|${mes}`] = l.valor_mensal;
+      this.VALE_USO_MES[`${l.colaborador_id}|${mes}`]   = l.utilizado;
       this.VALE_COTAS[l.colaborador_id] = l.valor_mensal;
     });
     if (padraoMudou) this.CONFIG['vale_combustivel_valor_padrao'] = String(padrao);

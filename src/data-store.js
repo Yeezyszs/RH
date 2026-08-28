@@ -21,6 +21,8 @@ var VALE_COTAS     = {};
 var VALE_COTAS_MES = {};
 var VALE_LANCAMENTOS = [];
 var VALE_DESCONTOS = [];
+// Consumo por mês: chave `${colaborador_id}|AAAA-MM`.
+var VALE_USO_MES   = {};
 // Configurações gerais (chave → valor), ex.: vale_combustivel_valor_padrao.
 var CONFIG         = {};
 var VA_BENEFICIOS  = {};
@@ -64,6 +66,7 @@ window.VALE_COTAS       = VALE_COTAS;
 window.VALE_COTAS_MES   = VALE_COTAS_MES;
 window.VALE_LANCAMENTOS = VALE_LANCAMENTOS;
 window.VALE_DESCONTOS   = VALE_DESCONTOS;
+window.VALE_USO_MES     = VALE_USO_MES;
 window.CONFIG           = CONFIG;
 window.VA_BENEFICIOS    = VA_BENEFICIOS;
 window.SALARIOS         = SALARIOS;

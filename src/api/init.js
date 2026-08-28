@@ -286,7 +286,9 @@ async function inicializarSupabase() {
         lista.forEach(c => {
           const valor = parseFloat(c.valor_mensal) || 0;
           if (c.mes != null && c.ano != null) {
-            VALE_COTAS_MES[`${c.colaborador_id}|${c.ano}-${String(c.mes).padStart(2, '0')}`] = valor;
+            const chave = `${c.colaborador_id}|${c.ano}-${String(c.mes).padStart(2, '0')}`;
+            VALE_COTAS_MES[chave] = valor;
+            if (c.utilizado != null) VALE_USO_MES[chave] = parseFloat(c.utilizado) || 0;
           }
           if (VALE_COTAS[c.colaborador_id] != null) return;
           VALE_COTAS[c.colaborador_id] = valor;
@@ -589,8 +591,9 @@ function setupRealTimeListeners() {
         // Linha sem data = cota mensal
         VALE_COTAS[novoReg.colaborador_id] = parseFloat(novoReg.valor_mensal) || 0;
         if (novoReg.mes != null && novoReg.ano != null) {
-          VALE_COTAS_MES[`${novoReg.colaborador_id}|${novoReg.ano}-${String(novoReg.mes).padStart(2, '0')}`] =
-            parseFloat(novoReg.valor_mensal) || 0;
+          const chave = `${novoReg.colaborador_id}|${novoReg.ano}-${String(novoReg.mes).padStart(2, '0')}`;
+          VALE_COTAS_MES[chave] = parseFloat(novoReg.valor_mensal) || 0;
+          VALE_USO_MES[chave]   = parseFloat(novoReg.utilizado) || 0;
         }
       }
       if (typeof renderVale === 'function') renderVale();

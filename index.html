@@ -6,11 +6,11 @@
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/tokens.css?v=20260624o">
-<link rel="stylesheet" href="css/layout.css?v=20260624o">
-<link rel="stylesheet" href="css/components.css?v=20260624o">
-<link rel="stylesheet" href="css/pages.css?v=20260624o">
-<link rel="stylesheet" href="css/login.css?v=20260624o">
+<link rel="stylesheet" href="css/tokens.css?v=20260624p">
+<link rel="stylesheet" href="css/layout.css?v=20260624p">
+<link rel="stylesheet" href="css/components.css?v=20260624p">
+<link rel="stylesheet" href="css/pages.css?v=20260624p">
+<link rel="stylesheet" href="css/login.css?v=20260624p">
 </head>
 <body>
 
@@ -1018,20 +1018,20 @@
       <!-- Stats -->
       <div class="stats-row">
         <div class="stat">
-          <div class="stat-label">Valor base do mês</div>
+          <div class="stat-label">Crédito do mês</div>
           <div class="stat-value" id="vale-stat-base" style="font-size:1.3rem;">—</div>
         </div>
         <div class="stat stat-danger">
           <div class="stat-label">Perdido em descontos</div>
           <div class="stat-value" id="vale-stat-perdido" style="font-size:1.3rem;">—</div>
         </div>
-        <div class="stat">
-          <div class="stat-label">A pagar no mês</div>
-          <div class="stat-value" id="vale-stat-pagar" style="font-size:1.3rem;">—</div>
-        </div>
         <div class="stat stat-warn">
-          <div class="stat-label">Com desconto</div>
-          <div class="stat-value" id="vale-stat-comdesc">—</div>
+          <div class="stat-label">Utilizado no mês</div>
+          <div class="stat-value" id="vale-stat-utilizado" style="font-size:1.3rem;">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Saldo acumulado</div>
+          <div class="stat-value" id="vale-stat-saldo" style="font-size:1.3rem;">—</div>
         </div>
       </div>
 
@@ -1052,11 +1052,12 @@
           <table class="data">
             <thead>
               <tr>
-                <th style="width:26%">Colaborador</th>
-                <th>Setor / Área</th>
-                <th style="text-align:right">Valor base</th>
+                <th style="width:24%">Colaborador</th>
+                <th style="text-align:right">Saldo anterior</th>
+                <th style="text-align:right">Crédito</th>
                 <th style="text-align:right">Descontos</th>
-                <th style="text-align:right">A receber</th>
+                <th style="text-align:right">Utilizado</th>
+                <th style="text-align:right">Saldo acumulado</th>
                 <th>Status</th>
                 <th style="width:80px; text-align:right">Ações</th>
               </tr>
@@ -2727,7 +2728,8 @@
     <div class="modal-body">
       <div style="font-family:var(--mono); font-size:.75rem; color:var(--text-muted); margin-bottom:14px; letter-spacing:.04em;">
         Competência: <strong id="vale-cota-competencia" style="color:var(--text)">—</strong> ·
-        salvar grava o valor de todos os colaboradores listados neste mês.
+        salvar grava crédito e consumo de todos os colaboradores listados neste mês.
+        O que sobrar acumula para o mês seguinte.
       </div>
       <!-- Valor padrão -->
       <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px 12px; margin-bottom:10px;">
@@ -2755,7 +2757,7 @@
       <div class="table-card">
         <div class="table-wrapper">
           <table class="data">
-            <thead><tr><th>Colaborador</th><th>Setor</th><th style="width:160px; text-align:right">Valor no mês</th></tr></thead>
+            <thead><tr><th>Colaborador</th><th>Setor</th><th style="width:135px; text-align:right">Crédito do mês</th><th style="width:135px; text-align:right">Utilizado</th></tr></thead>
             <tbody id="tb-vale-cotas"></tbody>
           </table>
         </div>
@@ -3723,18 +3725,18 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260624o"></script>
-<script src="src/utils/base.js?v=20260624o"></script>
-<script src="src/dashboard.js?v=20260624o"></script>
-<script src="src/utils/relatorio.js?v=20260624o"></script>
-<script src="supabase.js?v=20260624o"></script>
-<script src="src/api/pessoas.js?v=20260624o"></script>
-<script src="src/api/compliance.js?v=20260624o"></script>
-<script src="src/api/beneficios.js?v=20260624o"></script>
-<script src="src/api/gestao.js?v=20260624o"></script>
-<script src="src/api/init.js?v=20260624o"></script>
-<script src="src/auth.js?v=20260624o"></script>
-<script type="module" src="src/app.js?v=20260624o"></script>
+<script src="src/data-store.js?v=20260624p"></script>
+<script src="src/utils/base.js?v=20260624p"></script>
+<script src="src/dashboard.js?v=20260624p"></script>
+<script src="src/utils/relatorio.js?v=20260624p"></script>
+<script src="supabase.js?v=20260624p"></script>
+<script src="src/api/pessoas.js?v=20260624p"></script>
+<script src="src/api/compliance.js?v=20260624p"></script>
+<script src="src/api/beneficios.js?v=20260624p"></script>
+<script src="src/api/gestao.js?v=20260624p"></script>
+<script src="src/api/init.js?v=20260624p"></script>
+<script src="src/auth.js?v=20260624p"></script>
+<script type="module" src="src/app.js?v=20260624p"></script>
 
 </body>
 </html>

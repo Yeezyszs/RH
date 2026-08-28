@@ -136,7 +136,7 @@ const ValeCombustivel = {
   async listarCotas() {
     const { data, error } = await withTimeout(
       sb.from('vale_combustivel')
-        .select('id, colaborador_id, mes, ano, valor_mensal')
+        .select('id, colaborador_id, mes, ano, valor_mensal, utilizado')
         .is('data', null)
         .not('valor_mensal', 'is', null)
         .order('colaborador_id')
