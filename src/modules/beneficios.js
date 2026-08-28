@@ -18,6 +18,7 @@ export class BeneficiosModule {
     this.fmtDate = deps.fmtDate;
     this.COLABORADORES = deps.COLABORADORES;
     this.VALE_COTAS = deps.VALE_COTAS;
+    this.CONFIG = deps.CONFIG || {};
     this.VA_BENEFICIOS = deps.VA_BENEFICIOS;
     this.SALARIOS = deps.SALARIOS;
     this.FERIAS = deps.FERIAS;
@@ -86,7 +87,11 @@ export class BeneficiosModule {
     const fSt   = this.$('#ben-filter-status')?.value || '';
 
     const linhas = this.COLABORADORES.map(c => {
-      const vc = parseFloat(this.VALE_COTAS[c.id] || 0);
+      // Sem valor específico, o ativo recebe o valor padrão do vale combustível.
+      const padrao = parseFloat(this.CONFIG['vale_combustivel_valor_padrao']);
+      const vc = this.VALE_COTAS[c.id] != null
+        ? parseFloat(this.VALE_COTAS[c.id]) || 0
+        : (c.status !== 'inativo' && !isNaN(padrao) ? padrao : 0);
       const va = this._vaMensal(this.VA_BENEFICIOS[c.id]);
       const sal = parseFloat(this.SALARIOS[c.id]?.valor || 0);
       return { c, vc, va, sal };

@@ -3,26 +3,26 @@
 
 // ?v= é cache-busting do grafo de módulos ES. Ao alterar qualquer módulo,
 // incremente esta versão (e a do index.html) para forçar fetch do arquivo novo.
-import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260624n';
-import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260624n';
+import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, mesLabel } from './utils/formatting.js?v=20260624o';
+import { CHART_COLORS, STATUS_LABEL, VENC_CAT_BADGE, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=20260624o';
 
-import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260624n';
-import { AdvertenciasModule }     from './modules/advertencias.js?v=20260624n';
-import { FeriasModule }           from './modules/ferias.js?v=20260624n';
-import { DesligamentosModule }    from './modules/desligamentos.js?v=20260624n';
-import { CronogramaModule }       from './modules/cronograma.js?v=20260624n';
-import { VencimentosModule }      from './modules/vencimentos.js?v=20260624n';
-import { EpiModule }              from './modules/epi.js?v=20260624n';
-import { RotatividadeModule }     from './modules/rotatividade.js?v=20260624n';
-import { SalariosModule }         from './modules/salarios.js?v=20260624n';
-import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260624n';
-import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260624n';
-import { FeedbackClimaModule }    from './modules/feedback.js?v=20260624n';
-import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260624n';
-import { PrestadoresModule }      from './modules/prestadores.js?v=20260624n';
-import { BeneficiosModule }       from './modules/beneficios.js?v=20260624n';
-import { ProlaboreModule }        from './modules/prolabore.js?v=20260624n';
-import { SacModule }              from './modules/sac.js?v=20260624n';
+import { ColaboradoresModule }    from './modules/colaboradores.js?v=20260624o';
+import { AdvertenciasModule }     from './modules/advertencias.js?v=20260624o';
+import { FeriasModule }           from './modules/ferias.js?v=20260624o';
+import { DesligamentosModule }    from './modules/desligamentos.js?v=20260624o';
+import { CronogramaModule }       from './modules/cronograma.js?v=20260624o';
+import { VencimentosModule }      from './modules/vencimentos.js?v=20260624o';
+import { EpiModule }              from './modules/epi.js?v=20260624o';
+import { RotatividadeModule }     from './modules/rotatividade.js?v=20260624o';
+import { SalariosModule }         from './modules/salarios.js?v=20260624o';
+import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=20260624o';
+import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=20260624o';
+import { FeedbackClimaModule }    from './modules/feedback.js?v=20260624o';
+import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=20260624o';
+import { PrestadoresModule }      from './modules/prestadores.js?v=20260624o';
+import { BeneficiosModule }       from './modules/beneficios.js?v=20260624o';
+import { ProlaboreModule }        from './modules/prolabore.js?v=20260624o';
+import { SacModule }              from './modules/sac.js?v=20260624o';
 
 // faixaIdx depends on FAIXAS which lives in index.html — read from window
 function faixaIdx(valor) {
@@ -74,6 +74,8 @@ function bootstrap() {
 const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
   const VALE_COTAS       = window.VALE_COTAS;
   const VALE_COTAS_MES   = window.VALE_COTAS_MES;
+  const VALE_DESCONTOS   = window.VALE_DESCONTOS;
+  const CONFIG           = window.CONFIG;
   const VA_BENEFICIOS    = window.VA_BENEFICIOS;
   const FEEDBACK         = window.FEEDBACK;
   const CLIMA            = window.CLIMA;
@@ -152,8 +154,9 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
 
   const valeCombustivel = new ValeCombustivelModule({
     $, h, iniciais, fmtDate, fmtBRL, mesChave, mesLabel,
-    COLABORADORES, VALE_LANCAMENTOS, VALE_COTAS, VALE_COTAS_MES, CHART_COLORS,
-    Auth: window.Auth, ValeCombustivel: window.ValeCombustivel, showToast,
+    COLABORADORES, VALE_COTAS, VALE_COTAS_MES, VALE_DESCONTOS, CONFIG, CHART_COLORS,
+    Auth: window.Auth, ValeCombustivel: window.ValeCombustivel,
+    ValeDescontos: window.ValeDescontos, Configuracoes: window.Configuracoes, showToast,
   });
 
   const valeAlimentacao = new ValeAlimentacaoModule({
@@ -185,7 +188,7 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
 
   const beneficios = new BeneficiosModule({
     $, h, iniciais, fmtBRL, fmtDate,
-    COLABORADORES, VALE_COTAS, VA_BENEFICIOS, SALARIOS, FERIAS,
+    COLABORADORES, VALE_COTAS, CONFIG, VA_BENEFICIOS, SALARIOS, FERIAS,
   });
 
   const prolabore = new ProlaboreModule({
@@ -325,16 +328,17 @@ const VALE_LANCAMENTOS = window.VALE_LANCAMENTOS;
 
   // Vale Combustível
   window.renderVale                = ()           => valeCombustivel.render();
-  window.abrirModalValeLancamento  = (id, cId)    => valeCombustivel.abrirModalLancamento(id, cId);
-  window.fecharModalValeLancamento = ()           => valeCombustivel.fecharModalLancamento();
-  window.salvarValeLancamento      = (ev)         => valeCombustivel.salvarLancamento(ev);
-  window.excluirValeLancamento     = (id)         => valeCombustivel.excluirLancamento(id);
+  window.abrirModalValeDesconto    = (id, cId)    => valeCombustivel.abrirModalDesconto(id, cId);
+  window.fecharModalValeDesconto   = ()           => valeCombustivel.fecharModalDesconto();
+  window.salvarValeDesconto        = (ev)         => valeCombustivel.salvarDesconto(ev);
+  window.excluirValeDesconto       = (id)         => valeCombustivel.excluirDesconto(id);
   window.abrirModalValeDetalhe     = (cId, mes)   => valeCombustivel.abrirModalDetalhe(cId, mes);
   window.fecharModalValeDetalhe    = ()           => valeCombustivel.fecharModalDetalhe();
   window.abrirModalCotas           = ()           => valeCombustivel.abrirModalCotas();
   window.fecharModalCotas          = ()           => valeCombustivel.fecharModalCotas();
   window.salvarCotas               = ()           => valeCombustivel.salvarCotas();
   window.aplicarCotaSetor          = ()           => valeCombustivel.aplicarCotaSetor();
+  window.aplicarValorPadraoTodos   = ()           => valeCombustivel.aplicarValorPadraoTodos();
 
   // Vale Alimentação
   window.renderValeAlimentacao          = ()     => valeAlimentacao.render();

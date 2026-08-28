@@ -1,5 +1,18 @@
 // Vale Combustível Module
-// Renders the fuel allowance page: summary table, modal, detail modal, quotas modal, evolution chart
+// O benefício é um valor fixo mensal por colaborador (padrão configurável).
+// Do valor base descontam-se ocorrências — advertência, falta, atraso, etc. —
+// e a tela mostra quanto cada um recebe e quanto foi perdido em descontos.
+
+const MOTIVOS = {
+  advertencia: { t: 'Advertência', cls: 'danger',  cor: '#DC2626' },
+  falta:       { t: 'Falta',       cls: 'danger',  cor: '#EA580C' },
+  atraso:      { t: 'Atraso',      cls: 'warn',    cor: '#F59E0B' },
+  suspensao:   { t: 'Suspensão',   cls: 'danger',  cor: '#991B1B' },
+  afastamento: { t: 'Afastamento', cls: 'info',    cor: '#0284C7' },
+  outro:       { t: 'Outro',       cls: 'neutral', cor: '#94A3B8' },
+};
+
+const VALOR_PADRAO_FALLBACK = 150;
 
 export class ValeCombustivelModule {
   constructor(deps) {
@@ -11,12 +24,15 @@ export class ValeCombustivelModule {
     this.mesChave     = deps.mesChave;
     this.mesLabel     = deps.mesLabel;
     this.COLABORADORES        = deps.COLABORADORES;
-    this.VALE_LANCAMENTOS     = deps.VALE_LANCAMENTOS;
     this.VALE_COTAS           = deps.VALE_COTAS;
     this.VALE_COTAS_MES       = deps.VALE_COTAS_MES || {};
+    this.VALE_DESCONTOS       = deps.VALE_DESCONTOS || [];
+    this.CONFIG               = deps.CONFIG || {};
     this.CHART_COLORS         = deps.CHART_COLORS;
     this.Auth                 = deps.Auth;
     this.ValeCombustivel      = deps.ValeCombustivel;
+    this.ValeDescontos        = deps.ValeDescontos;
+    this.Configuracoes        = deps.Configuracoes;
     this.showToast            = deps.showToast;
 
     this._chartValeEvo    = null;
@@ -38,57 +54,68 @@ export class ValeCombustivelModule {
     });
   }
 
+  // ─── Base de cálculo ────────────────────────────────────────────────────────
+
   _mesCorrente() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
-  // Meses com movimento (lançamentos e/ou cotas creditadas) + o mês corrente,
-  // que fica sempre disponível para lançar antes de existir qualquer registro.
+  _valorPadrao() {
+    const v = parseFloat(this.CONFIG['vale_combustivel_valor_padrao']);
+    return isNaN(v) ? VALOR_PADRAO_FALLBACK : v;
+  }
+
+  // Meses com movimento (valores creditados e/ou descontos) + o mês corrente,
+  // que fica sempre disponível mesmo antes de existir qualquer registro.
   _mesesDisponiveis() {
     const meses = new Set([this._mesCorrente()]);
-    this.VALE_LANCAMENTOS.forEach(l => { if (l.data) meses.add(this.mesChave(l.data)); });
     Object.keys(this.VALE_COTAS_MES).forEach(k => meses.add(k.split('|')[1]));
+    this.VALE_DESCONTOS.forEach(d => meses.add(this._compet(d)));
     return [...meses].sort().reverse();
   }
 
-  // Competências que já têm crédito registrado.
-  _mesesComCota() {
+  _compet(d) {
+    return `${d.ano}-${String(d.mes).padStart(2, '0')}`;
+  }
+
+  // Competências que já têm valores gravados.
+  _mesesComValor() {
     return new Set(Object.keys(this.VALE_COTAS_MES).map(k => k.split('|')[1]));
   }
 
-  // Cota do colaborador na competência informada.
-  _cotaDe(colabId, mes, mesesComCota = this._mesesComCota()) {
+  // Valor base do colaborador na competência.
+  _baseDe(colabId, mes, mesesComValor = this._mesesComValor()) {
     const doMes = this.VALE_COTAS_MES[`${colabId}|${mes}`];
     if (doMes != null) return parseFloat(doMes) || 0;
-    // Competência já fechada: quem não consta no crédito não recebeu nada.
-    if (mesesComCota.has(mes)) return 0;
-    // Competência ainda sem crédito lançado: projeta pela cota vigente.
-    return parseFloat(this.VALE_COTAS[colabId] || 0);
+    // Competência já fechada: quem não consta nela não recebeu nada.
+    if (mesesComValor.has(mes)) return 0;
+    // Competência ainda aberta: vale o valor padrão.
+    return this._valorPadrao();
   }
 
-  // Base única da competência — usada pela tabela e pelo gráfico, para os dois
-  // sempre mostrarem os mesmos números.
+  // Base única da competência — usada pela tabela, pelos cards e pelo gráfico.
   _resumoDoMes(mes) {
-    const lancMes = this.VALE_LANCAMENTOS.filter(l => this.mesChave(l.data) === mes);
-    // Ativos + quem teve movimento no mês (inclui desligados, para que meses
-    // passados fechem com o total realmente creditado na competência).
+    const descMes = this.VALE_DESCONTOS.filter(d => this._compet(d) === mes);
+    const mesesComValor = this._mesesComValor();
+
+    // Ativos + quem tem valor ou desconto no mês (inclui desligados, para que
+    // competências passadas fechem com o que foi realmente pago).
     const pessoas = this.COLABORADORES.filter(c =>
       c.status !== 'inativo'
       || this.VALE_COTAS_MES[`${c.id}|${mes}`] != null
-      || lancMes.some(l => l.colaborador_id === c.id));
+      || descMes.some(d => d.colaborador_id === c.id));
 
-    const mesesComCota = this._mesesComCota();
     return pessoas.map(c => {
-      const lancs = lancMes.filter(l => l.colaborador_id === c.id);
-      const usado = lancs.reduce((s, l) => s + (parseFloat(l.valor) || 0), 0);
-      const cota  = this._cotaDe(c.id, mes, mesesComCota);
-      return { colab: c, lancs, usado, cota, saldo: cota - usado };
+      const descontos = descMes.filter(d => d.colaborador_id === c.id);
+      const perdido   = descontos.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
+      const base      = c.status === 'inativo' && this.VALE_COTAS_MES[`${c.id}|${mes}`] == null
+        ? 0
+        : this._baseDe(c.id, mes, mesesComValor);
+      return { colab: c, descontos, base, perdido, receber: Math.max(0, base - perdido) };
     });
   }
 
-  // Options de colaboradores: ativos primeiro; inativos/desligados agrupados
-  // ao final para permitir lançar/ajustar valores para fins de auditoria.
   _optionsColabs() {
     const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo')
       .sort((a, b) => a.nome.localeCompare(b.nome));
@@ -102,6 +129,8 @@ export class ValeCombustivelModule {
     }
     return html;
   }
+
+  // ─── Tela ───────────────────────────────────────────────────────────────────
 
   render() {
     const selMes = this.$('#vale-mes');
@@ -124,47 +153,46 @@ export class ValeCombustivelModule {
       return true;
     });
 
-    const creditadoMes = resumo.reduce((s, r) => s + r.cota, 0);
-    const totalMes     = resumo.reduce((s, r) => s + r.usado, 0);
-    const descontoMes  = resumo.reduce((s, r) => s + Math.max(0, r.usado - r.cota), 0);
-    const acimaCota    = resumo.filter(r => r.usado > r.cota && r.cota > 0).length;
-    const comLanc      = resumo.filter(r => r.lancs.length > 0).length;
-    if (this.$('#vale-stat-creditado')) this.$('#vale-stat-creditado').textContent = this.fmtBRL(creditadoMes);
-    this.$('#vale-stat-total').textContent    = this.fmtBRL(totalMes);
-    this.$('#vale-stat-desconto').textContent = this.fmtBRL(descontoMes);
-    this.$('#vale-stat-acima').textContent    = acimaCota;
-    this.$('#vale-stat-media').textContent    = this.fmtBRL(comLanc ? totalMes / comLanc : 0);
+    const baseMes    = resumo.reduce((s, r) => s + r.base, 0);
+    const perdidoMes = resumo.reduce((s, r) => s + r.perdido, 0);
+    const pagarMes   = resumo.reduce((s, r) => s + r.receber, 0);
+    const comDesc    = resumo.filter(r => r.perdido > 0).length;
+
+    const set = (sel, val) => { const el = this.$(sel); if (el) el.textContent = val; };
+    set('#vale-stat-base',    this.fmtBRL(baseMes));
+    set('#vale-stat-perdido', this.fmtBRL(perdidoMes));
+    set('#vale-stat-pagar',   this.fmtBRL(pagarMes));
+    set('#vale-stat-comdesc', comDesc);
 
     const tb = this.$('#tb-vale-resumo');
     if (tb) {
       const lista = filtrados.sort((a, b) => {
-        // Quem tem cota ou lançamento no mês vem primeiro; sem isso, quem não
-        // recebe nada ficaria no topo e o que importa iria para o fim da lista.
-        const ma = (a.cota > 0 || a.lancs.length) ? 0 : 1;
-        const mb = (b.cota > 0 || b.lancs.length) ? 0 : 1;
+        // Quem teve desconto primeiro — é o que precisa de conferência.
+        if (a.perdido !== b.perdido) return b.perdido - a.perdido;
+        // Depois quem recebe o benefício; quem não recebe nada vai para o fim.
+        const ma = a.base > 0 ? 0 : 1;
+        const mb = b.base > 0 ? 0 : 1;
         if (ma !== mb) return ma - mb;
-        // Depois, quem estourou a cota (só o excedente ordena — sem consumo
-        // registrado, ordenar por "quanto falta" só embaralharia a lista).
-        const ea = Math.max(0, a.usado - a.cota);
-        const eb = Math.max(0, b.usado - b.cota);
-        if (ea !== eb) return eb - ea;
         return a.colab.nome.localeCompare(b.colab.nome);
       });
+
       tb.innerHTML = lista.length ? lista.map(r => {
         const c = r.colab;
-        const excesso  = r.usado - r.cota;
-        const desconto = Math.max(0, excesso);
-        const statusBadge = r.cota === 0
-          ? `<span class="badge neutral">Sem cota</span>`
-          : r.usado === 0
-            ? `<span class="badge info">Sem uso</span>`
-            : excesso > 0
-              ? `<span class="badge danger">Acima</span>`
-              : excesso <= r.cota * 0.1
-                ? `<span class="badge warn">No limite</span>`
-                : `<span class="badge ok">Dentro</span>`;
-        const saldoStyle  = r.saldo < 0 ? 'color:var(--danger); font-weight:700;' : r.saldo === 0 ? 'color:var(--text-muted)' : 'color:var(--success)';
-        const descStyle   = desconto > 0 ? 'color:var(--danger); font-weight:700;' : 'color:var(--text-soft);';
+        const statusBadge = r.base === 0
+          ? `<span class="badge neutral">Sem benefício</span>`
+          : r.perdido === 0
+            ? `<span class="badge ok">Integral</span>`
+            : r.receber === 0
+              ? `<span class="badge danger">Perdeu tudo</span>`
+              : `<span class="badge warn">Parcial</span>`;
+        const perdStyle = r.perdido > 0 ? 'color:var(--danger); font-weight:700;' : 'color:var(--text-soft);';
+        const tags = r.descontos.length
+          ? `<div style="display:flex; flex-wrap:wrap; gap:3px; margin-top:3px;">` +
+            r.descontos.map(d => {
+              const m = MOTIVOS[d.motivo] || MOTIVOS.outro;
+              return `<span class="badge ${m.cls}" style="font-size:.6rem;">${m.t}</span>`;
+            }).join('') + `</div>`
+          : '';
         return `
           <tr onclick="abrirModalValeDetalhe(${c.id}, '${mesAtual}')">
             <td>
@@ -180,51 +208,60 @@ export class ValeCombustivelModule {
               <div>${this.h(c.setor)}</div>
               ${c.area ? `<div class="cell-person-sub">${this.h(c.area)}</div>` : ''}
             </td>
-            <td class="cell-mono" style="text-align:right">${this.fmtBRL(r.cota)}</td>
-            <td class="cell-mono" style="text-align:right">${this.fmtBRL(r.usado)}</td>
-            <td class="cell-mono" style="text-align:right; ${saldoStyle}">${this.fmtBRL(r.saldo)}</td>
-            <td class="cell-mono" style="text-align:right; ${descStyle}">${this.fmtBRL(desconto)}</td>
-            <td class="cell-mono">${r.lancs.length}</td>
+            <td class="cell-mono" style="text-align:right">${this.fmtBRL(r.base)}</td>
+            <td style="text-align:right">
+              <div class="cell-mono" style="${perdStyle}">${r.perdido > 0 ? '− ' : ''}${this.fmtBRL(r.perdido)}</div>
+              ${tags}
+            </td>
+            <td class="cell-mono" style="text-align:right; font-weight:700;">${this.fmtBRL(r.receber)}</td>
             <td>${statusBadge}</td>
             <td class="actions" onclick="event.stopPropagation()">
-              <button class="btn btn-ghost btn-sm btn-icon" title="Novo lançamento" onclick="abrirModalValeLancamento(null, ${c.id})">+</button>
+              <button class="btn btn-ghost btn-sm btn-icon" title="Lançar desconto" onclick="abrirModalValeDesconto(null, ${c.id})">−</button>
             </td>
           </tr>
         `;
-      }).join('') : `<tr><td colspan="9" class="empty">Sem dados para ${this.mesLabel(mesAtual)}</td></tr>`;
+      }).join('') : `<tr><td colspan="7" class="empty">Sem dados para ${this.mesLabel(mesAtual)}</td></tr>`;
     }
 
     this._renderEvolucao();
   }
 
+  // Gráfico: quanto foi perdido em descontos por mês, separado por motivo.
   _renderEvolucao() {
+    const ctx = this.$('#chart-vale-evolucao');
+    if (!ctx || typeof Chart === 'undefined') return;
+
     const meses = this._mesesDisponiveis().slice(0, 6).reverse();
-    // Mesma base da tabela, mês a mês.
-    const totais = meses.map(m => {
-      const r = this._resumoDoMes(m);
-      return {
-        cota:     r.reduce((s, x) => s + x.cota, 0),
-        total:    r.reduce((s, x) => s + x.usado, 0),
-        desconto: r.reduce((s, x) => s + Math.max(0, x.usado - x.cota), 0),
-      };
-    });
+    const motivos = Object.keys(MOTIVOS);
+
+    const porMotivo = motivos.map(mot => ({
+      label: MOTIVOS[mot].t,
+      data: meses.map(m => this.VALE_DESCONTOS
+        .filter(d => this._compet(d) === m && d.motivo === mot)
+        .reduce((s, d) => s + (parseFloat(d.valor) || 0), 0)),
+      backgroundColor: MOTIVOS[mot].cor,
+      stack: 'd',
+      borderRadius: 3,
+    }));
+
+    // Motivo sem nenhum valor no período não polui a legenda.
+    const datasets = porMotivo.filter(ds => ds.data.some(v => v > 0));
 
     this._chartValeEvo?.destroy();
-    this._chartValeEvo = new Chart(this.$('#chart-vale-evolucao'), {
+    this._chartValeEvo = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: meses.map(m => this.mesLabel(m)),
-        datasets: [
-          { label: 'Creditado',         data: totais.map(t => t.cota),               backgroundColor: '#94A3B8',                      stack: 'c', borderRadius: 3 },
-          { label: 'Dentro da cota',    data: totais.map(t => t.total - t.desconto), backgroundColor: this.CHART_COLORS.phthaloLight, stack: 'g', borderRadius: 3 },
-          { label: 'Desconto em folha', data: totais.map(t => t.desconto),           backgroundColor: '#EF4444',                      stack: 'g', borderRadius: 3 },
-        ],
+        datasets: datasets.length ? datasets : [{
+          label: 'Sem descontos', data: meses.map(() => 0),
+          backgroundColor: '#CBD5E1', stack: 'd', borderRadius: 3,
+        }],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } },
-          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${this.fmtBRL(ctx.parsed.y)}` } },
+          tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${this.fmtBRL(c.parsed.y)}` } },
         },
         scales: {
           x: { stacked: true, grid: { display: false } },
@@ -234,129 +271,153 @@ export class ValeCombustivelModule {
     });
   }
 
-  abrirModalLancamento(id = null, preColabId = null) {
-    const form = this.$('#form-vale-lancamento');
+  // ─── Descontos ──────────────────────────────────────────────────────────────
+
+  abrirModalDesconto(id = null, preColabId = null) {
+    const form = this.$('#form-vale-desconto');
     form.reset();
-    this.$('#form-vale-colab').innerHTML = this._optionsColabs();
+    this.$('#form-vdesc-colab').innerHTML = this._optionsColabs();
+
+    const mes = this.$('#vale-mes')?.value || this._mesCorrente();
+    this.$('#vdesc-competencia').textContent = this.mesLabel(mes);
+    form.elements['competencia'].value = mes;
 
     if (id != null) {
-      const l = this.VALE_LANCAMENTOS.find(x => x.id === id);
-      if (l) {
-        this.$('#modal-vale-lancto-title').textContent = 'Editar lançamento';
-        for (const [k, v] of Object.entries(l)) {
-          const f = form.elements[k];
-          if (f) f.value = v ?? '';
-        }
+      const d = this.VALE_DESCONTOS.find(x => x.id === id);
+      if (d) {
+        this.$('#modal-vale-desconto-title').textContent = 'Editar desconto';
+        form.elements['id'].value = d.id;
+        form.elements['colaborador_id'].value = d.colaborador_id;
+        form.elements['motivo'].value = d.motivo;
+        form.elements['valor'].value = d.valor;
+        form.elements['data_ocorrencia'].value = d.data_ocorrencia || '';
+        form.elements['observacoes'].value = d.observacoes || '';
+        const c = this._compet(d);
+        form.elements['competencia'].value = c;
+        this.$('#vdesc-competencia').textContent = this.mesLabel(c);
       }
     } else {
-      this.$('#modal-vale-lancto-title').textContent = 'Novo lançamento';
-      form.elements['data'].value = new Date().toISOString().slice(0, 10);
+      this.$('#modal-vale-desconto-title').textContent = 'Lançar desconto';
       if (preColabId != null) form.elements['colaborador_id'].value = preColabId;
+      form.elements['data_ocorrencia'].value = new Date().toISOString().slice(0, 10);
     }
-    this.$('#modal-vale-lancamento').classList.add('active');
+
+    this.$('#modal-vale-desconto').classList.add('active');
   }
 
-  fecharModalLancamento() {
-    this.$('#modal-vale-lancamento').classList.remove('active');
+  fecharModalDesconto() {
+    this.$('#modal-vale-desconto').classList.remove('active');
   }
 
-  async salvarLancamento(ev) {
+  async salvarDesconto(ev) {
     ev.preventDefault();
-    const form = this.$('#form-vale-lancamento');
+    const form = this.$('#form-vale-desconto');
     const data = Object.fromEntries(new FormData(form));
-    const id   = data.id ? parseInt(data.id, 10) : null;
+    const id = data.id ? parseInt(data.id, 10) : null;
 
+    if (!data.colaborador_id) { this.showToast('Selecione um colaborador', 'err'); return; }
+    if (!MOTIVOS[data.motivo])  { this.showToast('Selecione o motivo', 'err'); return; }
+    const valor = parseFloat(data.valor);
+    if (isNaN(valor) || valor <= 0) { this.showToast('Informe um valor maior que zero', 'err'); return; }
+
+    const [ano, mes] = (data.competencia || this._mesCorrente()).split('-');
     const payload = {
-      colaborador_id: parseInt(data.colaborador_id, 10),
-      data:           data.data,
-      valor:          parseFloat(data.valor) || 0,
-      litros:         data.litros ? parseFloat(data.litros) : null,
-      km_atual:       data.km_atual ? parseInt(data.km_atual, 10) : null,
-      posto:          data.posto || '',
-      observacoes:    data.observacoes || '',
+      colaborador_id:  parseInt(data.colaborador_id, 10),
+      mes:             parseInt(mes, 10),
+      ano:             parseInt(ano, 10),
+      motivo:          data.motivo,
+      valor,
+      data_ocorrencia: data.data_ocorrencia || null,
+      observacoes:     (data.observacoes || '').trim() || null,
     };
 
-    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    const temSessao = this.ValeDescontos && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
       try {
-        if (id != null) {
-          const saved = await this.ValeCombustivel.atualizar(id, payload);
-          const i = this.VALE_LANCAMENTOS.findIndex(x => x.id === id);
-          if (i >= 0) this.VALE_LANCAMENTOS[i] = saved;
-        } else {
-          const saved = await this.ValeCombustivel.criar(payload);
-          this.VALE_LANCAMENTOS.unshift(saved);
+        const saved = id != null
+          ? await this.ValeDescontos.atualizar(id, payload)
+          : await this.ValeDescontos.criar(payload);
+        if (saved) {
+          const i = this.VALE_DESCONTOS.findIndex(x => x.id === saved.id);
+          if (i >= 0) this.VALE_DESCONTOS[i] = saved;
+          else this.VALE_DESCONTOS.unshift(saved);
         }
-      } catch (err) { this.showToast('Erro ao salvar: ' + err.message, 'err'); return; }
+      } catch (err) {
+        this.showToast('Erro ao salvar desconto: ' + err.message, 'err');
+        return;
+      }
     } else {
       if (id != null) {
-        const i = this.VALE_LANCAMENTOS.findIndex(x => x.id === id);
-        if (i >= 0) this.VALE_LANCAMENTOS[i] = { ...this.VALE_LANCAMENTOS[i], ...payload };
+        const i = this.VALE_DESCONTOS.findIndex(x => x.id === id);
+        if (i >= 0) this.VALE_DESCONTOS[i] = { ...this.VALE_DESCONTOS[i], ...payload };
       } else {
-        const nextId = Math.max(0, ...this.VALE_LANCAMENTOS.map(x => x.id)) + 1;
-        this.VALE_LANCAMENTOS.unshift({ id: nextId, ...payload });
+        const novoId = Math.max(0, ...this.VALE_DESCONTOS.map(x => x.id)) + 1;
+        this.VALE_DESCONTOS.unshift({ id: novoId, ...payload });
       }
     }
 
-    this.showToast(id != null ? 'Lançamento atualizado' : 'Lançamento registrado', 'ok');
-    this.fecharModalLancamento();
+    this.fecharModalDesconto();
+    this.showToast('Desconto salvo', 'ok');
     this.render();
-    if (this._detalheColabId) this._renderDetalhe(this._detalheColabId, this._detalheMes);
+    if (this._detalheColabId != null) this._renderDetalhe(this._detalheColabId, this._detalheMes);
   }
 
-  async excluirLancamento(id) {
-    if (!confirm('Excluir este lançamento?')) return;
-    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+  async excluirDesconto(id) {
+    if (!confirm('Excluir este desconto?')) return;
+    const temSessao = this.ValeDescontos && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
-      try { await this.ValeCombustivel.excluir(id); } catch (err) { this.showToast('Erro: ' + err.message, 'err'); return; }
+      try { await this.ValeDescontos.excluir(id); }
+      catch (err) { this.showToast('Erro ao excluir: ' + err.message, 'err'); return; }
     }
-    const idx = this.VALE_LANCAMENTOS.findIndex(x => x.id === id);
-    if (idx >= 0) this.VALE_LANCAMENTOS.splice(idx, 1);
+    const i = this.VALE_DESCONTOS.findIndex(x => x.id === id);
+    if (i >= 0) this.VALE_DESCONTOS.splice(i, 1);
+    this.showToast('Desconto excluído');
     this.render();
-    if (this._detalheColabId) this._renderDetalhe(this._detalheColabId, this._detalheMes);
-    this.showToast('Lançamento excluído');
+    if (this._detalheColabId != null) this._renderDetalhe(this._detalheColabId, this._detalheMes);
   }
+
+  // ─── Detalhe do colaborador no mês ──────────────────────────────────────────
 
   abrirModalDetalhe(colabId, mes) {
     this._detalheColabId = colabId;
     this._detalheMes     = mes;
     this._renderDetalhe(colabId, mes);
-    this.$('#btn-vale-det-novo').onclick = () => this.abrirModalLancamento(null, colabId);
+    this.$('#btn-vale-det-novo').onclick = () => this.abrirModalDesconto(null, colabId);
     this.$('#modal-vale-detalhe').classList.add('active');
   }
 
   _renderDetalhe(colabId, mes) {
     const c = this.COLABORADORES.find(x => x.id === colabId);
     if (!c) return;
-    const lancs = this.VALE_LANCAMENTOS
-      .filter(l => l.colaborador_id === colabId && this.mesChave(l.data) === mes)
-      .sort((a, b) => a.data.localeCompare(b.data));
-    const usado = lancs.reduce((s, l) => s + parseFloat(l.valor || 0), 0);
-    const cota  = this._cotaDe(colabId, mes);
-    const saldo = cota - usado;
+    const descontos = this.VALE_DESCONTOS
+      .filter(d => d.colaborador_id === colabId && this._compet(d) === mes)
+      .sort((a, b) => (a.data_ocorrencia || '').localeCompare(b.data_ocorrencia || ''));
+    const perdido = descontos.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
+    const base    = this._baseDe(colabId, mes);
+    const receber = Math.max(0, base - perdido);
 
     this.$('#vale-det-title').textContent = `${c.nome} — ${this.mesLabel(mes)}`;
     this.$('#vale-det-summary').innerHTML = `
-      <div class="info-item"><div class="info-label">Cota mensal</div><div class="info-value mono">${this.fmtBRL(cota)}</div></div>
-      <div class="info-item"><div class="info-label">Utilizado</div><div class="info-value mono">${this.fmtBRL(usado)}</div></div>
-      <div class="info-item"><div class="info-label">Saldo</div><div class="info-value mono" style="${saldo < 0 ? 'color:var(--danger);font-weight:700' : ''}">${this.fmtBRL(saldo)}</div></div>
-      <div class="info-item"><div class="info-label">Desconto em folha</div><div class="info-value mono">${this.fmtBRL(Math.max(0, usado - cota))}</div></div>
+      <div class="info-item"><div class="info-label">Valor base</div><div class="info-value mono">${this.fmtBRL(base)}</div></div>
+      <div class="info-item"><div class="info-label">Descontos</div><div class="info-value mono" style="${perdido > 0 ? 'color:var(--danger);font-weight:700' : ''}">${this.fmtBRL(perdido)}</div></div>
+      <div class="info-item"><div class="info-label">A receber</div><div class="info-value mono" style="font-weight:700">${this.fmtBRL(receber)}</div></div>
     `;
 
     const tb = this.$('#tb-vale-detalhe');
-    tb.innerHTML = lancs.length ? lancs.map(l => `
-      <tr>
-        <td class="cell-mono">${this.fmtDate(l.data)}</td>
-        <td class="cell-mono" style="text-align:right">${this.fmtBRL(l.valor)}</td>
-        <td class="cell-mono" style="text-align:right">${l.litros ? l.litros.toFixed(2).replace('.', ',') : '—'}</td>
-        <td class="cell-mono" style="text-align:right">${l.km_atual || '—'}</td>
-        <td>${this.h(l.posto || '—')}</td>
-        <td class="actions">
-          <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalValeLancamento(${l.id})">✎</button>
-          <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirValeLancamento(${l.id})">🗑</button>
-        </td>
-      </tr>
-    `).join('') : `<tr><td colspan="6" class="empty">Nenhum lançamento neste mês</td></tr>`;
+    tb.innerHTML = descontos.length ? descontos.map(d => {
+      const m = MOTIVOS[d.motivo] || MOTIVOS.outro;
+      return `
+        <tr>
+          <td class="cell-mono">${d.data_ocorrencia ? this.fmtDate(d.data_ocorrencia) : '—'}</td>
+          <td><span class="badge ${m.cls}">${m.t}</span></td>
+          <td class="cell-mono" style="text-align:right; color:var(--danger); font-weight:700;">− ${this.fmtBRL(d.valor)}</td>
+          <td>${this.h(d.observacoes || '—')}</td>
+          <td class="actions">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalValeDesconto(${d.id})">✎</button>
+            <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirValeDesconto(${d.id})">🗑</button>
+          </td>
+        </tr>`;
+    }).join('') : `<tr><td colspan="5" class="empty">Nenhum desconto neste mês — benefício integral</td></tr>`;
   }
 
   fecharModalDetalhe() {
@@ -365,12 +426,23 @@ export class ValeCombustivelModule {
     this._detalheMes     = null;
   }
 
+  // ─── Valores do benefício ───────────────────────────────────────────────────
+
   abrirModalCotas() {
+    const mes = this.$('#vale-mes')?.value || this._mesCorrente();
+    this._cotasMes = mes;
+    this.$('#vale-cota-competencia').textContent = this.mesLabel(mes);
+
+    const padraoInput = this.$('#vale-valor-padrao');
+    if (padraoInput) padraoInput.value = this._valorPadrao();
+
+    const mesesComValor = this._mesesComValor();
     const ativos = this.COLABORADORES
       .filter(c => c.status !== 'inativo')
       .sort((a, b) => a.nome.localeCompare(b.nome));
+    // Desligados só aparecem se já tiverem valor gravado nessa competência.
     const inativos = this.COLABORADORES
-      .filter(c => c.status === 'inativo')
+      .filter(c => c.status === 'inativo' && this.VALE_COTAS_MES[`${c.id}|${mes}`] != null)
       .sort((a, b) => a.nome.localeCompare(b.nome));
 
     const linha = (c, inativo = false) => `
@@ -378,16 +450,15 @@ export class ValeCombustivelModule {
           <td>${this.h(c.nome)}${inativo ? ' <span class="badge neutral" style="font-size:.62rem;">inativo</span>' : ''}</td>
           <td>${this.h(c.setor)}</td>
           <td style="text-align:right">
-            <input type="number" step="0.01" min="0" value="${this.VALE_COTAS[c.id] || 0}"
+            <input type="number" step="0.01" min="0" value="${this._baseDe(c.id, mes, mesesComValor)}"
                    id="cota-input-${c.id}" data-colab="${c.id}"
                    style="width:130px; text-align:right; background:var(--bluish-bg); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--mono); font-size:.85rem;">
           </td>
         </tr>`;
 
-    const tb = this.$('#tb-vale-cotas');
-    tb.innerHTML = ativos.map(c => linha(c)).join('') + inativos.map(c => linha(c, true)).join('');
+    this.$('#tb-vale-cotas').innerHTML =
+      ativos.map(c => linha(c)).join('') + inativos.map(c => linha(c, true)).join('');
 
-    // Popula o seletor de setor da padronização
     const setores = [...new Set(ativos.map(c => c.setor).filter(Boolean))].sort();
     const sel = this.$('#vale-cota-pad-setor');
     if (sel) sel.innerHTML = setores.map(s => `<option value="${this.h(s)}">${this.h(s)}</option>`).join('');
@@ -395,8 +466,7 @@ export class ValeCombustivelModule {
     this.$('#modal-vale-cotas').classList.add('active');
   }
 
-  // Preenche os inputs de cota de todos os colaboradores do setor escolhido
-  // com o valor informado (a persistência ocorre ao clicar em "Salvar cotas").
+  // Aplica o valor informado a todos os colaboradores do setor escolhido.
   aplicarCotaSetor() {
     const setor = this.$('#vale-cota-pad-setor')?.value || '';
     const valor = parseFloat(this.$('#vale-cota-pad-valor')?.value) || 0;
@@ -411,45 +481,55 @@ export class ValeCombustivelModule {
     this.showToast(`Valor aplicado a ${n} colaborador(es) do setor ${setor}`, 'ok');
   }
 
-  // Persiste todas as cotas alteradas no banco (quando há sessão) e atualiza
-  // o estado em memória.
+  // Preenche todos os campos com o valor padrão.
+  aplicarValorPadraoTodos() {
+    const valor = parseFloat(this.$('#vale-valor-padrao')?.value);
+    if (isNaN(valor) || valor < 0) { this.showToast('Informe um valor válido', 'err'); return; }
+    const inputs = this.$('#tb-vale-cotas').querySelectorAll('input[data-colab]');
+    inputs.forEach(i => { i.value = valor; });
+    this.showToast(`Valor padrão aplicado a ${inputs.length} colaborador(es)`, 'ok');
+  }
+
+  // Grava a competência inteira: o mês passa a ter o conjunto completo de
+  // valores, então ninguém fica herdando o padrão por engano.
   async salvarCotas() {
-    const inputs = [...this.$('#tb-vale-cotas').querySelectorAll('input[data-colab]')];
-    const now = new Date();
-    const mes = now.getMonth() + 1;
-    const ano = now.getFullYear();
+    const mes = this._cotasMes || this._mesCorrente();
+    const [ano, mesNum] = mes.split('-').map(n => parseInt(n, 10));
+    const hoje = new Date().toISOString().slice(0, 10);
+
+    const linhas = [...this.$('#tb-vale-cotas').querySelectorAll('input[data-colab]')].map(input => ({
+      colaborador_id: parseInt(input.dataset.colab, 10),
+      mes:            mesNum,
+      ano,
+      valor_mensal:   parseFloat(input.value) || 0,
+      data_concessao: hoje,
+      status:         'ativo',
+    }));
+
+    const padrao = parseFloat(this.$('#vale-valor-padrao')?.value);
+    const padraoMudou = !isNaN(padrao) && padrao >= 0 && padrao !== this._valorPadrao();
 
     const temSessao = this.ValeCombustivel && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
-
-    let ok = 0, falhas = 0;
-    for (const input of inputs) {
-      const colabId = parseInt(input.dataset.colab, 10);
-      const valor   = parseFloat(input.value) || 0;
-      if ((parseFloat(this.VALE_COTAS[colabId]) || 0) === valor) continue; // sem mudança
-
-      if (temSessao) {
-        try {
-          await this.ValeCombustivel.upsertCota({
-            colaborador_id: colabId,
-            mes, ano,
-            valor_mensal:   valor,
-            data_concessao: now.toISOString().slice(0, 10),
-            status:         'ativo',
-          });
-        } catch (err) {
-          falhas++;
-          console.error('Falha ao salvar cota de', colabId, err);
-          continue;
-        }
+    if (temSessao) {
+      try {
+        await this.ValeCombustivel.upsertCotasEmLote(linhas);
+        if (padraoMudou) await this.Configuracoes.definir('vale_combustivel_valor_padrao', padrao);
+      } catch (err) {
+        this.showToast('Erro ao salvar valores: ' + err.message, 'err');
+        return;
       }
-      this.VALE_COTAS[colabId] = valor;
-      ok++;
     }
+
+    // Estado local
+    linhas.forEach(l => {
+      this.VALE_COTAS_MES[`${l.colaborador_id}|${mes}`] = l.valor_mensal;
+      this.VALE_COTAS[l.colaborador_id] = l.valor_mensal;
+    });
+    if (padraoMudou) this.CONFIG['vale_combustivel_valor_padrao'] = String(padrao);
 
     this.fecharModalCotas();
     this.render();
-    if (falhas) this.showToast(`${ok} cota(s) salva(s), ${falhas} com erro`, 'err');
-    else        this.showToast(ok ? `${ok} cota(s) salva(s)` : 'Nenhuma alteração', 'ok');
+    this.showToast(`Valores de ${this.mesLabel(mes)} salvos`, 'ok');
   }
 
   fecharModalCotas() {

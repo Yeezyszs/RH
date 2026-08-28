@@ -158,6 +158,78 @@ const ValeCombustivel = {
     Cache.invalidate('vale_combustivel');
     return data;
   },
+
+  // Grava a competência inteira de uma vez: assim o mês fica com o conjunto
+  // completo de valores e não sobra ninguém herdando o valor padrão.
+  async upsertCotasEmLote(linhas) {
+    if (!linhas.length) return [];
+    const { data, error } = await withTimeout(
+      sb.from('vale_combustivel')
+        .upsert(linhas, { onConflict: 'colaborador_id,mes,ano' })
+        .select(),
+      15000
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_combustivel');
+    return data ?? [];
+  },
+};
+
+// Descontos do vale combustível (advertência, falta, atraso, …)
+const ValeDescontos = {
+  async listar() {
+    const { data, error } = await withTimeout(
+      sb.from('vale_descontos')
+        .select('id, colaborador_id, mes, ano, motivo, valor, data_ocorrencia, observacoes')
+        .order('ano', { ascending: false })
+        .order('mes', { ascending: false })
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('vale_descontos').insert(payload).select().single()
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('vale_descontos').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('vale_descontos').delete().eq('id', id)
+    );
+    if (error) throw error;
+  },
+};
+
+// Configurações gerais (chave/valor)
+const Configuracoes = {
+  async listar() {
+    const { data, error } = await withTimeout(
+      sb.from('configuracoes').select('chave, valor')
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async definir(chave, valor) {
+    const { error } = await withTimeout(
+      sb.from('configuracoes')
+        .upsert({ chave, valor: String(valor), atualizado_em: new Date().toISOString() },
+                { onConflict: 'chave' })
+    );
+    if (error) throw error;
+  },
 };
 
 const ValeAlimentacao = {

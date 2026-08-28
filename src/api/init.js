@@ -40,7 +40,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, afastamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeComb, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac, valeDesc, config] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -67,6 +67,8 @@ async function inicializarSupabase() {
         ProcedimentosEmpresa.listar(),
         ProlaboreSocios.listar(),
         SacMensagens.listar(),
+        ValeDescontos.listar(),
+        Configuracoes.listar(),
       ]);
 
     if (colaboradores.status === 'fulfilled') {
@@ -202,6 +204,18 @@ async function inicializarSupabase() {
         _preencherArray(SAC, lista);
         console.info(`[RH] ${SAC.length} mensagens de SAC carregadas.`);
       }
+    }
+
+    if (valeDesc.status === 'fulfilled') {
+      const lista = valeDesc.value ?? [];
+      if (lista.length > 0) {
+        _preencherArray(VALE_DESCONTOS, lista);
+        console.info(`[RH] ${VALE_DESCONTOS.length} descontos de vale combustível carregados.`);
+      }
+    }
+
+    if (config.status === 'fulfilled') {
+      (config.value ?? []).forEach(c => { CONFIG[c.chave] = c.valor; });
     }
 
     if (salarios.status === 'fulfilled') {
@@ -582,6 +596,15 @@ function setupRealTimeListeners() {
       if (typeof renderVale === 'function') renderVale();
     }
 
+    if (table === 'vale_descontos') {
+      if (eventType === 'DELETE') {
+        _filtrarArray(VALE_DESCONTOS, x => x.id !== id);
+      } else if (novoReg) {
+        _upsertArray(VALE_DESCONTOS, novoReg);
+      }
+      if (typeof renderVale === 'function') renderVale();
+    }
+
     if (table === 'vale_alimentacao') {
       if (eventType === 'DELETE') {
         _filtrarArray(VALE_ALIMENTACAO, x => x.id !== id);
@@ -637,7 +660,7 @@ function setupRealTimeListeners() {
     'epis', 'salario_atual', 'documentos', 'asos', 'feedbacks', 'pesquisas_clima',
     'vale_combustivel', 'vale_alimentacao', 'rotatividade', 'participantes_treinamento',
     'politicas_empresa', 'epi_catalogo', 'epi_kits', 'prestadores_servico',
-    'contatos_emergencia', 'procedimentos_empresa', 'prolabore_socios', 'sac_mensagens',
+    'contatos_emergencia', 'procedimentos_empresa', 'prolabore_socios', 'sac_mensagens', 'vale_descontos',
   ];
 
   // Supabase JS v2: um único canal acumula vários filtros .on() antes do
@@ -676,6 +699,8 @@ window.Treinamentos           = Treinamentos;
 window.Ferias                 = Ferias;
 window.Salarios               = Salarios;
 window.ValeCombustivel        = ValeCombustivel;
+window.ValeDescontos          = ValeDescontos;
+window.Configuracoes          = Configuracoes;
 window.ValeAlimentacao        = ValeAlimentacao;
 window.Advertencias           = Advertencias;
 window.FeedbackClima          = FeedbackClima;

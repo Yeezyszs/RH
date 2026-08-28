@@ -20,6 +20,9 @@ var VALE_COTAS     = {};
 // Cota por mês: chave `${colaborador_id}|AAAA-MM` (VALE_COTAS guarda a mais recente).
 var VALE_COTAS_MES = {};
 var VALE_LANCAMENTOS = [];
+var VALE_DESCONTOS = [];
+// Configurações gerais (chave → valor), ex.: vale_combustivel_valor_padrao.
+var CONFIG         = {};
 var VA_BENEFICIOS  = {};
 var SALARIOS       = {};
 var FEEDBACK         = [];
@@ -60,6 +63,8 @@ window.EPI_KITS         = EPI_KITS;
 window.VALE_COTAS       = VALE_COTAS;
 window.VALE_COTAS_MES   = VALE_COTAS_MES;
 window.VALE_LANCAMENTOS = VALE_LANCAMENTOS;
+window.VALE_DESCONTOS   = VALE_DESCONTOS;
+window.CONFIG           = CONFIG;
 window.VA_BENEFICIOS    = VA_BENEFICIOS;
 window.SALARIOS         = SALARIOS;
 window.FAIXAS           = FAIXAS;

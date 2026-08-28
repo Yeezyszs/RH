@@ -6,11 +6,11 @@
 <title>RH — Gestão de Recursos Humanos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/tokens.css?v=20260624n">
-<link rel="stylesheet" href="css/layout.css?v=20260624n">
-<link rel="stylesheet" href="css/components.css?v=20260624n">
-<link rel="stylesheet" href="css/pages.css?v=20260624n">
-<link rel="stylesheet" href="css/login.css?v=20260624n">
+<link rel="stylesheet" href="css/tokens.css?v=20260624o">
+<link rel="stylesheet" href="css/layout.css?v=20260624o">
+<link rel="stylesheet" href="css/components.css?v=20260624o">
+<link rel="stylesheet" href="css/pages.css?v=20260624o">
+<link rel="stylesheet" href="css/login.css?v=20260624o">
 </head>
 <body>
 
@@ -998,7 +998,7 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Vale Combustível</h1>
-          <div class="page-subtitle">Cotas mensais · lançamentos · desconto em folha</div>
+          <div class="page-subtitle">valor mensal fixo · descontos por ocorrência</div>
         </div>
       </div>
 
@@ -1011,39 +1011,35 @@
         <select id="vale-filter-setor">
           <option value="">Todos os setores</option>
         </select>
-        <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalCotas()">⚙ Cotas</button>
-        <button class="btn" type="button" onclick="abrirModalValeLancamento()">+ Novo lançamento</button>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalCotas()">⚙ Valores</button>
+        <button class="btn" type="button" onclick="abrirModalValeDesconto()">− Lançar desconto</button>
       </div>
 
       <!-- Stats -->
       <div class="stats-row">
         <div class="stat">
-          <div class="stat-label">Creditado no mês</div>
-          <div class="stat-value" id="vale-stat-creditado" style="font-size:1.3rem;">—</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Utilizado no mês</div>
-          <div class="stat-value" id="vale-stat-total" style="font-size:1.3rem;">—</div>
+          <div class="stat-label">Valor base do mês</div>
+          <div class="stat-value" id="vale-stat-base" style="font-size:1.3rem;">—</div>
         </div>
         <div class="stat stat-danger">
-          <div class="stat-label">Desconto em folha</div>
-          <div class="stat-value" id="vale-stat-desconto" style="font-size:1.3rem;">—</div>
-        </div>
-        <div class="stat stat-warn">
-          <div class="stat-label">Acima da cota</div>
-          <div class="stat-value" id="vale-stat-acima">—</div>
+          <div class="stat-label">Perdido em descontos</div>
+          <div class="stat-value" id="vale-stat-perdido" style="font-size:1.3rem;">—</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Média / colaborador</div>
-          <div class="stat-value" id="vale-stat-media" style="font-size:1.3rem;">—</div>
+          <div class="stat-label">A pagar no mês</div>
+          <div class="stat-value" id="vale-stat-pagar" style="font-size:1.3rem;">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Com desconto</div>
+          <div class="stat-value" id="vale-stat-comdesc">—</div>
         </div>
       </div>
 
       <!-- Gráfico evolução -->
       <div class="widget" style="margin-bottom:14px;">
         <div class="widget-header">
-          <div class="widget-title">Evolução mensal</div>
-          <span class="widget-badge">creditado vs. gasto</span>
+          <div class="widget-title">Perdas por desconto</div>
+          <span class="widget-badge">valor perdido por motivo</span>
         </div>
         <div class="chart-container" style="height:200px;">
           <canvas id="chart-vale-evolucao"></canvas>
@@ -1056,15 +1052,13 @@
           <table class="data">
             <thead>
               <tr>
-                <th style="width:24%">Colaborador</th>
+                <th style="width:26%">Colaborador</th>
                 <th>Setor / Área</th>
-                <th style="text-align:right">Cota</th>
-                <th style="text-align:right">Utilizado</th>
-                <th style="text-align:right">Saldo</th>
-                <th style="text-align:right">Desconto em folha</th>
-                <th>Lanç.</th>
+                <th style="text-align:right">Valor base</th>
+                <th style="text-align:right">Descontos</th>
+                <th style="text-align:right">A receber</th>
                 <th>Status</th>
-                <th style="width:100px; text-align:right">Ações</th>
+                <th style="width:80px; text-align:right">Ações</th>
               </tr>
             </thead>
             <tbody id="tb-vale-resumo"></tbody>
@@ -2672,48 +2666,53 @@
 </div>
 
 <!-- ════════════ MODAL — NOVO LANÇAMENTO VALE ════════════ -->
-<div id="modal-vale-lancamento" class="modal">
+<div id="modal-vale-desconto" class="modal">
   <div class="modal-box">
     <div class="modal-header">
-      <div class="modal-title" id="modal-vale-lancto-title">Novo lançamento</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalValeLancamento()">×</button>
+      <div class="modal-title" id="modal-vale-desconto-title">Lançar desconto</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalValeDesconto()">×</button>
     </div>
     <div class="modal-body">
-      <form id="form-vale-lancamento" class="form-grid" onsubmit="salvarValeLancamento(event)">
+      <form id="form-vale-desconto" class="form-grid" onsubmit="salvarValeDesconto(event)">
         <input type="hidden" name="id">
+        <input type="hidden" name="competencia">
+        <div class="form-group full" style="margin-bottom:2px;">
+          <div style="font-family:var(--mono); font-size:.75rem; color:var(--text-muted); letter-spacing:.04em;">
+            Competência: <strong id="vdesc-competencia" style="color:var(--text)">—</strong>
+          </div>
+        </div>
         <div class="form-group full">
           <label>Colaborador</label>
-          <select name="colaborador_id" id="form-vale-colab" required></select>
+          <select name="colaborador_id" id="form-vdesc-colab" required></select>
         </div>
         <div class="form-group">
-          <label>Data</label>
-          <input type="date" name="data" required>
+          <label>Motivo</label>
+          <select name="motivo" required>
+            <option value="advertencia">Advertência</option>
+            <option value="falta">Falta</option>
+            <option value="atraso">Atraso</option>
+            <option value="suspensao">Suspensão</option>
+            <option value="afastamento">Afastamento</option>
+            <option value="outro">Outro</option>
+          </select>
         </div>
         <div class="form-group">
-          <label>Valor (R$)</label>
-          <input type="number" name="valor" step="0.01" min="0" required>
+          <label>Valor descontado (R$)</label>
+          <input type="number" name="valor" step="0.01" min="0" required placeholder="0,00">
         </div>
         <div class="form-group">
-          <label>Litros</label>
-          <input type="number" name="litros" step="0.01" min="0">
-        </div>
-        <div class="form-group">
-          <label>Km atual</label>
-          <input type="number" name="km_atual" min="0">
-        </div>
-        <div class="form-group full">
-          <label>Posto</label>
-          <input type="text" name="posto" placeholder="Nome do posto">
+          <label>Data da ocorrência</label>
+          <input type="date" name="data_ocorrencia">
         </div>
         <div class="form-group full">
           <label>Observações</label>
-          <textarea name="observacoes"></textarea>
+          <textarea name="observacoes" placeholder="Detalhe o motivo do desconto…"></textarea>
         </div>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalValeLancamento()">Cancelar</button>
-      <button class="btn btn-sm" type="submit" form="form-vale-lancamento">Salvar</button>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalValeDesconto()">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-vale-desconto">Salvar</button>
     </div>
   </div>
 </div>
@@ -2722,12 +2721,24 @@
 <div id="modal-vale-cotas" class="modal">
   <div class="modal-box" style="max-width:580px;">
     <div class="modal-header">
-      <div class="modal-title">Cotas mensais de vale combustível</div>
+      <div class="modal-title">Valores do vale combustível</div>
       <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalCotas()">×</button>
     </div>
     <div class="modal-body">
       <div style="font-family:var(--mono); font-size:.75rem; color:var(--text-muted); margin-bottom:14px; letter-spacing:.04em;">
-        Defina o valor (R$) da cota mensal de cada colaborador ativo. O que exceder vira desconto em folha.
+        Competência: <strong id="vale-cota-competencia" style="color:var(--text)">—</strong> ·
+        salvar grava o valor de todos os colaboradores listados neste mês.
+      </div>
+      <!-- Valor padrão -->
+      <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px 12px; margin-bottom:10px;">
+        <div class="form-group" style="width:150px; margin:0;">
+          <label style="font-size:.7rem;">Valor padrão (R$)</label>
+          <input type="number" id="vale-valor-padrao" step="0.01" min="0" placeholder="150,00">
+        </div>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="aplicarValorPadraoTodos()">Aplicar a todos</button>
+        <div style="flex:1; min-width:180px; font-size:.72rem; color:var(--text-muted); line-height:1.35;">
+          Vale para todo mês que ainda não tiver valores gravados.
+        </div>
       </div>
       <!-- Padronização por setor -->
       <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; background:var(--bluish-bg); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:14px;">
@@ -2744,7 +2755,7 @@
       <div class="table-card">
         <div class="table-wrapper">
           <table class="data">
-            <thead><tr><th>Colaborador</th><th>Setor</th><th style="width:160px; text-align:right">Cota mensal</th></tr></thead>
+            <thead><tr><th>Colaborador</th><th>Setor</th><th style="width:160px; text-align:right">Valor no mês</th></tr></thead>
             <tbody id="tb-vale-cotas"></tbody>
           </table>
         </div>
@@ -2752,7 +2763,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalCotas()">Cancelar</button>
-      <button class="btn btn-sm" type="button" onclick="salvarCotas()">Salvar cotas</button>
+      <button class="btn btn-sm" type="button" onclick="salvarCotas()">Salvar valores</button>
     </div>
   </div>
 </div>
@@ -2761,7 +2772,7 @@
 <div id="modal-vale-detalhe" class="modal">
   <div class="modal-box" style="max-width:760px;">
     <div class="modal-header">
-      <div class="modal-title" id="vale-det-title">Lançamentos do mês</div>
+      <div class="modal-title" id="vale-det-title">Descontos do mês</div>
       <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalValeDetalhe()">×</button>
     </div>
     <div class="modal-body">
@@ -2769,7 +2780,7 @@
       <div class="table-card">
         <div class="table-wrapper">
           <table class="data">
-            <thead><tr><th>Data</th><th style="text-align:right">Valor</th><th style="text-align:right">Litros</th><th style="text-align:right">Km</th><th>Posto</th><th style="width:80px; text-align:right">Ações</th></tr></thead>
+            <thead><tr><th style="width:110px">Ocorrência</th><th style="width:130px">Motivo</th><th style="text-align:right; width:120px">Valor</th><th>Observações</th><th style="width:80px; text-align:right">Ações</th></tr></thead>
             <tbody id="tb-vale-detalhe"></tbody>
           </table>
         </div>
@@ -2777,7 +2788,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalValeDetalhe()">Fechar</button>
-      <button class="btn btn-sm" type="button" id="btn-vale-det-novo">+ Novo lançamento</button>
+      <button class="btn btn-sm" type="button" id="btn-vale-det-novo">− Lançar desconto</button>
     </div>
   </div>
 </div>
@@ -3712,18 +3723,18 @@ Liderança de equipe ≥3 pessoas"></textarea>
 
 <!-- ?v= é cache-busting: ao alterar JS, incremente a versão para forçar o
      navegador/GitHub Pages a buscar o arquivo novo em vez do cache. -->
-<script src="src/data-store.js?v=20260624n"></script>
-<script src="src/utils/base.js?v=20260624n"></script>
-<script src="src/dashboard.js?v=20260624n"></script>
-<script src="src/utils/relatorio.js?v=20260624n"></script>
-<script src="supabase.js?v=20260624n"></script>
-<script src="src/api/pessoas.js?v=20260624n"></script>
-<script src="src/api/compliance.js?v=20260624n"></script>
-<script src="src/api/beneficios.js?v=20260624n"></script>
-<script src="src/api/gestao.js?v=20260624n"></script>
-<script src="src/api/init.js?v=20260624n"></script>
-<script src="src/auth.js?v=20260624n"></script>
-<script type="module" src="src/app.js?v=20260624n"></script>
+<script src="src/data-store.js?v=20260624o"></script>
+<script src="src/utils/base.js?v=20260624o"></script>
+<script src="src/dashboard.js?v=20260624o"></script>
+<script src="src/utils/relatorio.js?v=20260624o"></script>
+<script src="supabase.js?v=20260624o"></script>
+<script src="src/api/pessoas.js?v=20260624o"></script>
+<script src="src/api/compliance.js?v=20260624o"></script>
+<script src="src/api/beneficios.js?v=20260624o"></script>
+<script src="src/api/gestao.js?v=20260624o"></script>
+<script src="src/api/init.js?v=20260624o"></script>
+<script src="src/auth.js?v=20260624o"></script>
+<script type="module" src="src/app.js?v=20260624o"></script>
 
 </body>
 </html>
