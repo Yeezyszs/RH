@@ -11,7 +11,8 @@
     "dev": "npx http-server -p 8000 -c-1 --cors",
     "preview": "npx http-server -p 4173 -c-1",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "check:secrets": "node scripts/checar-segredos.mjs ."
   },
   "repository": {
     "type": "git",

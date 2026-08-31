@@ -91,14 +91,12 @@ jobs:
       - name: Verificar vulnerabilidades (npm audit)
         run: npm audit --audit-level=high || true
 
-      - name: Verificar secrets hardcoded
-        run: |
-          # Bloqueia se secret key (service_role) estiver no código
-          if grep -rn "service_role" --include="*.js" --include="*.html" .; then
-            echo "ERRO: service_role key encontrada no código!"
-            exit 1
-          fi
-          echo "✓ Nenhuma service_role key encontrada"
+      # Decodifica o payload de cada JWT do repositório e reprova se algum tiver
+      # papel diferente de `anon`. A versão anterior era um grep pela palavra
+      # "service_role", que errava nos dois sentidos: acusava comentários e
+      # NÃO detectava a chave real (o papel fica em base64, dentro do token).
+      - name: Verificar chaves privilegiadas no código
+        run: node scripts/checar-segredos.mjs .
 
       - name: Verificar .env não commitado
         run: |
