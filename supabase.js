@@ -1,5 +1,9 @@
 // Supabase Client — RH System
-// Não incluir a secret key aqui. Usar apenas anon/public key.
+//
+// A chave abaixo é a `anon` (pública) e é PARA ser exposta no cliente: ela não
+// concede acesso a nada por si só. Quem autoriza é o RLS do banco, avaliado a
+// cada requisição contra o perfil do usuário logado. Nunca colocar aqui a
+// `service_role`, que ignora RLS (o CI reprova o build se ela aparecer).
 
 const SUPABASE_URL  = 'https://smfiujgaxaodyfwvoxwy.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtZml1amdheGFvZHlmd3ZveHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NjczOTQsImV4cCI6MjA5MzA0MzM5NH0.8zj1LtQOMZWOkaoYIxSQHG1xnpQFxtHVRtQ6vXHnrPY';
@@ -7,75 +11,12 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ============================================================================
-// TIMEOUT — evita UI congelada em requisições lentas
+// TIMEOUT · RETRY · CACHE
 // ============================================================================
+// withTimeout, withRetry e makeCache vivem em src/utils/rede.js (carregado
+// antes deste arquivo) para poderem ser cobertos por teste.
 
-async function withTimeout(promise, ms = 6000) {
-  let timer;
-  const timeout = new Promise((_, reject) => {
-    timer = setTimeout(
-      () => reject(new Error('Requisição expirou. Verifique sua conexão.')),
-      ms
-    );
-  });
-  try {
-    const result = await Promise.race([promise, timeout]);
-    clearTimeout(timer);
-    return result;
-  } catch (err) {
-    clearTimeout(timer);
-    throw err;
-  }
-}
-
-// ============================================================================
-// RETRY — tenta novamente com exponential backoff
-// ============================================================================
-
-async function withRetry(fn, maxRetries = 3) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      const isLast = attempt === maxRetries - 1;
-      if (isLast) throw err;
-      const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
-      console.warn(`[RH] Tentativa ${attempt + 1} falhou. Retentando em ${delay}ms...`);
-      await new Promise(r => setTimeout(r, delay));
-    }
-  }
-}
-
-// ============================================================================
-// CACHE LOCAL — 5 minutos por padrão
-// ============================================================================
-
-const Cache = {
-  _store: new Map(),
-  TTL: 5 * 60 * 1000,
-
-  get(key) {
-    const entry = this._store.get(key);
-    if (!entry) return null;
-    if (Date.now() - entry.time > this.TTL) {
-      this._store.delete(key);
-      return null;
-    }
-    return entry.data;
-  },
-
-  set(key, data) {
-    this._store.set(key, { data, time: Date.now() });
-  },
-
-  invalidate(key) {
-    if (key) {
-      this._store.delete(key);
-    } else {
-      this._store.clear();
-    }
-  },
-};
+const Cache = makeCache();
 
 // ============================================================================
 // AUTH
@@ -110,104 +51,4 @@ const Auth = {
 // ============================================================================
 // HELPERS — mappers (banco → UI)
 // ============================================================================
-
-function mapColaborador(row) {
-  return {
-    id:            row.id,
-    nome:          row.nome,
-    matricula:     row.cpf?.replace(/\D/g, '').slice(-6) || String(row.id).padStart(6, '0'),
-    cargo:         row.cargos?.nome        || row.cargo  || '—',
-    setor:         row.departamentos?.nome || row.setor  || '—',
-    area:          row.area                || '',
-    sexo:          row.genero === 'Masculino' ? 'M' : row.genero === 'Feminino' ? 'F' : 'O',
-    escolaridade:  row.escolaridade        || '',
-    admissao:      row.data_admissao       || '',
-    status:        row.status              || 'ativo',
-    nascimento:    row.data_nascimento     || '',
-    cpf:           row.cpf                 || '',
-    telefone:      row.celular || row.telefone || '',
-    email:         row.email               || '',
-    endereco:      [row.endereco, row.cidade, row.estado].filter(Boolean).join(' — '),
-    departamento_id: row.departamento_id,
-    cargo_id:      row.cargo_id,
-    salario:       row.salario,
-    tipo_contrato: row.tipo_contrato,
-  };
-}
-
-function mapAdvertencia(row) {
-  return {
-    id:             row.id,
-    colab_id:       row.colaborador_id,
-    colaborador_id: row.colaborador_id,
-    data:           row.data_advertencia,
-    tipo:           row.tipo,
-    categoria:      row.categoria || '',
-    motivo:         row.motivo,
-    descricao:      row.descricao || '',
-    gestor:         row.gestor || '',
-    testemunhas:    row.testemunhas || '',
-    dias_suspensao: row.dias_suspensao ?? null,
-    assinada_em:    row.assinada_em || null,
-    status:         row.status || (row.resposta_colaborador ? 'respondida' : 'pendente'),
-  };
-}
-
-function mapFerias(row) {
-  const hoje = new Date().toISOString().slice(0, 10);
-  const inicio = row.data_inicio;
-  const fim    = row.data_termino;
-  const status = fim < hoje ? 'concluida' : inicio <= hoje ? 'em_curso' : 'planejada';
-  return {
-    id:             row.id,
-    colaborador_id: row.colaborador_id,
-    inicio,
-    fim,
-    dias:           row.dias_usados,
-    abono:          row.abono_pecuniario ?? 0,
-    saldo:          row.dias_saldo,
-    ano:            row.ano_referencia,
-    aprovado:       row.aprovado,
-    valor:          row.valor_pago != null ? parseFloat(row.valor_pago) : null,
-    observacoes:    row.observacoes || '',
-    status,
-  };
-}
-
-function mapDesligamento(row) {
-  const c = row.colaboradores || {};
-  return {
-    id:             row.id,
-    colaborador_id: row.colaborador_id,
-    nome:           c.nome           || row.nome           || '—',
-    cargo:          c.cargo          || row.cargo          || '—',
-    setor:          c.setor          || row.setor          || '—',
-    admissao:       c.data_admissao  || row.admissao       || null,
-    data:           row.data_desligamento,
-    ultimo_dia:     row.ultimo_dia   || row.data_desligamento,
-    motivo:      row.motivo,
-    tipo:        row.tipo,
-    aviso:       row.aviso        || null,
-    observacoes: row.observacoes  || '',
-    entrevista:  row.entrevista   || { realizada: false },
-    valor:       row.encargos_rescisao,
-  };
-}
-
-function mapEvento(row) {
-  if (!row) return { id: undefined, titulo: '', data: undefined, hora_inicio: '', hora_fim: '', local: '', tipo: 'evento', status: 'agendado', descricao: '' };
-  // Timestamps podem vir com 'T' (API REST) ou espaço (Realtime). Normaliza.
-  const ini = row.data_inicio ? String(row.data_inicio).replace(' ', 'T') : '';
-  const fim = row.data_termino ? String(row.data_termino).replace(' ', 'T') : '';
-  return {
-    id:          row.id,
-    titulo:      row.titulo,
-    data:        ini ? ini.slice(0, 10) : undefined,
-    hora_inicio: ini.split('T')[1]?.slice(0, 5) || '',
-    hora_fim:    fim.split('T')[1]?.slice(0, 5) || '',
-    local:       row.local || '',
-    tipo:        row.tipo || 'evento',
-    status:      row.status || 'agendado',
-    descricao:   row.descricao || '',
-  };
-}
+// Definidos em src/utils/mappers.js, carregado antes deste arquivo.

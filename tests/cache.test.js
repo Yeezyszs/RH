@@ -1,5 +1,12 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { makeCache } from './helpers.js';
+import { describe, it, expect, beforeEach, vi, afterEach, beforeAll } from 'vitest';
+
+// Código de produção (script clássico que expõe no window), não uma cópia.
+let makeCache;
+beforeAll(async () => {
+  globalThis.window = globalThis.window || {};
+  await import('../src/utils/rede.js');
+  makeCache = window.makeCache;
+});
 
 describe('Cache', () => {
   let cache;

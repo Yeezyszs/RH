@@ -1,8 +1,21 @@
 import { describe, it, expect } from 'vitest';
 
-// ─── Simulação da lógica de RLS ───────────────────────────────────────────────
-// Estas funções espelham as USING/WITH CHECK conditions das policies do banco.
-// Testamos a lógica de controle de acesso pura, sem conexão com banco de dados.
+// ─── Modelo de acesso pretendido (NÃO testa o banco) ─────────────────────────
+//
+// ATENÇÃO ao que esta suíte prova e ao que ela NÃO prova.
+//
+// As funções abaixo são uma reescrita, em JS, das condições USING/WITH CHECK
+// que deveriam estar no banco. Ela documenta e valida o MODELO de acesso —
+// "gerente enxerga só o próprio departamento" — mas não toca no Postgres.
+//
+// Consequência concreta: a tabela `afastamentos` ficou com RLS habilitado e
+// ZERO políticas (ou seja, negando todo acesso) e esta suíte permaneceu verde
+// o tempo todo. Uma divergência entre este modelo e as políticas reais é
+// invisível aqui.
+//
+// Verificar as políticas de fato exige um teste de integração contra o banco,
+// autenticando com cada perfil. Enquanto isso não existir, trate este arquivo
+// como especificação executável, não como garantia.
 
 function makeCtx({ role, colaboradorId = null, departamentoId = null, userId = null }) {
   return { role, colaboradorId, departamentoId, userId };

@@ -1,5 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { mapColaborador, mapAdvertencia, mapFerias, mapDesligamento, mapEvento } from './helpers.js';
+import { describe, it, expect, beforeAll } from 'vitest';
+
+// Mappers de PRODUÇÃO — ver nota em mappers.test.js.
+let mapColaborador, mapAdvertencia, mapFerias, mapDesligamento, mapEvento;
+beforeAll(async () => {
+  globalThis.window = globalThis.window || {};
+  await import('../src/utils/mappers.js');
+  ({ mapColaborador, mapAdvertencia, mapFerias, mapDesligamento, mapEvento } = window);
+});
 
 // Mappers adicionais que espelham a lógica dos módulos
 function mapFeedback(row) {
@@ -166,7 +173,7 @@ describe('mapDesligamento()', () => {
   it('mapeia campos corretamente', () => {
     const m = mapDesligamento(row);
     expect(m.id).toBe(7);
-    expect(m.colab_id).toBe(3);
+    expect(m.colaborador_id).toBe(3);
     expect(m.data).toBe('2024-05-31');
     expect(m.motivo).toBe('Pedido de demissão');
     expect(m.tipo).toBe('voluntario');

@@ -1,5 +1,13 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { withTimeout, withRetry } from './helpers.js';
+import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
+
+// Código de produção (script clássico que expõe no window), não uma cópia.
+let withTimeout, withRetry;
+beforeAll(async () => {
+  globalThis.window = globalThis.window || {};
+  await import('../src/utils/rede.js');
+  withTimeout = window.withTimeout;
+  withRetry   = window.withRetry;
+});
 
 describe('withTimeout', () => {
   afterEach(() => { vi.useRealTimers(); });

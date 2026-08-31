@@ -1,11 +1,14 @@
-import { describe, it, expect } from 'vitest';
-import {
-  mapColaborador,
-  mapAdvertencia,
-  mapFerias,
-  mapDesligamento,
-  mapEvento,
-} from './helpers.js';
+import { describe, it, expect, beforeAll } from 'vitest';
+
+// Mappers de PRODUÇÃO (src/utils/mappers.js, usado pelo supabase.js).
+// Antes estes testes exercitavam uma cópia em tests/helpers.js e passavam
+// verdes mesmo com a produção quebrada.
+let mapColaborador, mapAdvertencia, mapFerias, mapDesligamento, mapEvento;
+beforeAll(async () => {
+  globalThis.window = globalThis.window || {};
+  await import('../src/utils/mappers.js');
+  ({ mapColaborador, mapAdvertencia, mapFerias, mapDesligamento, mapEvento } = window);
+});
 
 // ── mapColaborador ─────────────────────────────────────────────────────────
 
@@ -168,7 +171,7 @@ describe('mapFerias', () => {
   it('mapeia todos os campos', () => {
     const r = mapFerias(row);
     expect(r.id).toBe(5);
-    expect(r.colab_id).toBe(2);
+    expect(r.colaborador_id).toBe(2);
     expect(r.inicio).toBe('2024-07-01');
     expect(r.fim).toBe('2024-07-30');
     expect(r.dias).toBe(30);
@@ -198,7 +201,7 @@ describe('mapDesligamento', () => {
   it('mapeia todos os campos', () => {
     const r = mapDesligamento(row);
     expect(r.id).toBe(8);
-    expect(r.colab_id).toBe(4);
+    expect(r.colaborador_id).toBe(4);
     expect(r.data).toBe('2024-03-15');
     expect(r.motivo).toBe('Pedido de demissão');
     expect(r.tipo).toBe('voluntario');

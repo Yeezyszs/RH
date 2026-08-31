@@ -1,5 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { makeCache, mapColaborador, withTimeout } from './helpers.js';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+
+// Código de produção (scripts clássicos que expõem no window), não cópias.
+let makeCache, mapColaborador, withTimeout;
+beforeAll(async () => {
+  globalThis.window = globalThis.window || {};
+  await import('../src/utils/rede.js');
+  await import('../src/utils/mappers.js');
+  ({ makeCache, mapColaborador, withTimeout } = window);
+});
 
 // ── Fábrica de mock do cliente Supabase ─────────────────────────────────────
 
