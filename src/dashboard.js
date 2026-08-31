@@ -43,6 +43,33 @@ function showToast(msg, type = '') {
   showToast._t = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// ─── Despachante de ações da interface ───────────────────────────────────────
+// Substitui `onclick="fecharModal()"` por `data-action="fecharModal"`.
+//
+// A vantagem não é estética: com o atributo inline, um nome errado falha em
+// silêncio — o navegador só reclama no console, e só quando alguém clica. Aqui
+// o clique numa ação desconhecida vira um erro visível imediatamente, e a
+// suíte tests/handlers-inline.test.js valida todos os nomes antes do deploy.
+//
+// Só trata ações sem argumento. As que precisam de parâmetro seguem inline por
+// enquanto — converter exigiria serializar valores em data-*, com coerção de
+// tipo, que é justamente onde este tipo de refatoração costuma introduzir bug.
+
+document.addEventListener('click', (e) => {
+  const alvo = e.target.closest('[data-action]');
+  if (!alvo) return;
+
+  const nome = alvo.dataset.action;
+  const fn = window[nome];
+
+  if (typeof fn !== 'function') {
+    console.error(`[RH] Ação "${nome}" não existe. Elemento:`, alvo);
+    showToast(`Ação indisponível: ${nome}`, 'err');
+    return;
+  }
+  fn();
+});
+
 // ─── Aviso de falha de carregamento ──────────────────────────────────────────
 // Uma tela vazia por falta de dados e uma tela vazia porque a carga falhou são
 // visualmente idênticas. Este banner é o que separa as duas — ele nomeia o que

@@ -70,7 +70,7 @@
   </div>
 
   <div class="topbar-right">
-    <div class="user-chip" onclick="fazerLogout()" title="Clique para fazer logout" style="cursor:pointer; opacity:.8; transition:.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.8'">
+    <div class="user-chip" data-action="fazerLogout" title="Clique para fazer logout" style="cursor:pointer; opacity:.8; transition:.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.8'">
       <div class="avatar">A</div>
       <div>
         <div class="user-name">Admin</div>
@@ -216,7 +216,7 @@
           <div class="kpi-value" id="dash-kpi-rot">—<span class="unit">%</span></div>
           <div class="kpi-trend down" id="dash-kpi-rot-trend">calculando…</div>
         </div>
-        <div class="kpi-card kpi-success kpi-clickable" onclick="abrirModalAniversariantes()" title="Ver aniversariantes do mês">
+        <div class="kpi-card kpi-success kpi-clickable" data-action="abrirModalAniversariantes" title="Ver aniversariantes do mês">
           <div class="kpi-label">Aniversariantes do mês</div>
           <div class="kpi-value" id="dash-kpi-aniv">—</div>
           <div class="kpi-trend" id="dash-kpi-aniv-trend">carregando…</div>
@@ -245,7 +245,7 @@
           <div class="widget-header">
             <div class="widget-title">Aniversariantes da semana</div>
             <div style="display:flex; align-items:center; gap:8px;">
-              <button class="btn btn-ghost btn-sm" type="button" onclick="abrirModalAniversariantes()">ver mês</button>
+              <button class="btn btn-ghost btn-sm" type="button" data-action="abrirModalAniversariantes">ver mês</button>
               <span class="widget-badge success" id="dash-bday-badge">3</span>
             </div>
           </div>
@@ -318,8 +318,8 @@
           <option value="afastado">Afastado</option>
           <option value="inativo">Inativo</option>
         </select>
-        <button class="btn btn-secondary btn-sm" type="button" onclick="exportColaboradores()">↓ Exportar</button>
-        <button class="btn" type="button" onclick="abrirModalColaborador()">+ Novo colaborador</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-action="exportColaboradores">↓ Exportar</button>
+        <button class="btn" type="button" data-action="abrirModalColaborador">+ Novo colaborador</button>
       </div>
 
       <!-- Stats -->
@@ -456,7 +456,7 @@
           <option value="4">Acima R$ 7.500</option>
         </select>
         <div class="toolbar-spacer"></div>
-        <button class="btn btn-ghost btn-sm" type="button" onclick="limparFiltrosRotatividade()">Limpar filtros</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-action="limparFiltrosRotatividade">Limpar filtros</button>
       </div>
 
       <!-- KPIs -->
@@ -569,7 +569,7 @@
           <option value="realizada">Realizada</option>
           <option value="pendente">Pendente</option>
         </select>
-        <button class="btn" type="button" onclick="abrirModalDesligamento()">+ Registrar desligamento</button>
+        <button class="btn" type="button" data-action="abrirModalDesligamento">+ Registrar desligamento</button>
       </div>
 
       <!-- Stats -->
@@ -640,7 +640,7 @@
           <option value="alerta">Atenção (≤30d)</option>
           <option value="ok">OK</option>
         </select>
-        <button class="btn" type="button" onclick="abrirModalVencimento()">+ Novo vencimento</button>
+        <button class="btn" type="button" data-action="abrirModalVencimento">+ Novo vencimento</button>
       </div>
 
       <!-- Stats (clicáveis como filtros rápidos) -->
@@ -730,7 +730,7 @@
             <option value="vencido">Vencido</option>
             <option value="devolvido">Devolvido</option>
           </select>
-          <button class="btn" type="button" onclick="abrirModalEpiEntrega()">+ Nova entrega</button>
+          <button class="btn" type="button" data-action="abrirModalEpiEntrega">+ Nova entrega</button>
         </div>
 
         <div class="stats-row">
@@ -813,7 +813,7 @@
               <datalist id="epi-grupos-list"></datalist>
             </div>
             <div class="form-group full" style="flex-direction:row; justify-content:flex-end; gap:8px;">
-              <button class="btn btn-secondary btn-sm" type="button" onclick="resetEpiCatalogoForm()">Limpar</button>
+              <button class="btn btn-secondary btn-sm" type="button" data-action="resetEpiCatalogoForm">Limpar</button>
               <button class="btn btn-sm" type="submit">Salvar item</button>
             </div>
           </form>
@@ -909,7 +909,7 @@
           <option value="">Todos os sócios</option>
         </select>
         <div class="toolbar-spacer"></div>
-        <button class="btn" type="button" onclick="abrirModalProlabore()">+ Novo lançamento</button>
+        <button class="btn" type="button" data-action="abrirModalProlabore">+ Novo lançamento</button>
       </div>
 
       <div class="stats-row">
@@ -1015,8 +1015,8 @@
         <select id="vale-filter-setor">
           <option value="">Todos os setores</option>
         </select>
-        <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalCotas()">⚙ Valores</button>
-        <button class="btn" type="button" onclick="abrirModalValeDesconto()">− Lançar desconto</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-action="abrirModalCotas">⚙ Valores</button>
+        <button class="btn" type="button" data-action="abrirModalValeDesconto">− Lançar desconto</button>
       </div>
 
       <!-- Stats -->
@@ -1098,8 +1098,8 @@
           <option value="sem">Sem cadastro</option>
         </select>
         <div class="toolbar-spacer"></div>
-        <button class="btn btn-ghost" type="button" onclick="abrirModalVaPadronizar()">⊞ Padronizar por setor</button>
-        <button class="btn" type="button" onclick="abrirModalValeAlimentacao()">⚙ Configurar</button>
+        <button class="btn btn-ghost" type="button" data-action="abrirModalVaPadronizar">⊞ Padronizar por setor</button>
+        <button class="btn" type="button" data-action="abrirModalValeAlimentacao">⚙ Configurar</button>
       </div>
 
       <!-- Stats -->
@@ -1180,7 +1180,7 @@
           <option value="vencendo">Vencendo (≤60d)</option>
           <option value="vencido">Vencido</option>
         </select>
-        <button class="btn" type="button" onclick="abrirModalFerias()">+ Agendar</button>
+        <button class="btn" type="button" data-action="abrirModalFerias">+ Agendar</button>
       </div>
 
       <!-- Stats principais -->
@@ -1290,7 +1290,7 @@
           <option value="3">R$ 5.000 – 7.500</option>
           <option value="4">Acima R$ 7.500</option>
         </select>
-        <button class="btn btn-secondary btn-sm" type="button" onclick="exportSalarios()">↓ Exportar</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-action="exportSalarios">↓ Exportar</button>
       </div>
 
       <!-- Stats -->
@@ -1390,7 +1390,7 @@
           <option value="assinada">Assinada</option>
           <option value="recusada">Recusada</option>
         </select>
-        <button class="btn" type="button" onclick="abrirModalAdvertencia()">+ Nova advertência</button>
+        <button class="btn" type="button" data-action="abrirModalAdvertencia">+ Nova advertência</button>
       </div>
 
       <!-- Stats -->
@@ -1494,7 +1494,7 @@
           <select id="fb-filter-setor">
             <option value="">Todos os setores</option>
           </select>
-          <button class="btn" type="button" onclick="abrirModalFeedback()">+ Registrar feedback</button>
+          <button class="btn" type="button" data-action="abrirModalFeedback">+ Registrar feedback</button>
         </div>
 
         <div class="stats-row">
@@ -1542,7 +1542,7 @@
 
         <div class="toolbar">
           <div class="toolbar-spacer"></div>
-          <button class="btn" type="button" onclick="abrirModalClima()">+ Nova pesquisa</button>
+          <button class="btn" type="button" data-action="abrirModalClima">+ Nova pesquisa</button>
         </div>
 
         <div class="stats-row">
@@ -1610,7 +1610,7 @@
 
         <div class="toolbar">
           <div class="toolbar-spacer"></div>
-          <button class="btn" type="button" onclick="abrirModalPolitica()">+ Adicionar política</button>
+          <button class="btn" type="button" data-action="abrirModalPolitica">+ Adicionar política</button>
         </div>
 
         <div class="table-card">
@@ -1646,7 +1646,7 @@
 
         <div class="toolbar">
           <div class="toolbar-spacer"></div>
-          <button class="btn" type="button" onclick="abrirModalProcedimento()">+ Adicionar procedimento</button>
+          <button class="btn" type="button" data-action="abrirModalProcedimento">+ Adicionar procedimento</button>
         </div>
 
         <div class="table-card">
@@ -1701,7 +1701,7 @@
           <option value="feriado">Feriado</option>
           <option value="outro">Outro</option>
         </select>
-        <button class="btn" type="button" onclick="abrirModalEvento()">+ Novo evento</button>
+        <button class="btn" type="button" data-action="abrirModalEvento">+ Novo evento</button>
       </div>
 
       <!-- Stats -->
@@ -1768,7 +1768,7 @@
 
         <div class="toolbar">
           <div class="toolbar-spacer"></div>
-          <button class="btn btn-secondary btn-sm" type="button" onclick="abrirModalPcCargo()">+ Novo cargo</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-action="abrirModalPcCargo">+ Novo cargo</button>
         </div>
 
         <div class="stats-row">
@@ -1855,7 +1855,7 @@
           <option value="atencao">Atenção</option>
           <option value="irregular">Irregular</option>
         </select>
-        <button class="btn" type="button" onclick="abrirModalPrestador()">+ Novo prestador</button>
+        <button class="btn" type="button" data-action="abrirModalPrestador">+ Novo prestador</button>
       </div>
 
       <!-- Stats -->
@@ -1910,7 +1910,7 @@
           <h1 class="page-title">SAC — Canal do Colaborador</h1>
           <div class="page-subtitle">Mensagens anônimas dos funcionários · opiniões, sugestões e reclamações</div>
         </div>
-        <button class="btn btn-secondary btn-sm" type="button" onclick="copiarLinkSac()">🔗 Copiar link do canal</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-action="copiarLinkSac">🔗 Copiar link do canal</button>
       </div>
 
       <div class="sensitive-banner" style="background:linear-gradient(135deg,#DBEAFE,#F0F7FF); border-color:#93C5FD; border-left-color:var(--info); margin-bottom:14px;">
@@ -2012,7 +2012,7 @@
 </div><!-- /#app -->
 
 <!-- ════════════ DRAWER — DETALHE DO COLABORADOR ════════════ -->
-<div id="drawer-backdrop" class="drawer-backdrop" onclick="fecharDrawerColab()"></div>
+<div id="drawer-backdrop" class="drawer-backdrop" data-action="fecharDrawerColab"></div>
 <aside id="drawer-colab" class="drawer">
   <div class="drawer-header">
     <div class="drawer-avatar" id="dcol-avatar">—</div>
@@ -2020,7 +2020,7 @@
       <div class="drawer-name" id="dcol-name">—</div>
       <div class="drawer-role" id="dcol-role">—</div>
     </div>
-    <button class="drawer-close" onclick="fecharDrawerColab()">×</button>
+    <button class="drawer-close" data-action="fecharDrawerColab">×</button>
   </div>
 
   <div class="drawer-tabs">
@@ -2041,14 +2041,14 @@
     <div class="drawer-section" data-dsec="afastamentos">
       <div id="dcol-afastamentos"></div>
       <div style="margin-top:14px;">
-        <button class="btn btn-secondary btn-sm" onclick="abrirModalAfastamento()">+ Adicionar afastamento</button>
+        <button class="btn btn-secondary btn-sm" data-action="abrirModalAfastamento">+ Adicionar afastamento</button>
       </div>
     </div>
 
     <div class="drawer-section" data-dsec="emergencia">
       <div id="dcol-emerg-list"></div>
       <div style="margin-top:14px;">
-        <button class="btn btn-secondary btn-sm" onclick="abrirModalContato()">+ Adicionar contato</button>
+        <button class="btn btn-secondary btn-sm" data-action="abrirModalContato">+ Adicionar contato</button>
       </div>
     </div>
 
@@ -2067,8 +2067,8 @@
   </div>
 
   <div class="drawer-footer">
-    <button class="btn btn-secondary btn-sm" onclick="fecharDrawerColab()">Fechar</button>
-    <button class="btn btn-sm" onclick="editarColaboradorDoDrawer()">Editar</button>
+    <button class="btn btn-secondary btn-sm" data-action="fecharDrawerColab">Fechar</button>
+    <button class="btn btn-sm" data-action="editarColaboradorDoDrawer">Editar</button>
   </div>
 </aside>
 
@@ -2077,7 +2077,7 @@
   <div class="modal-box" style="max-width:460px;">
     <div class="modal-header">
       <div class="modal-title" id="contato-modal-title">Novo contato de emergência</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalContato()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalContato">×</button>
     </div>
     <div class="modal-body">
       <form id="form-contato" class="form-grid" onsubmit="salvarContato(event)">
@@ -2096,7 +2096,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalContato()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalContato">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-contato">Salvar</button>
     </div>
   </div>
@@ -2107,7 +2107,7 @@
   <div class="modal-box" style="max-width:600px;">
     <div class="modal-header">
       <div class="modal-title" id="modal-afastamento-title">Novo afastamento</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalAfastamento()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalAfastamento">×</button>
     </div>
     <div class="modal-body">
       <form id="form-afastamento" class="form-grid" onsubmit="salvarAfastamento(event)">
@@ -2159,7 +2159,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalAfastamento()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalAfastamento">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-afastamento">Salvar</button>
     </div>
   </div>
@@ -2170,7 +2170,7 @@
   <div class="modal-box" style="max-width:780px;">
     <div class="modal-header">
       <div class="modal-title" id="modal-colab-title">Novo colaborador</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalColaborador()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalColaborador">×</button>
     </div>
     <div class="modal-body">
       <form id="form-colaborador" onsubmit="salvarColaborador(event)">
@@ -2370,27 +2370,27 @@
         <!-- ── ABA: DEPENDENTES ── -->
         <div class="modal-sec" data-msec="dependentes">
           <div id="dep-lista-modal"></div>
-          <button type="button" class="btn btn-secondary btn-sm" style="margin-top:4px;" onclick="adicionarDepModal()">+ Adicionar dependente</button>
+          <button type="button" class="btn btn-secondary btn-sm" style="margin-top:4px;" data-action="adicionarDepModal">+ Adicionar dependente</button>
           <div class="modal-sec-hint" style="margin-top:10px;">Dependentes com menos de 14 anos exibem campo de escola automaticamente.</div>
         </div>
 
         <!-- ── ABA: EMERGÊNCIA ── -->
         <div class="modal-sec" data-msec="emergencia">
           <div id="emerg-lista-modal"></div>
-          <button type="button" class="btn btn-secondary btn-sm" style="margin-top:4px;" onclick="adicionarEmergModal()">+ Adicionar contato</button>
+          <button type="button" class="btn btn-secondary btn-sm" style="margin-top:4px;" data-action="adicionarEmergModal">+ Adicionar contato</button>
         </div>
 
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalColaborador()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalColaborador">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-colaborador">Salvar colaborador</button>
     </div>
   </div>
 </div>
 
 <!-- ════════════ DRAWER — DETALHE DESLIGAMENTO ════════════ -->
-<div id="drawer-backdrop-desl" class="drawer-backdrop" onclick="fecharDrawerDesl()"></div>
+<div id="drawer-backdrop-desl" class="drawer-backdrop" data-action="fecharDrawerDesl"></div>
 <aside id="drawer-desl" class="drawer">
   <div class="drawer-header" style="background: linear-gradient(135deg, #991B1B 0%, var(--phthalo) 100%);">
     <div class="drawer-avatar" id="ddesl-avatar" style="background:#FEE2E2; color:#991B1B;">—</div>
@@ -2398,7 +2398,7 @@
       <div class="drawer-name" id="ddesl-name">—</div>
       <div class="drawer-role" id="ddesl-role">—</div>
     </div>
-    <button class="drawer-close" onclick="fecharDrawerDesl()">×</button>
+    <button class="drawer-close" data-action="fecharDrawerDesl">×</button>
   </div>
 
   <div class="drawer-tabs">
@@ -2416,8 +2416,8 @@
   </div>
 
   <div class="drawer-footer">
-    <button class="btn btn-secondary btn-sm" onclick="fecharDrawerDesl()">Fechar</button>
-    <button class="btn btn-sm" id="btn-drawer-entrevista" onclick="abrirModalEntrevistaDoDrawer()">Registrar entrevista</button>
+    <button class="btn btn-secondary btn-sm" data-action="fecharDrawerDesl">Fechar</button>
+    <button class="btn btn-sm" id="btn-drawer-entrevista" data-action="abrirModalEntrevistaDoDrawer">Registrar entrevista</button>
   </div>
 </aside>
 
@@ -2426,7 +2426,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title">Registrar desligamento</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalDesligamento()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalDesligamento">×</button>
     </div>
     <div class="modal-body">
       <form id="form-desligamento" class="form-grid" onsubmit="salvarDesligamento(event)">
@@ -2475,7 +2475,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalDesligamento()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalDesligamento">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-desligamento">Registrar</button>
     </div>
   </div>
@@ -2486,7 +2486,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title">Entrevista de saída</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalEntrevista()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalEntrevista">×</button>
     </div>
     <div class="modal-body">
       <form id="form-entrevista" onsubmit="salvarEntrevista(event)" style="display:flex; flex-direction:column; gap:16px;">
@@ -2550,7 +2550,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalEntrevista()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalEntrevista">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-entrevista">Salvar entrevista</button>
     </div>
   </div>
@@ -2561,7 +2561,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="modal-venc-title">Novo vencimento</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalVencimento()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalVencimento">×</button>
     </div>
     <div class="modal-body">
       <form id="form-vencimento" class="form-grid" onsubmit="salvarVencimento(event)">
@@ -2597,7 +2597,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalVencimento()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalVencimento">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-vencimento">Salvar</button>
     </div>
   </div>
@@ -2608,7 +2608,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="modal-epi-entrega-title">Nova entrega de EPI</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalEpiEntrega()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalEpiEntrega">×</button>
     </div>
     <div class="modal-body">
       <form id="form-epi-entrega" class="form-grid" onsubmit="salvarEpiEntrega(event)">
@@ -2644,7 +2644,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalEpiEntrega()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalEpiEntrega">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-epi-entrega">Salvar entrega</button>
     </div>
   </div>
@@ -2655,7 +2655,7 @@
   <div class="modal-box" style="max-width:560px;">
     <div class="modal-header">
       <div class="modal-title" id="epi-kit-modal-title">Kit do setor</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalEpiKit()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalEpiKit">×</button>
     </div>
     <div class="modal-body">
       <div style="font-family:var(--mono); font-size:.72rem; color:var(--text-muted); letter-spacing:.04em; margin-bottom:12px;">
@@ -2664,8 +2664,8 @@
       <div id="epi-kit-lista" style="display:flex; flex-direction:column; gap:6px;"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalEpiKit()">Cancelar</button>
-      <button class="btn btn-sm" type="button" onclick="salvarEpiKit()">Salvar kit</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalEpiKit">Cancelar</button>
+      <button class="btn btn-sm" type="button" data-action="salvarEpiKit">Salvar kit</button>
     </div>
   </div>
 </div>
@@ -2675,7 +2675,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="modal-vale-desconto-title">Lançar desconto</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalValeDesconto()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalValeDesconto">×</button>
     </div>
     <div class="modal-body">
       <form id="form-vale-desconto" class="form-grid" onsubmit="salvarValeDesconto(event)">
@@ -2716,7 +2716,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalValeDesconto()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalValeDesconto">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-vale-desconto">Salvar</button>
     </div>
   </div>
@@ -2727,7 +2727,7 @@
   <div class="modal-box" style="max-width:720px;">
     <div class="modal-header">
       <div class="modal-title">Valores do vale combustível</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalCotas()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalCotas">×</button>
     </div>
     <div class="modal-body">
       <div style="font-family:var(--mono); font-size:.75rem; color:var(--text-muted); margin-bottom:14px; letter-spacing:.04em;">
@@ -2742,7 +2742,7 @@
           <label style="font-size:.7rem;">Valor padrão (R$)</label>
           <input type="number" id="vale-valor-padrao" step="0.01" min="0" placeholder="150,00">
         </div>
-        <button class="btn btn-secondary btn-sm" type="button" onclick="aplicarValorPadraoTodos()">Aplicar a todos</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-action="aplicarValorPadraoTodos">Aplicar a todos</button>
         <div style="flex:1; min-width:180px; font-size:.72rem; color:var(--text-muted); line-height:1.35;">
           Vale para todo mês que ainda não tiver valores gravados.
         </div>
@@ -2757,7 +2757,7 @@
           <label style="font-size:.7rem;">Valor (R$)</label>
           <input type="number" id="vale-cota-pad-valor" step="0.01" min="0" placeholder="0,00">
         </div>
-        <button class="btn btn-secondary btn-sm" type="button" onclick="aplicarCotaSetor()">Aplicar ao setor</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-action="aplicarCotaSetor">Aplicar ao setor</button>
       </div>
       <div class="table-card">
         <div class="table-wrapper">
@@ -2769,8 +2769,8 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalCotas()">Cancelar</button>
-      <button class="btn btn-sm" type="button" onclick="salvarCotas()">Salvar valores</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalCotas">Cancelar</button>
+      <button class="btn btn-sm" type="button" data-action="salvarCotas">Salvar valores</button>
     </div>
   </div>
 </div>
@@ -2780,7 +2780,7 @@
   <div class="modal-box" style="max-width:760px;">
     <div class="modal-header">
       <div class="modal-title" id="vale-det-title">Descontos do mês</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalValeDetalhe()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalValeDetalhe">×</button>
     </div>
     <div class="modal-body">
       <div class="info-grid" id="vale-det-summary" style="margin-bottom:16px;"></div>
@@ -2794,7 +2794,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalValeDetalhe()">Fechar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalValeDetalhe">Fechar</button>
       <button class="btn btn-sm" type="button" id="btn-vale-det-novo">− Lançar desconto</button>
     </div>
   </div>
@@ -2805,7 +2805,7 @@
   <div class="modal-box" style="max-width:740px;">
     <div class="modal-header">
       <div class="modal-title" id="fer-modal-title">Férias do colaborador</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalFerias()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalFerias">×</button>
     </div>
     <div class="modal-body">
 
@@ -2865,7 +2865,7 @@
 
     </div>
     <div class="modal-footer">
-      <button class="btn btn-sm" type="button" onclick="fecharModalFerias()">Concluído</button>
+      <button class="btn btn-sm" type="button" data-action="fecharModalFerias">Concluído</button>
     </div>
   </div>
 </div>
@@ -2875,7 +2875,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="sal-modal-title">Editar salário</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalSalario()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalSalario">×</button>
     </div>
     <div class="modal-body">
       <form id="form-salario" class="form-grid" onsubmit="salvarSalario(event)">
@@ -2899,14 +2899,14 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalSalario()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalSalario">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-salario">Salvar</button>
     </div>
   </div>
 </div>
 
 <!-- ════════════ DRAWER — DETALHE ADVERTÊNCIA ════════════ -->
-<div id="drawer-backdrop-adv" class="drawer-backdrop" onclick="fecharDrawerAdv()"></div>
+<div id="drawer-backdrop-adv" class="drawer-backdrop" data-action="fecharDrawerAdv"></div>
 <aside id="drawer-adv" class="drawer">
   <div class="drawer-header" style="background: linear-gradient(135deg, #B45309 0%, var(--phthalo) 100%);">
     <div class="drawer-avatar" id="dadv-avatar" style="background:#FEF3C7; color:#92400E;">—</div>
@@ -2914,7 +2914,7 @@
       <div class="drawer-name" id="dadv-name">—</div>
       <div class="drawer-role" id="dadv-role">—</div>
     </div>
-    <button class="drawer-close" onclick="fecharDrawerAdv()">×</button>
+    <button class="drawer-close" data-action="fecharDrawerAdv">×</button>
   </div>
 
   <div class="drawer-tabs">
@@ -2933,8 +2933,8 @@
   </div>
 
   <div class="drawer-footer">
-    <button class="btn btn-secondary btn-sm" onclick="fecharDrawerAdv()">Fechar</button>
-    <button class="btn btn-sm" id="btn-dadv-assinar" onclick="marcarAssinadaDoDrawer()">Marcar como assinada</button>
+    <button class="btn btn-secondary btn-sm" data-action="fecharDrawerAdv">Fechar</button>
+    <button class="btn btn-sm" id="btn-dadv-assinar" data-action="marcarAssinadaDoDrawer">Marcar como assinada</button>
   </div>
 </aside>
 
@@ -2943,7 +2943,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="adv-modal-title">Nova advertência</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalAdvertencia()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalAdvertencia">×</button>
     </div>
     <div class="modal-body">
       <form id="form-advertencia" class="form-grid" onsubmit="salvarAdvertencia(event)">
@@ -3003,7 +3003,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalAdvertencia()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalAdvertencia">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-advertencia">Registrar</button>
     </div>
   </div>
@@ -3014,7 +3014,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="fb-modal-title">Registrar feedback</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalFeedback()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalFeedback">×</button>
     </div>
     <div class="modal-body">
       <form id="form-feedback" onsubmit="salvarFeedback(event)" style="display:flex; flex-direction:column; gap:14px;">
@@ -3086,7 +3086,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalFeedback()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalFeedback">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-feedback">Salvar</button>
     </div>
   </div>
@@ -3097,7 +3097,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="cl-modal-title">Nova pesquisa de clima</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalClima()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalClima">×</button>
     </div>
     <div class="modal-body">
       <form id="form-clima" class="form-grid" onsubmit="salvarClima(event)">
@@ -3149,7 +3149,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalClima()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalClima">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-clima">Salvar pesquisa</button>
     </div>
   </div>
@@ -3160,7 +3160,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="pol-modal-title">Nova política</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalPolitica()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalPolitica">×</button>
     </div>
     <div class="modal-body">
       <form id="form-politica" onsubmit="salvarPolitica(event)" style="display:flex; flex-direction:column; gap:14px;">
@@ -3181,7 +3181,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalPolitica()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalPolitica">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-politica">Salvar política</button>
     </div>
   </div>
@@ -3192,7 +3192,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="proc-modal-title">Novo procedimento</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalProcedimento()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalProcedimento">×</button>
     </div>
     <div class="modal-body">
       <form id="form-procedimento" onsubmit="salvarProcedimento(event)" style="display:flex; flex-direction:column; gap:14px;">
@@ -3213,7 +3213,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalProcedimento()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalProcedimento">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-procedimento">Salvar procedimento</button>
     </div>
   </div>
@@ -3224,7 +3224,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="prolab-modal-title">Novo lançamento</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalProlabore()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalProlabore">×</button>
     </div>
     <div class="modal-body">
       <form id="form-prolabore" class="form-grid" onsubmit="salvarProlabore(event)">
@@ -3263,7 +3263,7 @@
         <div class="form-group full" id="prolab-itens-section" style="display:none;">
           <label>Descontos / itens do Cooper</label>
           <div id="prolab-itens-lista"></div>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="prolabAdicionarItem()" style="align-self:flex-start; margin-top:4px;">+ Adicionar item</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-action="prolabAdicionarItem" style="align-self:flex-start; margin-top:4px;">+ Adicionar item</button>
         </div>
         <div class="form-group full">
           <label>Observações</label>
@@ -3272,7 +3272,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalProlabore()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalProlabore">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-prolabore">Salvar lançamento</button>
     </div>
   </div>
@@ -3283,7 +3283,7 @@
   <div class="modal-box" style="max-width:520px">
     <div class="modal-header">
       <div class="modal-title">🎂 Aniversariantes</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalAniversariantes()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalAniversariantes">×</button>
     </div>
     <div class="modal-body">
       <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:12px;">
@@ -3295,7 +3295,7 @@
     </div>
     <div class="modal-footer">
       <span class="widget-badge" id="aniv-modal-total" style="margin-right:auto;">—</span>
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalAniversariantes()">Fechar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalAniversariantes">Fechar</button>
     </div>
   </div>
 </div>
@@ -3306,7 +3306,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title">Tratativa da mensagem</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalTratativa()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalTratativa">×</button>
     </div>
     <div class="modal-body">
       <div style="background:var(--bluish-bg); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:16px;">
@@ -3334,7 +3334,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalTratativa()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalTratativa">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-tratativa">Salvar tratativa</button>
     </div>
   </div>
@@ -3344,7 +3344,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="prest-modal-title">Novo prestador de serviço</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalPrestador()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalPrestador">×</button>
     </div>
     <div class="modal-body">
       <form id="form-prestador" class="form-grid" onsubmit="salvarPrestador(event)">
@@ -3417,7 +3417,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalPrestador()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalPrestador">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-prestador">Salvar prestador</button>
     </div>
   </div>
@@ -3427,13 +3427,13 @@
   <div class="modal-box" style="max-width:700px">
     <div class="modal-header">
       <h3 class="modal-title" id="modal-resp-title">Respostas da pesquisa</h3>
-      <button class="modal-close" onclick="fecharModalRespostasPesquisa()">✕</button>
+      <button class="modal-close" data-action="fecharModalRespostasPesquisa">✕</button>
     </div>
     <div class="modal-body" id="modal-resp-body" style="max-height:60vh;overflow-y:auto">
       <p class="empty">Carregando...</p>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" onclick="fecharModalRespostasPesquisa()">Fechar</button>
+      <button class="btn btn-secondary btn-sm" data-action="fecharModalRespostasPesquisa">Fechar</button>
     </div>
   </div>
 </div>
@@ -3443,7 +3443,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="ev-modal-title">Novo evento</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalEvento()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalEvento">×</button>
     </div>
     <div class="modal-body">
       <form id="form-evento" class="form-grid" onsubmit="salvarEvento(event)">
@@ -3498,8 +3498,8 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" type="button" id="btn-ev-excluir" onclick="excluirEventoAtual()" style="margin-right:auto; display:none;">Excluir</button>
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalEvento()">Cancelar</button>
+      <button class="btn btn-danger btn-sm" type="button" id="btn-ev-excluir" data-action="excluirEventoAtual" style="margin-right:auto; display:none;">Excluir</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalEvento">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-evento">Salvar</button>
     </div>
   </div>
@@ -3510,7 +3510,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="va-modal-title">Configurar vale alimentação</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalValeAlimentacao()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalValeAlimentacao">×</button>
     </div>
     <div class="modal-body">
       <form id="form-vale-alimentacao" class="form-grid" onsubmit="salvarValeAlimentacao(event)">
@@ -3545,8 +3545,8 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" type="button" id="btn-va-remover" onclick="removerValeAlimentacao()" style="margin-right:auto; display:none;">Remover cadastro</button>
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalValeAlimentacao()">Cancelar</button>
+      <button class="btn btn-danger btn-sm" type="button" id="btn-va-remover" data-action="removerValeAlimentacao" style="margin-right:auto; display:none;">Remover cadastro</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalValeAlimentacao">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-vale-alimentacao">Salvar</button>
     </div>
   </div>
@@ -3557,7 +3557,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title">Padronizar vale alimentação por setor</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalVaPadronizar()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalVaPadronizar">×</button>
     </div>
     <div class="modal-body">
       <form id="form-va-padronizar" class="form-grid" onsubmit="salvarVaPadronizar(event)">
@@ -3592,7 +3592,7 @@
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalVaPadronizar()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalVaPadronizar">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-va-padronizar">Aplicar a todos</button>
     </div>
   </div>
@@ -3603,7 +3603,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="pc-cargo-title">Novo cargo</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalPcCargo()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalPcCargo">×</button>
     </div>
     <div class="modal-body">
       <form id="form-pc-cargo" class="form-grid" onsubmit="salvarPcCargo(event)">
@@ -3657,8 +3657,8 @@ Liderança de equipe ≥3 pessoas"></textarea>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" type="button" id="btn-pc-cargo-excluir" onclick="excluirPcCargoAtual()" style="margin-right:auto; display:none;">Excluir</button>
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalPcCargo()">Cancelar</button>
+      <button class="btn btn-danger btn-sm" type="button" id="btn-pc-cargo-excluir" data-action="excluirPcCargoAtual" style="margin-right:auto; display:none;">Excluir</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalPcCargo">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-pc-cargo">Salvar</button>
     </div>
   </div>
@@ -3669,7 +3669,7 @@ Liderança de equipe ≥3 pessoas"></textarea>
   <div class="modal-box">
     <div class="modal-header">
       <div class="modal-title" id="pc-plano-title">Plano individual</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" onclick="fecharModalPcPlano()">×</button>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalPcPlano">×</button>
     </div>
     <div class="modal-body">
       <form id="form-pc-plano" onsubmit="salvarPcPlano(event)" style="display:flex; flex-direction:column; gap:14px;">
@@ -3704,8 +3704,8 @@ Liderança de equipe ≥3 pessoas"></textarea>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" type="button" id="btn-pc-plano-excluir" onclick="excluirPcPlanoAtual()" style="margin-right:auto; display:none;">Remover plano</button>
-      <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalPcPlano()">Cancelar</button>
+      <button class="btn btn-danger btn-sm" type="button" id="btn-pc-plano-excluir" data-action="excluirPcPlanoAtual" style="margin-right:auto; display:none;">Remover plano</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalPcPlano">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-pc-plano">Salvar plano</button>
     </div>
   </div>
@@ -3716,12 +3716,12 @@ Liderança de equipe ≥3 pessoas"></textarea>
   <div class="alert-popup-header">
     <div class="alert-popup-icon">!</div>
     <div class="alert-popup-title" id="alert-popup-title">Documentos vencendo</div>
-    <button class="alert-popup-close" type="button" onclick="fecharPopupVencimentos()">×</button>
+    <button class="alert-popup-close" type="button" data-action="fecharPopupVencimentos">×</button>
   </div>
   <div class="alert-popup-body" id="alert-popup-body"></div>
   <div class="alert-popup-footer">
-    <button class="btn btn-secondary btn-sm" type="button" onclick="fecharPopupVencimentos()">Ignorar</button>
-    <button class="btn btn-sm" type="button" onclick="abrirVencimentosDoPopup()">Ver todos</button>
+    <button class="btn btn-secondary btn-sm" type="button" data-action="fecharPopupVencimentos">Ignorar</button>
+    <button class="btn btn-sm" type="button" data-action="abrirVencimentosDoPopup">Ver todos</button>
   </div>
 </div>
 
