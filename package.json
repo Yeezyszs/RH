@@ -9,7 +9,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "dev": "npx http-server -p 8000 -c-1 --cors",
-    "preview": "npx http-server -p 4173 -c-1"
+    "preview": "npx http-server -p 4173 -c-1",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "repository": {
     "type": "git",
@@ -20,6 +22,8 @@
   "license": "ISC",
   "devDependencies": {
     "@vitest/coverage-v8": "^2.1.9",
+    "eslint": "^9.39.5",
+    "globals": "^17.11.0",
     "vitest": "^2.1.9"
   }
 }

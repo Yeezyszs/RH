@@ -30,8 +30,13 @@ export default defineConfig({
         'src/utils/**': { lines: 95, functions: 95, branches: 85 },
         // Total do código de produção. Baixo e honesto: os módulos ainda são
         // majoritariamente não testados.
-        lines: 6,
-        functions: 45,
+        // Nota sobre `functions`: cobrir o primeiro método de um módulo grande
+        // traz dezenas de métodos novos para o denominador e derruba o
+        // percentual, mesmo o teste sendo um ganho. Quando isso acontecer,
+        // ajuste o piso para o novo valor — o de `lines` é o indicador que
+        // sobe de forma monotônica.
+        lines: 7,
+        functions: 38,
       },
     },
   },

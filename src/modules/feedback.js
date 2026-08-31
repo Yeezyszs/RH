@@ -139,6 +139,20 @@ export class FeedbackClimaModule {
     this.$('#fb-stat-total').textContent = this.FEEDBACK.length;
   }
 
+  // Reacende as estrelas ao editar. O valor já vai para o input escondido pelo
+  // laço de Object.entries; sem isto só a parte visível fica em branco, e o
+  // formulário passa a mentir sobre o próprio estado.
+  _setRating(field, value) {
+    if (!value) return;
+    const grupo = document.querySelector(`#form-feedback .rating-input[data-rating-field="${field}"]`);
+    if (grupo) {
+      grupo.querySelectorAll('button').forEach(b =>
+        b.classList.toggle('active', parseInt(b.dataset.ratingVal, 10) === value));
+    }
+    const input = document.querySelector(`#form-feedback [name="${field}"]`);
+    if (input) input.value = value;
+  }
+
   abrirModalFeedback(id = null) {
     const form = this.$('#form-feedback');
     form.reset();
@@ -158,11 +172,9 @@ export class FeedbackClimaModule {
           const fld = form.elements[k];
           if (fld) fld.value = v ?? '';
         }
-        if (typeof setRating === 'function') {
-          setRating('nota_entrega',       f.nota_entrega);
-          setRating('nota_comportamento', f.nota_comportamento);
-          setRating('nota_colaboracao',   f.nota_colaboracao);
-        }
+        this._setRating('nota_entrega',       f.nota_entrega);
+        this._setRating('nota_comportamento', f.nota_comportamento);
+        this._setRating('nota_colaboracao',   f.nota_colaboracao);
       }
     } else {
       this.$('#fb-modal-title').textContent = 'Registrar feedback';

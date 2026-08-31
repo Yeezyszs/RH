@@ -46,18 +46,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verificar sintaxe JS (node --check)
-        run: |
-          find src -name "*.js" | xargs -I{} node --input-type=module --check < {} 2>&1 || true
-          echo "Lint concluído"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci --legacy-peer-deps
+
+      # Reprova o build em erro de lint. A versão anterior deste passo
+      # terminava em `|| true` e nunca falhava — passava até com sintaxe
+      # inválida. Avisos (no-unused-vars em script clássico) não reprovam.
+      - name: ESLint
+        run: npm run lint
 
       - name: Verificar arquivos críticos existem
         run: |
-          test -f index.html      && echo "✓ index.html"
-          test -f supabase.js     && echo "✓ supabase.js"
-          test -f css/style.css   && echo "✓ css/style.css"
-          test -f src/app.js      && echo "✓ src/app.js"
-          test -f src/constants.js && echo "✓ src/constants.js"
+          for f in index.html supabase.js css/style.css src/app.js src/constants.js; do
+            if [ ! -f "$f" ]; then
+              echo "ERRO: arquivo obrigatório ausente: $f"
+              exit 1
+            fi
+            echo "✓ $f"
+          done
 
   security:
     name: Segurança
