@@ -896,3 +896,62 @@ table.data td.actions {
   background: var(--white);
   border-color: var(--phthalo-light);
 }
+
+/* ─── Aviso de falha de carregamento ─────────────────────────────────────────
+   Separa visualmente "não carregou" de "não há registros". Fica no topo do
+   conteúdo, acima de qualquer página. */
+
+#banner-falhas { margin-bottom: 16px; }
+
+.falha-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: linear-gradient(135deg, #FEF2F2, #FFF7F7);
+  border: 1px solid #FCA5A5;
+  border-left: 4px solid var(--danger);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.falha-icon {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: .85rem;
+}
+
+.falha-corpo { flex: 1 1 auto; min-width: 0; }
+
+.falha-titulo {
+  font-weight: 600;
+  color: #991B1B;
+  line-height: 1.45;
+  font-size: .92rem;
+}
+
+.falha-lista {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: .82rem;
+  color: #7F1D1D;
+  line-height: 1.5;
+}
+
+.falha-acoes {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .falha-box { flex-wrap: wrap; }
+  .falha-acoes { width: 100%; justify-content: flex-end; }
+}

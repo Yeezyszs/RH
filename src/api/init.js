@@ -71,6 +71,44 @@ async function inicializarSupabase() {
         Configuracoes.listar(),
       ]);
 
+    // Nada acima rejeita (allSettled), então o que falhou precisa ser
+    // recolhido explicitamente — senão a tela renderiza vazia sem avisar.
+    const falhas = coletarFalhas({
+      'colaboradores':       colaboradores,
+      'advertências':        advertencias,
+      'férias':              ferias,
+      'desligamentos':       desligamentos,
+      'afastamentos':        afastamentos,
+      'cronograma':          eventos,
+      'planos de carreira':  pcPlanos,
+      'vencimentos':         vencimentos,
+      'EPIs':                epis,
+      'salários':            salarios,
+      'feedbacks':           feedbacks,
+      'pesquisas de clima':  pesquisas,
+      'vale combustível':    valeComb,
+      'vale alimentação':    valeAlim,
+      'rotatividade':        rotat,
+      'treinamentos':        trein,
+      'cotas do vale':       valeCotas,
+      'políticas':           politicas,
+      'catálogo de EPI':     epiCatalogo,
+      'kits de EPI':         epiKits,
+      'prestadores':         prestadores,
+      'contatos de emergência': contatosEmerg,
+      'procedimentos':       procedimentos,
+      'pró-labore':          prolabore,
+      'SAC':                 sac,
+      'descontos do vale':   valeDesc,
+      'configurações':       config,
+    });
+
+    window.FALHAS_CARREGAMENTO = falhas;
+    if (falhas.length) {
+      falhas.forEach(f => console.error(`[RH] Falha ao carregar ${f.nome}: ${f.erro}`));
+      if (typeof mostrarFalhasCarregamento === 'function') mostrarFalhasCarregamento(falhas);
+    }
+
     if (colaboradores.status === 'fulfilled') {
       const lista = colaboradores.value?.data ?? colaboradores.value;
       if (lista?.length > 0) {
@@ -359,7 +397,10 @@ async function inicializarSupabase() {
     console.info('[RH] Dados carregados com sucesso.');
     setupRealTimeListeners();
   } catch (err) {
-    console.warn('[RH] Erro ao carregar dados, usando mock:', err.message);
+    console.error('[RH] Erro na carga inicial:', err);
+    if (typeof mostrarFalhasCarregamento === 'function') {
+      mostrarFalhasCarregamento([{ nome: 'os dados do sistema', erro: descreverErro(err) }]);
+    }
   }
 }
 

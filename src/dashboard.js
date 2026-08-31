@@ -43,6 +43,45 @@ function showToast(msg, type = '') {
   showToast._t = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// ─── Aviso de falha de carregamento ──────────────────────────────────────────
+// Uma tela vazia por falta de dados e uma tela vazia porque a carga falhou são
+// visualmente idênticas. Este banner é o que separa as duas — ele nomeia o que
+// não chegou, para o problema não ser confundido com ausência de registro.
+
+function mostrarFalhasCarregamento(falhas) {
+  const el = document.getElementById('banner-falhas');
+  if (!el || !falhas || !falhas.length) return;
+
+  const detalhe = falhas
+    .map(f => `<li><strong>${h(f.nome)}</strong> — ${h(f.erro)}</li>`)
+    .join('');
+
+  el.innerHTML = `
+    <div class="falha-box">
+      <div class="falha-icon" aria-hidden="true">!</div>
+      <div class="falha-corpo">
+        <div class="falha-titulo">${h(resumirFalhas(falhas))}</div>
+        <ul class="falha-lista">${detalhe}</ul>
+      </div>
+      <div class="falha-acoes">
+        <button class="btn btn-sm" type="button" onclick="location.reload()">Recarregar</button>
+        <button class="btn btn-ghost btn-sm btn-icon" type="button"
+                title="Dispensar" onclick="dispensarFalhasCarregamento()">×</button>
+      </div>
+    </div>`;
+  el.hidden = false;
+
+  showToast(`${falhas.length} conjunto(s) de dados não carregaram`, 'err');
+}
+
+function dispensarFalhasCarregamento() {
+  const el = document.getElementById('banner-falhas');
+  if (el) el.hidden = true;
+}
+
+window.mostrarFalhasCarregamento  = mostrarFalhasCarregamento;
+window.dispensarFalhasCarregamento = dispensarFalhasCarregamento;
+
 // ─── Sub-abas (view-tabs) ────────────────────────────────────────────────────
 
 document.addEventListener('click', (e) => {
