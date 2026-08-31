@@ -56,6 +56,11 @@ jobs:
           echo "Arquivos prontos para deploy:"
           find _site -type f | sort
 
+      # Troca o marcador ?v=dev pelo hash do commit em todo o artefato. Falha o
+      # deploy se nada for substituído, para nunca publicar sem cache-busting.
+      - name: Aplicar versão de cache-busting
+        run: node scripts/versionar.mjs _site "${{ github.sha }}"
+
       - name: Upload artefato
         uses: actions/upload-pages-artifact@v3
         with:
