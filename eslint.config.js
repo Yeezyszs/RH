@@ -191,7 +191,8 @@ export default [
     files: [
       'supabase.js', 'src/data-store.js', 'src/dashboard.js', 'src/auth.js',
       'src/utils/base.js', 'src/utils/carregamento.js', 'src/utils/rede.js',
-      'src/utils/mappers.js', 'src/utils/relatorio.js', 'src/api/*.js',
+      'src/utils/mappers.js', 'src/utils/relatorio.js', 'src/utils/arrays.js',
+      'src/api/*.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,

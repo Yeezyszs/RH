@@ -9,6 +9,7 @@ import { h, iniciais, fmtDate, fmtBRL, addDays, tempoCasa, diasAte, mesChave, me
 import { CHART_COLORS, STATUS_LABEL, ADV_TIPO_BADGE, ADV_STATUS_BADGE, SETOR_ICON } from './constants.js?v=dev';
 
 import { ColaboradoresModule }    from './modules/colaboradores.js?v=dev';
+import { QuadroModule }           from './modules/quadro.js?v=dev';
 import { AdvertenciasModule }     from './modules/advertencias.js?v=dev';
 import { FeriasModule }           from './modules/ferias.js?v=dev';
 import { DesligamentosModule }    from './modules/desligamentos.js?v=dev';
@@ -106,6 +107,10 @@ function bootstrap() {
     Auth: window.Auth,
     Afastamentos: window.Afastamentos,
     ContatosEmergencia: window.ContatosEmergencia,
+  });
+
+  const quadro = new QuadroModule({
+    $, h, iniciais, COLABORADORES, STATUS_LABEL, SETOR_ICON,
   });
 
   const advertencias = new AdvertenciasModule({
@@ -228,7 +233,7 @@ function bootstrap() {
   window.salvarContato              = (ev)   => colaboradores.salvarContato(ev);
   window.excluirContato             = (id)   => colaboradores.excluirContato(id);
   window.exportColaboradores        = ()     => colaboradores.exportColaboradores();
-  window.renderQuadro               = ()     => colaboradores.renderQuadro();
+  window.renderQuadro               = ()     => quadro.renderQuadro();
   window.popularFiltroSetores       = ()     => colaboradores.popularFiltroSetores();
   window._depUpdate                 = (s, k, v) => colaboradores._depUpdate(s, k, v);
   window._depDataNasc               = (s, v)    => colaboradores._depDataNasc(s, v);

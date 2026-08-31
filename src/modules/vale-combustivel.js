@@ -3,6 +3,8 @@
 // Do valor base descontam-se ocorrências — advertência, falta, atraso, etc. —
 // e a tela mostra quanto cada um recebe e quanto foi perdido em descontos.
 
+import { optionsColaboradores, competenciaAtual } from '../utils/ui.js?v=dev';
+
 const MOTIVOS = {
   advertencia: { t: 'Advertência', cls: 'danger',  cor: '#DC2626' },
   falta:       { t: 'Falta',       cls: 'danger',  cor: '#EA580C' },
@@ -58,11 +60,6 @@ export class ValeCombustivelModule {
 
   // ─── Base de cálculo ────────────────────────────────────────────────────────
 
-  _mesCorrente() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  }
-
   _valorPadrao() {
     const v = parseFloat(this.CONFIG['vale_combustivel_valor_padrao']);
     return isNaN(v) ? VALOR_PADRAO_FALLBACK : v;
@@ -71,7 +68,7 @@ export class ValeCombustivelModule {
   // Meses com movimento (valores creditados e/ou descontos) + o mês corrente,
   // que fica sempre disponível mesmo antes de existir qualquer registro.
   _mesesDisponiveis() {
-    const meses = new Set([this._mesCorrente()]);
+    const meses = new Set([competenciaAtual()]);
     Object.keys(this.VALE_COTAS_MES).forEach(k => meses.add(k.split('|')[1]));
     this.VALE_DESCONTOS.forEach(d => meses.add(this._compet(d)));
     return [...meses].sort().reverse();
@@ -158,20 +155,6 @@ export class ValeCombustivelModule {
       const disponivel = Math.max(0, anterior + credito - perdido);
       return { colab: c, descontos, anterior, credito, perdido, utilizado, disponivel, saldo };
     });
-  }
-
-  _optionsColabs() {
-    const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo')
-      .sort((a, b) => a.nome.localeCompare(b.nome));
-    const inativos = this.COLABORADORES.filter(c => c.status === 'inativo')
-      .sort((a, b) => a.nome.localeCompare(b.nome));
-    const opt = (c, sfx = '') => `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor)}${sfx}</option>`;
-    let html = ativos.map(c => opt(c)).join('');
-    if (inativos.length) {
-      html += `<optgroup label="Inativos / Desligados">` +
-        inativos.map(c => opt(c, ' (inativo)')).join('') + `</optgroup>`;
-    }
-    return html;
   }
 
   // ─── Tela ───────────────────────────────────────────────────────────────────
@@ -318,9 +301,9 @@ export class ValeCombustivelModule {
   abrirModalDesconto(id = null, preColabId = null) {
     const form = this.$('#form-vale-desconto');
     form.reset();
-    this.$('#form-vdesc-colab').innerHTML = this._optionsColabs();
+    this.$('#form-vdesc-colab').innerHTML = optionsColaboradores(this.COLABORADORES, this.h);
 
-    const mes = this.$('#vale-mes')?.value || this._mesCorrente();
+    const mes = this.$('#vale-mes')?.value || competenciaAtual();
     this.$('#vdesc-competencia').textContent = this.mesLabel(mes);
     form.elements['competencia'].value = mes;
 
@@ -362,7 +345,7 @@ export class ValeCombustivelModule {
     const valor = parseFloat(data.valor);
     if (isNaN(valor) || valor <= 0) { this.showToast('Informe um valor maior que zero', 'err'); return; }
 
-    const [ano, mes] = (data.competencia || this._mesCorrente()).split('-');
+    const [ano, mes] = (data.competencia || competenciaAtual()).split('-');
     const payload = {
       colaborador_id:  parseInt(data.colaborador_id, 10),
       mes:             parseInt(mes, 10),
@@ -475,7 +458,7 @@ export class ValeCombustivelModule {
   // ─── Valores do benefício ───────────────────────────────────────────────────
 
   abrirModalCotas() {
-    const mes = this.$('#vale-mes')?.value || this._mesCorrente();
+    const mes = this.$('#vale-mes')?.value || competenciaAtual();
     this._cotasMes = mes;
     this.$('#vale-cota-competencia').textContent = this.mesLabel(mes);
 
@@ -549,7 +532,7 @@ export class ValeCombustivelModule {
   // Grava a competência inteira: o mês passa a ter o conjunto completo de
   // valores, então ninguém fica herdando o padrão por engano.
   async salvarCotas() {
-    const mes = this._cotasMes || this._mesCorrente();
+    const mes = this._cotasMes || competenciaAtual();
     const [ano, mesNum] = mes.split('-').map(n => parseInt(n, 10));
     const hoje = new Date().toISOString().slice(0, 10);
 

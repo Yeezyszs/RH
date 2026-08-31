@@ -89,49 +89,10 @@ const Salarios = {
 };
 
 const ValeCombustivel = {
-  async listar() {
-    const cached = Cache.get('vale_combustivel');
-    if (cached) return cached;
-    const { data, error } = await withTimeout(
-      sb.from('vale_combustivel')
-        .select('id, colaborador_id, data, valor, litros, km_atual, posto, observacoes')
-        .not('data', 'is', null)
-        .order('data', { ascending: false })
-    );
-    if (error) throw error;
-    Cache.set('vale_combustivel', data);
-    return data;
-  },
-
-  async criar(payload) {
-    const { data, error } = await withTimeout(
-      sb.from('vale_combustivel').insert(payload).select().single()
-    );
-    if (error) throw error;
-    Cache.invalidate('vale_combustivel');
-    return data;
-  },
-
-  async atualizar(id, payload) {
-    const { data, error } = await withTimeout(
-      sb.from('vale_combustivel').update(payload).eq('id', id).select().single()
-    );
-    if (error) throw error;
-    Cache.invalidate('vale_combustivel');
-    return data;
-  },
-
-  async excluir(id) {
-    const { error } = await withTimeout(
-      sb.from('vale_combustivel').delete().eq('id', id)
-    );
-    if (error) throw error;
-    Cache.invalidate('vale_combustivel');
-  },
-
-  // ─── Cotas mensais ────────────────────────────────────────────────────────
-  // As cotas ficam em linhas da própria tabela vale_combustivel com `data`
-  // nula e `mes`/`ano`/`valor_mensal` preenchidos (os lançamentos têm `data`).
+  // O benefício é gerido por competência: cada linha tem `data` nula e guarda
+  // crédito (valor_mensal), consumo (utilizado) e saldo de abertura do mês.
+  // Os lançamentos de abastecimento (linhas com `data`) saíram na reformulação
+  // — com eles saíram listar/criar/atualizar/excluir, que ficaram sem uso.
 
   async listarCotas() {
     const { data, error } = await withTimeout(
@@ -144,18 +105,6 @@ const ValeCombustivel = {
         .order('mes', { ascending: false })
     );
     if (error) throw error;
-    return data;
-  },
-
-  async upsertCota(payload) {
-    const { data, error } = await withTimeout(
-      sb.from('vale_combustivel')
-        .upsert(payload, { onConflict: 'colaborador_id,mes,ano' })
-        .select()
-        .single()
-    );
-    if (error) throw error;
-    Cache.invalidate('vale_combustivel');
     return data;
   },
 

@@ -1,6 +1,8 @@
 // Advertencias Module
 // Gerencia advertências disciplinares com gráficos e análise de reincidência
 
+import { optionsColaboradores } from '../utils/ui.js?v=dev';
+
 export class AdvertenciasModule {
   constructor(deps) {
     this.$ = deps.$;
@@ -453,23 +455,7 @@ export class AdvertenciasModule {
     this.$('#adv-form-alert').innerHTML = '';
     this.$('#adv-suspensao-dias').style.display = 'none';
 
-    // Ativos primeiro; inativos/desligados também aparecem (agrupados) para
-    // permitir registro no histórico após o desligamento.
-    const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo')
-      .sort((a, b) => a.nome.localeCompare(b.nome));
-    const inativos = this.COLABORADORES.filter(c => c.status === 'inativo')
-      .sort((a, b) => a.nome.localeCompare(b.nome));
-
-    const opt = (c, sufixo = '') =>
-      `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor)}${sufixo}</option>`;
-
-    let optionsHtml = ativos.map(c => opt(c)).join('');
-    if (inativos.length) {
-      optionsHtml += `<optgroup label="Inativos / Desligados">` +
-        inativos.map(c => opt(c, ' (inativo)')).join('') +
-        `</optgroup>`;
-    }
-    this.$('#form-adv-colab').innerHTML = optionsHtml;
+    this.$('#form-adv-colab').innerHTML = optionsColaboradores(this.COLABORADORES, this.h);
 
     if (id != null) {
       const a = this.ADVERTENCIAS.find(x => x.id === id);

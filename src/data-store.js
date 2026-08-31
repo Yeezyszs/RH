@@ -19,7 +19,6 @@ var EPI_KITS       = {};
 var VALE_COTAS     = {};
 // Cota por mês: chave `${colaborador_id}|AAAA-MM` (VALE_COTAS guarda a mais recente).
 var VALE_COTAS_MES = {};
-var VALE_LANCAMENTOS = [];
 var VALE_DESCONTOS = [];
 // Consumo por mês: chave `${colaborador_id}|AAAA-MM`.
 var VALE_USO_MES   = {};
@@ -67,7 +66,6 @@ window.EPI_ENTREGAS     = EPI_ENTREGAS;
 window.EPI_KITS         = EPI_KITS;
 window.VALE_COTAS       = VALE_COTAS;
 window.VALE_COTAS_MES   = VALE_COTAS_MES;
-window.VALE_LANCAMENTOS = VALE_LANCAMENTOS;
 window.VALE_DESCONTOS   = VALE_DESCONTOS;
 window.VALE_USO_MES     = VALE_USO_MES;
 window.VALE_SALDO_INI   = VALE_SALDO_INI;
