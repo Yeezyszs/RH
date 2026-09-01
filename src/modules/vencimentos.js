@@ -1,6 +1,8 @@
 // Vencimentos Module
 // Gerencia ASOs, documentos e treinamentos com controle de vencimento
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 export class VencimentosModule {
   constructor(deps) {
     this.$ = deps.$;
@@ -179,7 +181,7 @@ export class VencimentosModule {
 
   abrirModalVencimento(id = null, tabela = null) {
     const form = this.$('#form-vencimento');
-    form.reset();
+    limparFormulario(form);
     this._editando = null;
     const sel = this.$('#form-venc-colab');
     sel.innerHTML = this.COLABORADORES

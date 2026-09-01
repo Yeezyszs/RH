@@ -2,6 +2,8 @@
 // Cartões de Pró-labore e Cartão Cooper por sócio, por competência (mês/ano),
 // com descontos e cálculo do salário líquido.
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 const TIPO_LABEL = { prolabore: 'Pró-labore', cooper: 'Cooper' };
 
 export class ProlaboreModule {
@@ -140,7 +142,7 @@ export class ProlaboreModule {
 
   abrirModal(id = null) {
     const form = this.$('#form-prolabore');
-    form.reset();
+    limparFormulario(form);
     this._itensModal = [];
     if (id != null) {
       const r = this.PROLABORE.find(x => x.id === id);

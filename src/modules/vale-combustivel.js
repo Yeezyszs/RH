@@ -3,7 +3,7 @@
 // Do valor base descontam-se ocorrências — advertência, falta, atraso, etc. —
 // e a tela mostra quanto cada um recebe e quanto foi perdido em descontos.
 
-import { optionsColaboradores, competenciaAtual } from '../utils/ui.js?v=dev';
+import { optionsColaboradores, competenciaAtual, limparFormulario } from '../utils/ui.js?v=dev';
 
 const MOTIVOS = {
   advertencia: { t: 'Advertência', cls: 'danger',  cor: '#DC2626' },
@@ -300,7 +300,7 @@ export class ValeCombustivelModule {
 
   abrirModalDesconto(id = null, preColabId = null) {
     const form = this.$('#form-vale-desconto');
-    form.reset();
+    limparFormulario(form);
     this.$('#form-vdesc-colab').innerHTML = optionsColaboradores(this.COLABORADORES, this.h);
 
     const mes = this.$('#vale-mes')?.value || competenciaAtual();

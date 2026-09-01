@@ -1,7 +1,7 @@
 // Vale Alimentação Module
 // Manages the food allowance page: table, modal, evolution chart
 
-import { optionsColaboradores } from '../utils/ui.js?v=dev';
+import { optionsColaboradores, limparFormulario } from '../utils/ui.js?v=dev';
 
 export class ValeAlimentacaoModule {
   constructor(deps) {
@@ -195,7 +195,7 @@ export class ValeAlimentacaoModule {
 
   abrirModal(colabId = null) {
     const form = this.$('#form-vale-alimentacao');
-    form.reset();
+    limparFormulario(form);
 
     const sel = this.$('#va-form-colab');
     sel.innerHTML = optionsColaboradores(this.COLABORADORES, this.h);
@@ -333,7 +333,7 @@ export class ValeAlimentacaoModule {
   abrirModalPadronizar() {
     const form = this.$('#form-va-padronizar');
     if (!form) return;
-    form.reset();
+    limparFormulario(form);
 
     const setores = [...new Set(
       this.COLABORADORES.filter(c => c.status !== 'inativo').map(c => c.setor).filter(Boolean)

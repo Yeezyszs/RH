@@ -2,6 +2,8 @@
 // Controle de documentação de terceiros: ASO, treinamentos, ficha de EPI,
 // certidões FGTS/INSS e requisitos de segurança de alimentos.
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 const CONFORME_BADGE = {
   conforme:     { t: 'Conforme',     cls: 'ok' },
   nao_conforme: { t: 'Não conforme', cls: 'danger' },
@@ -134,7 +136,7 @@ export class PrestadoresModule {
 
   abrirModal(id = null) {
     const form = this.$('#form-prestador');
-    form.reset();
+    limparFormulario(form);
     if (id != null) {
       const p = this.PRESTADORES.find(x => x.id === id);
       if (p) {

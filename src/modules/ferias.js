@@ -1,6 +1,8 @@
 // Férias Module
 // Gerencia renderização, timeline, cálculos e modal de agendamento de férias (CLT)
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 export class FeriasModule {
   constructor(deps) {
     this.Ferias = deps.Ferias;
@@ -374,7 +376,7 @@ export class FeriasModule {
       window.showToast?.('Período agendado', 'ok');
     }
 
-    f.reset();
+    limparFormulario(f);
     this.renderFeriasModal();
     this.render();
     window.renderColaboradores?.();

@@ -1,7 +1,7 @@
 // Advertencias Module
 // Gerencia advertências disciplinares com gráficos e análise de reincidência
 
-import { optionsColaboradores } from '../utils/ui.js?v=dev';
+import { optionsColaboradores, limparFormulario } from '../utils/ui.js?v=dev';
 
 export class AdvertenciasModule {
   constructor(deps) {
@@ -451,7 +451,7 @@ export class AdvertenciasModule {
 
   abrirModal(id = null) {
     const form = this.$('#form-advertencia');
-    form.reset();
+    limparFormulario(form);
     this.$('#adv-form-alert').innerHTML = '';
     this.$('#adv-suspensao-dias').style.display = 'none';
 

@@ -2,6 +2,8 @@
 // As mensagens chegam anônimas pela página pública sac.html.
 // Duas abas: "Recebidas" (caixa de entrada) e "Tratativa" (gestão/resolução).
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 const SAC_CAT = {
   sugestao:   { t: 'Sugestão',   cls: 'info',    emoji: '💡' },
   reclamacao: { t: 'Reclamação', cls: 'danger',  emoji: '⚠️' },
@@ -180,7 +182,7 @@ export class SacModule {
     const m = this.SAC.find(x => x.id === id);
     if (!m) return;
     const form = this.$('#form-tratativa');
-    form.reset();
+    limparFormulario(form);
     form.elements['id'].value = m.id;
     const cat = this._cat(m);
     this.$('#trat-msg-cat').innerHTML = `${cat.emoji} <span class="badge ${cat.cls}">${cat.t}</span> ${this._protoTag(m)} <span class="cell-person-sub">${this._dataHora(m.criado_em)}</span>`;

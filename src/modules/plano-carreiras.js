@@ -1,6 +1,8 @@
 // Plano de Carreiras Module
 // Manages career structure (cargo grid by trilha) and individual development plans
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 const PC_NIVEL_LABEL = ['Trainee', 'Júnior', 'Pleno', 'Sênior', 'Especialista', 'Coordenador', 'Gerente'];
 
 export class PlanoCarreirasModule {
@@ -182,7 +184,7 @@ export class PlanoCarreirasModule {
   abrirModalCargo(id = null) {
     this._editandoCargoId = id;
     const form = this.$('#form-pc-cargo');
-    form.reset();
+    limparFormulario(form);
     if (id != null) {
       const c = this.PC_CARGOS.find(x => x.id === id);
       if (c) {
@@ -256,7 +258,7 @@ export class PlanoCarreirasModule {
     this._editandoPlanoColabId = colabId;
 
     const form = this.$('#form-pc-plano');
-    form.reset();
+    limparFormulario(form);
     form.elements['colaborador_id'].value = colabId;
 
     this.$('#pc-plano-title').textContent = `Plano · ${c.nome}`;

@@ -1,6 +1,8 @@
 // EPI Module
 // Gerencia catálogo de EPIs, entregas por colaborador e kits por setor
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 export class EpiModule {
   constructor(deps) {
     this.$ = deps.$;
@@ -334,7 +336,7 @@ export class EpiModule {
 
   abrirModalEntrega(id = null, colabIdPre = null) {
     const form = this.$('#form-epi-entrega');
-    form.reset();
+    limparFormulario(form);
 
     this.$('#form-epi-colab').innerHTML = this.COLABORADORES
       .filter(c => c.status !== 'inativo')
@@ -461,7 +463,7 @@ export class EpiModule {
 
   resetCatalogoForm() {
     const f = this.$('#form-epi-catalogo-new');
-    f.reset();
+    limparFormulario(f);
     f.elements['id'].value = '';
     const title = this.$('#epi-cat-form-title');
     if (title) title.textContent = 'Cadastrar novo item do catálogo';

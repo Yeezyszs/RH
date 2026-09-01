@@ -1,6 +1,8 @@
 // Organizacional Module
 // Manages individual feedback, climate surveys, company policies, and survey responses
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 const CLIMA_DIMS = ['lideranca', 'ambiente', 'reconhecimento', 'carreira', 'comunicacao', 'remuneracao'];
 const CLIMA_DIM_LABEL = {
   lideranca:      'Liderança',
@@ -155,7 +157,7 @@ export class FeedbackClimaModule {
 
   abrirModalFeedback(id = null) {
     const form = this.$('#form-feedback');
-    form.reset();
+    limparFormulario(form);
     document.querySelectorAll('#form-feedback .rating-input').forEach(g => {
       g.querySelectorAll('button').forEach(b => b.classList.remove('active'));
     });
@@ -357,7 +359,7 @@ export class FeedbackClimaModule {
 
   abrirModalClima(id = null) {
     const form = this.$('#form-clima');
-    form.reset();
+    limparFormulario(form);
     if (id != null) {
       const p = this.CLIMA.find(x => x.id === id);
       if (p) {
@@ -548,7 +550,7 @@ export class FeedbackClimaModule {
   abrirModalPolitica(id = null) {
     const form = this.$('#form-politica');
     if (!form) return;
-    form.reset();
+    limparFormulario(form);
     let atual = null;
     if (id != null) {
       const p = this.POLITICAS.find(x => x.id === id);
@@ -668,7 +670,7 @@ export class FeedbackClimaModule {
   abrirModalProcedimento(id = null) {
     const form = this.$('#form-procedimento');
     if (!form) return;
-    form.reset();
+    limparFormulario(form);
     let atual = null;
     if (id != null) {
       const p = this.PROCEDIMENTOS.find(x => x.id === id);

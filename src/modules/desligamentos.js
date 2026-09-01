@@ -1,6 +1,8 @@
 // Desligamentos Module
 // Gerencia renderização, drawer e modais de desligamentos + entrevista de saída
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 export class DesligamentosModule {
   constructor(deps) {
     this.$ = deps.$;
@@ -204,7 +206,7 @@ export class DesligamentosModule {
 
   abrirModalDesligamento() {
     const form = this.$('#form-desligamento');
-    form.reset();
+    limparFormulario(form);
     const sel = this.$('#form-desl-colab');
     sel.innerHTML = this.COLABORADORES
       .filter(c => c.status !== 'inativo')
@@ -290,7 +292,7 @@ export class DesligamentosModule {
     const d = this.DESLIGAMENTOS.find(x => x.id === deslId);
     if (!d) return;
     const form = this.$('#form-entrevista');
-    form.reset();
+    limparFormulario(form);
     form.elements['desligamento_id'].value = deslId;
 
     document.querySelectorAll('.rating-input').forEach(g => {

@@ -1,6 +1,8 @@
 // Salarios Module
 // Gerencia tabela salarial restrita com gráficos de distribuição
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 export class SalariosModule {
   constructor(deps) {
     this.$ = deps.$;
@@ -210,7 +212,7 @@ export class SalariosModule {
     if (!c) return;
     const s = this.SALARIOS[colabId];
     const form = this.$('#form-salario');
-    form.reset();
+    limparFormulario(form);
     form.elements['colaborador_id'].value = colabId;
     this.$('#sal-colab-nome').value = `${c.nome} — ${c.setor}${c.area ? ` · ${c.area}` : ''}`;
     this.$('#sal-modal-title').textContent = s

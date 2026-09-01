@@ -51,6 +51,26 @@ export function optionsColaboradores(colaboradores, h) {
 }
 
 /**
+ * Limpa um formulário de verdade — inclusive os campos ocultos.
+ *
+ * `form.reset()` NÃO limpa `<input type="hidden">`. Não é bug de navegador: no
+ * HTML, o hidden usa "value mode default", ou seja, atribuir `.value` escreve o
+ * ATRIBUTO do elemento — que é exatamente o valor para o qual o reset restaura.
+ * Num campo de texto comum, `.value` mexe só na propriedade e o reset limpa.
+ *
+ * Consequência prática: o `id` do último registro aberto para edição sobrevive
+ * ao reset, e o próximo "novo lançamento" é gravado como EDIÇÃO daquele — um
+ * registro some e o outro toma seu lugar, sem erro nenhum.
+ *
+ * Chamar no lugar de `form.reset()`, antes de preencher os campos.
+ */
+export function limparFormulario(form) {
+  if (!form) return;
+  form.reset();
+  form.querySelectorAll('input[type="hidden"]').forEach(campo => { campo.value = ''; });
+}
+
+/**
  * Competência (AAAA-MM) do mês corrente. Feita a partir da data local, e não
  * de `toISOString()`, que converte para UTC e vira o mês errado nos últimos
  * dias do mês em fusos negativos como o do Brasil.

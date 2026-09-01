@@ -1,6 +1,8 @@
 // Cronograma Module
 // Gerencia o calendário mensal de eventos com feriados nacionais brasileiros
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 export class CronogramaModule {
   constructor(deps) {
     this.$ = deps.$;
@@ -163,7 +165,7 @@ export class CronogramaModule {
     if (id != null && id < 0) return;
 
     const form = this.$('#form-evento');
-    form.reset();
+    limparFormulario(form);
     this.state.editandoEventoId = id;
 
     if (id != null) {

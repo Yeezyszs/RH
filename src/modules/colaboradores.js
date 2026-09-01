@@ -2,6 +2,8 @@
 // Gerencia renderização, drawer, modal, dependentes, contatos de emergência
 // e afastamentos. O quadro de funcionários vive em modules/quadro.js.
 
+import { limparFormulario } from '../utils/ui.js?v=dev';
+
 export class ColaboradoresModule {
   constructor(deps) {
     this.Colaboradores = deps.Colaboradores;
@@ -565,7 +567,7 @@ export class ColaboradoresModule {
     this._emergsModal = [];
 
     const form = document.getElementById('form-colaborador');
-    form.reset();
+    limparFormulario(form);
 
     // Popula o select de setor com dados do banco (precisa vir antes do
     // preenchimento, senão o .value de edição não encontra a <option>)
@@ -801,7 +803,7 @@ export class ColaboradoresModule {
   abrirModalContato(id = null) {
     this._editandoContatoId = id || null;
     const form = this.$('#form-contato');
-    form.reset();
+    limparFormulario(form);
 
     const sel = this.$('#contato-select-parentesco');
     sel.innerHTML = this.PARENTESCO_OPTS.map(p => `<option value="${p}">${p}</option>`).join('');
@@ -887,7 +889,7 @@ export class ColaboradoresModule {
 
     this.$('#modal-afastamento-title').textContent = 'Novo afastamento';
     this.$('#afastamento-colab-id').value = colabId;
-    this.$('#form-afastamento').reset();
+    limparFormulario(this.$('#form-afastamento'));
     this.$('#form-afastamento').elements['data_inicio'].value = new Date().toISOString().slice(0, 10);
     this.$('#form-afastamento').elements['data_termino'].value = new Date().toISOString().slice(0, 10);
     this.$('#modal-afastamento').classList.add('active');
@@ -943,7 +945,7 @@ export class ColaboradoresModule {
       this.showToast('Afastamento adicionado', 'ok');
     }
 
-    form.reset();
+    limparFormulario(form);
     this.fecharModalAfastamento();
     this.abrirDrawerColab(colabId);
   }
