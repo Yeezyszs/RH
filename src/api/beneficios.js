@@ -124,12 +124,14 @@ const ValeCombustivel = {
   },
 };
 
-// Descontos do vale combustível (advertência, falta, atraso, …)
+// Lançamentos que ajustam o vale combustível: descontos (advertência, falta…)
+// e adições (viagem, plantão, reembolso…). Mesma tabela, campo `tipo` define
+// se o valor entra somando ou subtraindo.
 const ValeDescontos = {
   async listar() {
     const { data, error } = await withTimeout(
       sb.from('vale_descontos')
-        .select('id, colaborador_id, mes, ano, motivo, valor, data_ocorrencia, observacoes')
+        .select('id, colaborador_id, mes, ano, tipo, motivo, valor, data_ocorrencia, observacoes')
         .order('ano', { ascending: false })
         .order('mes', { ascending: false })
     );

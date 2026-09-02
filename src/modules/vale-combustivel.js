@@ -1,10 +1,11 @@
 // Vale Combustível Module
 // O benefício é um valor fixo mensal por colaborador (padrão configurável).
-// Do valor base descontam-se ocorrências — advertência, falta, atraso, etc. —
-// e a tela mostra quanto cada um recebe e quanto foi perdido em descontos.
+// Sobre ele entram dois tipos de lançamento: descontos (advertência, falta…)
+// e adições (viagem, plantão, reembolso…).
 
 import { optionsColaboradores, competenciaAtual, limparFormulario } from '../utils/ui.js?v=dev';
 
+// Motivos de DESCONTO — tiram do saldo.
 const MOTIVOS = {
   advertencia: { t: 'Advertência', cls: 'danger',  cor: '#DC2626' },
   falta:       { t: 'Falta',       cls: 'danger',  cor: '#EA580C' },
@@ -13,6 +14,27 @@ const MOTIVOS = {
   afastamento: { t: 'Afastamento', cls: 'info',    cor: '#0284C7' },
   outro:       { t: 'Outro',       cls: 'neutral', cor: '#94A3B8' },
 };
+
+// Motivos de ADIÇÃO — somam ao saldo.
+const MOTIVOS_ADICAO = {
+  viagem:    { t: 'Viagem',            cls: 'info', cor: '#0284C7' },
+  plantao:   { t: 'Plantão / extra',   cls: 'info', cor: '#0EA5E9' },
+  reembolso: { t: 'Reembolso',         cls: 'ok',   cor: '#0F766E' },
+  bonus:     { t: 'Bonificação',       cls: 'ok',   cor: '#059669' },
+  ajuste:    { t: 'Ajuste / correção', cls: 'neutral', cor: '#64748B' },
+  outro:     { t: 'Outro',             cls: 'neutral', cor: '#94A3B8' },
+};
+
+/** Tabela de motivos conforme o tipo do lançamento. */
+function motivosDe(tipo) {
+  return tipo === 'adicao' ? MOTIVOS_ADICAO : MOTIVOS;
+}
+
+/** Rótulo e cor de um lançamento, seja desconto ou adição. */
+function rotuloMotivo(lanc) {
+  const tabela = motivosDe(lanc?.tipo);
+  return tabela[lanc?.motivo] || tabela.outro;
+}
 
 const VALOR_PADRAO_FALLBACK = 150;
 
@@ -97,8 +119,16 @@ export class ValeCombustivelModule {
     return parseFloat(this.VALE_USO_MES[`${colabId}|${mes}`]) || 0;
   }
 
-  _descontosDe(colabId, mes) {
+  /** Lançamentos do colaborador na competência, dos dois tipos. */
+  _lancamentosDe(colabId, mes) {
     return this.VALE_DESCONTOS.filter(d => d.colaborador_id === colabId && this._compet(d) === mes);
+  }
+
+  /** Soma os valores de um tipo. Sem `tipo` gravado, o registro é desconto. */
+  _somaPorTipo(lancamentos, tipo) {
+    return lancamentos
+      .filter(d => (d.tipo || 'desconto') === tipo)
+      .reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
   }
 
   // Saldo de abertura fixado manualmente (null = calcular pelo histórico).
@@ -108,7 +138,7 @@ export class ValeCombustivelModule {
   }
 
   // O benefício é acumulativo: o que sobra num mês soma ao crédito do seguinte.
-  //   saldo do mês = saldo anterior + crédito − descontos − utilizado
+  //   saldo = saldo anterior + crédito + adições − descontos − utilizado
   // Devolve o saldo com que o colaborador ENTRA na competência `mes`. Um saldo
   // de abertura gravado corta o histórico: nada antes dele é somado.
   _saldoAnterior(colabId, mes, mesesComValor = this._mesesComValor()) {
@@ -124,8 +154,11 @@ export class ValeCombustivelModule {
     }
     for (let i = inicio; i < anteriores.length; i++) {
       const m = anteriores[i];
-      const perdido = this._descontosDe(colabId, m).reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
-      saldo += this._baseDe(colabId, m, mesesComValor) - perdido - this._utilizadoDe(colabId, m);
+      const lancs = this._lancamentosDe(colabId, m);
+      const perdido    = this._somaPorTipo(lancs, 'desconto');
+      const adicionado = this._somaPorTipo(lancs, 'adicao');
+      saldo += this._baseDe(colabId, m, mesesComValor)
+             + adicionado - perdido - this._utilizadoDe(colabId, m);
     }
     return Math.max(0, saldo);
   }
@@ -135,7 +168,7 @@ export class ValeCombustivelModule {
     const descMes = this.VALE_DESCONTOS.filter(d => this._compet(d) === mes);
     const mesesComValor = this._mesesComValor();
 
-    // Ativos + quem tem valor ou desconto no mês (inclui desligados, para que
+    // Ativos + quem tem valor ou lançamento no mês (inclui desligados, para que
     // competências passadas fechem com o que foi realmente pago).
     const pessoas = this.COLABORADORES.filter(c =>
       c.status !== 'inativo'
@@ -143,17 +176,21 @@ export class ValeCombustivelModule {
       || descMes.some(d => d.colaborador_id === c.id));
 
     return pessoas.map(c => {
-      const descontos = descMes.filter(d => d.colaborador_id === c.id);
-      const perdido   = descontos.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
+      const lancamentos = descMes.filter(d => d.colaborador_id === c.id);
+      const perdido     = this._somaPorTipo(lancamentos, 'desconto');
+      const adicionado  = this._somaPorTipo(lancamentos, 'adicao');
       const credito   = c.status === 'inativo' && this.VALE_COTAS_MES[`${c.id}|${mes}`] == null
         ? 0
         : this._baseDe(c.id, mes, mesesComValor);
       const anterior  = this._saldoAnterior(c.id, mes, mesesComValor);
       const utilizado = this._utilizadoDe(c.id, mes);
-      const saldo     = Math.max(0, anterior + credito - perdido - utilizado);
+      const saldo     = Math.max(0, anterior + credito + adicionado - perdido - utilizado);
       // Disponível = tudo que ele podia gastar no mês (antes do consumo).
-      const disponivel = Math.max(0, anterior + credito - perdido);
-      return { colab: c, descontos, anterior, credito, perdido, utilizado, disponivel, saldo };
+      const disponivel = Math.max(0, anterior + credito + adicionado - perdido);
+      return {
+        colab: c, lancamentos, descontos: lancamentos,
+        anterior, credito, adicionado, perdido, utilizado, disponivel, saldo,
+      };
     });
   }
 
@@ -182,12 +219,14 @@ export class ValeCombustivelModule {
 
     const creditoMes   = resumo.reduce((s, r) => s + r.credito, 0);
     const perdidoMes   = resumo.reduce((s, r) => s + r.perdido, 0);
+    const adicionadoMes = resumo.reduce((s, r) => s + r.adicionado, 0);
     const utilizadoMes = resumo.reduce((s, r) => s + r.utilizado, 0);
     const saldoMes     = resumo.reduce((s, r) => s + r.saldo, 0);
 
     const set = (sel, val) => { const el = this.$(sel); if (el) el.textContent = val; };
     set('#vale-stat-base',      this.fmtBRL(creditoMes));
     set('#vale-stat-perdido',   this.fmtBRL(perdidoMes));
+    set('#vale-stat-adicionado', this.fmtBRL(adicionadoMes));
     set('#vale-stat-utilizado', this.fmtBRL(utilizadoMes));
     set('#vale-stat-saldo',     this.fmtBRL(saldoMes));
 
@@ -205,13 +244,15 @@ export class ValeCombustivelModule {
 
       tb.innerHTML = lista.length ? lista.map(r => {
         const c = r.colab;
-        const statusBadge = r.credito === 0 && r.anterior === 0
+        const statusBadge = r.credito === 0 && r.anterior === 0 && r.adicionado === 0
           ? `<span class="badge neutral">Sem benefício</span>`
-          : r.perdido === 0
-            ? `<span class="badge ok">Integral</span>`
-            : r.disponivel === 0
-              ? `<span class="badge danger">Perdeu tudo</span>`
-              : `<span class="badge warn">Parcial</span>`;
+          : r.disponivel === 0
+            ? `<span class="badge danger">Perdeu tudo</span>`
+            : r.perdido > 0
+              ? `<span class="badge warn">Parcial</span>`
+              : r.adicionado > 0
+                ? `<span class="badge ok">Com adição</span>`
+                : `<span class="badge ok">Integral</span>`;
         return `
           <tr onclick="abrirModalValeDetalhe(${c.id}, '${mesAtual}')">
             <td>
@@ -224,7 +265,12 @@ export class ValeCombustivelModule {
               </div>
             </td>
             <td class="cell-mono" style="text-align:right; color:var(--text-muted)">${this.fmtBRL(r.anterior)}</td>
-            <td class="cell-mono" style="text-align:right">${this.fmtBRL(r.credito)}</td>
+            <td class="cell-mono" style="text-align:right">
+              ${this.fmtBRL(r.credito)}
+              ${r.adicionado > 0
+                ? `<div style="font-size:.72rem; color:var(--success); font-weight:600;">+ ${this.fmtBRL(r.adicionado)}</div>`
+                : ''}
+            </td>
             <td>${statusBadge}</td>
           </tr>
         `;
@@ -245,7 +291,8 @@ export class ValeCombustivelModule {
     const porMotivo = motivos.map(mot => ({
       label: MOTIVOS[mot].t,
       data: meses.map(m => this.VALE_DESCONTOS
-        .filter(d => this._compet(d) === m && d.motivo === mot)
+        .filter(d => this._compet(d) === m && d.motivo === mot
+                  && (d.tipo || 'desconto') === 'desconto')
         .reduce((s, d) => s + (parseFloat(d.valor) || 0), 0)),
       backgroundColor: MOTIVOS[mot].cor,
       stack: 'd',
@@ -281,7 +328,11 @@ export class ValeCombustivelModule {
 
   // ─── Descontos ──────────────────────────────────────────────────────────────
 
-  abrirModalDesconto(id = null, preColabId = null) {
+  /**
+   * Abre o modal de lançamento. `tipo` decide o sinal e a lista de motivos —
+   * é o mesmo formulário porque é o mesmo registro: valor, motivo, competência.
+   */
+  abrirModalDesconto(id = null, preColabId = null, tipo = 'desconto') {
     const form = this.$('#form-vale-desconto');
     limparFormulario(form);
     this.$('#form-vdesc-colab').innerHTML = optionsColaboradores(this.COLABORADORES, this.h);
@@ -290,27 +341,63 @@ export class ValeCombustivelModule {
     this.$('#vdesc-competencia').textContent = this.mesLabel(mes);
     form.elements['competencia'].value = mes;
 
-    if (id != null) {
-      const d = this.VALE_DESCONTOS.find(x => x.id === id);
-      if (d) {
-        this.$('#modal-vale-desconto-title').textContent = 'Editar desconto';
-        form.elements['id'].value = d.id;
-        form.elements['colaborador_id'].value = d.colaborador_id;
-        form.elements['motivo'].value = d.motivo;
-        form.elements['valor'].value = d.valor;
-        form.elements['data_ocorrencia'].value = d.data_ocorrencia || '';
-        form.elements['observacoes'].value = d.observacoes || '';
-        const c = this._compet(d);
-        form.elements['competencia'].value = c;
-        this.$('#vdesc-competencia').textContent = this.mesLabel(c);
-      }
+    let editando = null;
+    if (id != null) editando = this.VALE_DESCONTOS.find(x => x.id === id) || null;
+
+    const tipoFinal = editando ? (editando.tipo || 'desconto') : tipo;
+    form.elements['tipo'].value = tipoFinal;
+    this.atualizarCamposLancamento();
+
+    if (editando) {
+      this.$('#modal-vale-desconto-title').textContent =
+        tipoFinal === 'adicao' ? 'Editar adição' : 'Editar desconto';
+      form.elements['id'].value = editando.id;
+      form.elements['colaborador_id'].value = editando.colaborador_id;
+      form.elements['motivo'].value = editando.motivo;
+      form.elements['valor'].value = editando.valor;
+      form.elements['data_ocorrencia'].value = editando.data_ocorrencia || '';
+      form.elements['observacoes'].value = editando.observacoes || '';
+      const c = this._compet(editando);
+      form.elements['competencia'].value = c;
+      this.$('#vdesc-competencia').textContent = this.mesLabel(c);
     } else {
-      this.$('#modal-vale-desconto-title').textContent = 'Lançar desconto';
       if (preColabId != null) form.elements['colaborador_id'].value = preColabId;
       form.elements['data_ocorrencia'].value = new Date().toISOString().slice(0, 10);
     }
 
     this.$('#modal-vale-desconto').classList.add('active');
+  }
+
+  /**
+   * Ajusta o modal ao tipo escolhido: título, lista de motivos e rótulo do
+   * valor. Sem isto, "Advertência" apareceria como opção de adição.
+   */
+  atualizarCamposLancamento() {
+    const form = this.$('#form-vale-desconto');
+    if (!form) return;
+    const tipo = form.elements['tipo'].value || 'desconto';
+    const adicao = tipo === 'adicao';
+    const editando = !!form.elements['id'].value;
+
+    const titulo = this.$('#modal-vale-desconto-title');
+    if (titulo) {
+      titulo.textContent = editando
+        ? (adicao ? 'Editar adição' : 'Editar desconto')
+        : (adicao ? 'Lançar adição' : 'Lançar desconto');
+    }
+
+    const lbl = this.$('#vdesc-lbl-valor');
+    if (lbl) lbl.textContent = adicao ? 'Valor a acrescentar (R$)' : 'Valor descontado (R$)';
+
+    const sel = form.elements['motivo'];
+    const atual = sel.value;
+    const tabela = motivosDe(tipo);
+    sel.innerHTML = Object.entries(tabela)
+      .map(([k, v]) => `<option value="${k}">${this.h(v.t)}</option>`).join('');
+    if (tabela[atual]) sel.value = atual;
+
+    const box = this.$('#modal-vale-desconto')?.querySelector('.modal-box');
+    if (box) box.classList.toggle('lanc-adicao', adicao);
   }
 
   fecharModalDesconto() {
@@ -324,7 +411,8 @@ export class ValeCombustivelModule {
     const id = data.id ? parseInt(data.id, 10) : null;
 
     if (!data.colaborador_id) { this.showToast('Selecione um colaborador', 'err'); return; }
-    if (!MOTIVOS[data.motivo])  { this.showToast('Selecione o motivo', 'err'); return; }
+    const tipo = data.tipo === 'adicao' ? 'adicao' : 'desconto';
+    if (!motivosDe(tipo)[data.motivo]) { this.showToast('Selecione o motivo', 'err'); return; }
     const valor = parseFloat(data.valor);
     if (isNaN(valor) || valor <= 0) { this.showToast('Informe um valor maior que zero', 'err'); return; }
 
@@ -333,6 +421,7 @@ export class ValeCombustivelModule {
       colaborador_id:  parseInt(data.colaborador_id, 10),
       mes:             parseInt(mes, 10),
       ano:             parseInt(ano, 10),
+      tipo,
       motivo:          data.motivo,
       valor,
       data_ocorrencia: data.data_ocorrencia || null,
@@ -365,13 +454,15 @@ export class ValeCombustivelModule {
     }
 
     this.fecharModalDesconto();
-    this.showToast('Desconto salvo', 'ok');
+    this.showToast(tipo === 'adicao' ? 'Adição lançada' : 'Desconto lançado', 'ok');
     this.render();
     if (this._detalheColabId != null) this._renderDetalhe(this._detalheColabId, this._detalheMes);
   }
 
   async excluirDesconto(id) {
-    if (!confirm('Excluir este desconto?')) return;
+    const alvo = this.VALE_DESCONTOS.find(x => x.id === id);
+    const oQue = (alvo?.tipo === 'adicao') ? 'esta adição' : 'este desconto';
+    if (!confirm(`Excluir ${oQue}?`)) return;
     const temSessao = this.ValeDescontos && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     if (temSessao) {
       try { await this.ValeDescontos.excluir(id); }
@@ -379,7 +470,7 @@ export class ValeCombustivelModule {
     }
     const i = this.VALE_DESCONTOS.findIndex(x => x.id === id);
     if (i >= 0) this.VALE_DESCONTOS.splice(i, 1);
-    this.showToast('Desconto excluído');
+    this.showToast('Lançamento excluído');
     this.render();
     if (this._detalheColabId != null) this._renderDetalhe(this._detalheColabId, this._detalheMes);
   }
@@ -390,46 +481,54 @@ export class ValeCombustivelModule {
     this._detalheColabId = colabId;
     this._detalheMes     = mes;
     this._renderDetalhe(colabId, mes);
-    this.$('#btn-vale-det-novo').onclick = () => this.abrirModalDesconto(null, colabId);
+    this.$('#btn-vale-det-novo').onclick = () => this.abrirModalDesconto(null, colabId, 'desconto');
+    const btnAdd = this.$('#btn-vale-det-adicao');
+    if (btnAdd) btnAdd.onclick = () => this.abrirModalDesconto(null, colabId, 'adicao');
     this.$('#modal-vale-detalhe').classList.add('active');
   }
 
   _renderDetalhe(colabId, mes) {
     const c = this.COLABORADORES.find(x => x.id === colabId);
     if (!c) return;
-    const descontos = this.VALE_DESCONTOS
-      .filter(d => d.colaborador_id === colabId && this._compet(d) === mes)
+    const lancamentos = this._lancamentosDe(colabId, mes)
       .sort((a, b) => (a.data_ocorrencia || '').localeCompare(b.data_ocorrencia || ''));
-    const perdido   = descontos.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
-    const anterior  = this._saldoAnterior(colabId, mes);
-    const credito   = this._baseDe(colabId, mes);
-    const utilizado = this._utilizadoDe(colabId, mes);
-    const saldo     = Math.max(0, anterior + credito - perdido - utilizado);
+    const perdido    = this._somaPorTipo(lancamentos, 'desconto');
+    const adicionado = this._somaPorTipo(lancamentos, 'adicao');
+    const anterior   = this._saldoAnterior(colabId, mes);
+    const credito    = this._baseDe(colabId, mes);
+    const utilizado  = this._utilizadoDe(colabId, mes);
+    const saldo      = Math.max(0, anterior + credito + adicionado - perdido - utilizado);
 
     this.$('#vale-det-title').textContent = `${c.nome} — ${this.mesLabel(mes)}`;
     this.$('#vale-det-summary').innerHTML = `
       <div class="info-item"><div class="info-label">Saldo anterior</div><div class="info-value mono">${this.fmtBRL(anterior)}</div></div>
       <div class="info-item"><div class="info-label">Crédito do mês</div><div class="info-value mono">+ ${this.fmtBRL(credito)}</div></div>
+      <div class="info-item"><div class="info-label">Adições</div><div class="info-value mono" style="${adicionado > 0 ? 'color:var(--success);font-weight:700' : ''}">+ ${this.fmtBRL(adicionado)}</div></div>
       <div class="info-item"><div class="info-label">Descontos</div><div class="info-value mono" style="${perdido > 0 ? 'color:var(--danger);font-weight:700' : ''}">− ${this.fmtBRL(perdido)}</div></div>
       <div class="info-item"><div class="info-label">Utilizado</div><div class="info-value mono">− ${this.fmtBRL(utilizado)}</div></div>
       <div class="info-item" style="grid-column:1/-1"><div class="info-label">Saldo acumulado (vai para o próximo mês)</div><div class="info-value mono" style="font-weight:700; color:var(--success); font-size:1.05rem;">${this.fmtBRL(saldo)}</div></div>
     `;
 
     const tb = this.$('#tb-vale-detalhe');
-    tb.innerHTML = descontos.length ? descontos.map(d => {
-      const m = MOTIVOS[d.motivo] || MOTIVOS.outro;
+    tb.innerHTML = lancamentos.length ? lancamentos.map(d => {
+      const m = rotuloMotivo(d);
+      const adicao = (d.tipo || 'desconto') === 'adicao';
+      const cor = adicao ? 'var(--success)' : 'var(--danger)';
       return `
         <tr>
           <td class="cell-mono">${d.data_ocorrencia ? this.fmtDate(d.data_ocorrencia) : '—'}</td>
-          <td><span class="badge ${m.cls}">${m.t}</span></td>
-          <td class="cell-mono" style="text-align:right; color:var(--danger); font-weight:700;">− ${this.fmtBRL(d.valor)}</td>
+          <td>
+            <span class="badge ${m.cls}">${m.t}</span>
+            <div class="cell-person-sub">${adicao ? 'adição' : 'desconto'}</div>
+          </td>
+          <td class="cell-mono" style="text-align:right; color:${cor}; font-weight:700;">${adicao ? '+' : '−'} ${this.fmtBRL(d.valor)}</td>
           <td>${this.h(d.observacoes || '—')}</td>
           <td class="actions">
             <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalValeDesconto(${d.id})">✎</button>
             <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirValeDesconto(${d.id})">🗑</button>
           </td>
         </tr>`;
-    }).join('') : `<tr><td colspan="5" class="empty">Nenhum desconto neste mês — benefício integral</td></tr>`;
+    }).join('') : `<tr><td colspan="5" class="empty">Nenhum lançamento neste mês — benefício integral</td></tr>`;
   }
 
   fecharModalDetalhe() {

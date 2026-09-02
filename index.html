@@ -1025,6 +1025,10 @@
           <div class="stat-label">Crédito do mês</div>
           <div class="stat-value" id="vale-stat-base" style="font-size:1.3rem;">—</div>
         </div>
+        <div class="stat stat-success">
+          <div class="stat-label">Adições no mês</div>
+          <div class="stat-value" id="vale-stat-adicionado" style="font-size:1.3rem;">—</div>
+        </div>
         <div class="stat stat-danger">
           <div class="stat-label">Perdido em descontos</div>
           <div class="stat-value" id="vale-stat-perdido" style="font-size:1.3rem;">—</div>
@@ -2677,6 +2681,13 @@
       <form id="form-vale-desconto" class="form-grid" onsubmit="salvarValeDesconto(event)">
         <input type="hidden" name="id">
         <input type="hidden" name="competencia">
+        <div class="form-group full">
+          <label>Tipo de lançamento</label>
+          <select name="tipo" onchange="atualizarCamposValeLancamento()">
+            <option value="desconto">Desconto — tira do saldo</option>
+            <option value="adicao">Adição — soma ao saldo</option>
+          </select>
+        </div>
         <div class="form-group full" style="margin-bottom:2px;">
           <div style="font-family:var(--mono); font-size:.75rem; color:var(--text-muted); letter-spacing:.04em;">
             Competência: <strong id="vdesc-competencia" style="color:var(--text)">—</strong>
@@ -2698,7 +2709,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Valor descontado (R$)</label>
+          <label id="vdesc-lbl-valor">Valor descontado (R$)</label>
           <input type="number" name="valor" step="0.01" min="0" required placeholder="0,00">
         </div>
         <div class="form-group">
@@ -2791,6 +2802,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalValeDetalhe">Fechar</button>
+      <button class="btn btn-secondary btn-sm" type="button" id="btn-vale-det-adicao">+ Lançar adição</button>
       <button class="btn btn-sm" type="button" id="btn-vale-det-novo">− Lançar desconto</button>
     </div>
   </div>

@@ -336,7 +336,9 @@ function bootstrap() {
 
   // Vale Combustível
   window.renderVale                = ()           => valeCombustivel.render();
-  window.abrirModalValeDesconto    = (id, cId)    => valeCombustivel.abrirModalDesconto(id, cId);
+  window.abrirModalValeDesconto    = (id, cId)    => valeCombustivel.abrirModalDesconto(id, cId, 'desconto');
+  window.abrirModalValeAdicao      = (id, cId)    => valeCombustivel.abrirModalDesconto(id, cId, 'adicao');
+  window.atualizarCamposValeLancamento = ()       => valeCombustivel.atualizarCamposLancamento();
   window.fecharModalValeDesconto   = ()           => valeCombustivel.fecharModalDesconto();
   window.salvarValeDesconto        = (ev)         => valeCombustivel.salvarDesconto(ev);
   window.excluirValeDesconto       = (id)         => valeCombustivel.excluirDesconto(id);
