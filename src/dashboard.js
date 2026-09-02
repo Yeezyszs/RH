@@ -43,6 +43,25 @@ function showToast(msg, type = '') {
   showToast._t = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// ─── Erros de JavaScript ficam visíveis ──────────────────────────────────────
+// Um erro dentro de um onclick inline só vai para o console — o botão
+// simplesmente não faz nada e o usuário fica sem pista nenhuma. Aqui o erro
+// vira um aviso na tela, com o nome da função que falhou.
+
+window.addEventListener('error', (e) => {
+  const onde = e.filename ? e.filename.split('/').pop() : 'origem desconhecida';
+  console.error('[RH] Erro não tratado:', e.error || e.message, 'em', onde, `linha ${e.lineno}`);
+  if (typeof showToast === 'function') {
+    showToast(`Falhou: ${e.message || 'erro inesperado'}`, 'err');
+  }
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('[RH] Promessa rejeitada sem tratamento:', e.reason);
+  const msg = e.reason?.message || String(e.reason || 'erro inesperado');
+  if (typeof showToast === 'function') showToast(`Falhou: ${msg}`, 'err');
+});
+
 // ─── Despachante de ações da interface ───────────────────────────────────────
 // Substitui `onclick="fecharModal()"` por `data-action="fecharModal"`.
 //
