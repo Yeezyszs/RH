@@ -33,6 +33,17 @@ export class FeriasModule {
       if (['fer-filter-setor', 'fer-filter-status'].includes(e.target.id)) this.render();
     });
 
+    // Atalhos de duração (30/20/15/10). Delegação interna: só preenchem o
+    // campo de dias, então não precisam virar função global.
+    document.addEventListener('click', (e) => {
+      const chip = e.target.closest('[data-fer-dias]');
+      if (!chip) return;
+      const f = this.$('#form-ferias-periodo');
+      if (!f) return;
+      f.elements['dias'].value = chip.dataset.ferDias;
+      this.atualizarPrevia();
+    });
+
     document.querySelectorAll('.nav-item[data-page="ferias"]').forEach(el => {
       el.addEventListener('click', () => setTimeout(() => this.render(), 60));
     });
@@ -54,12 +65,13 @@ export class FeriasModule {
     const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo');
 
     const linhas = ativos.map(c => {
-      const aq = this._periodoAquisitivoAtual(c.admissao);
       const periodos = this.FERIAS.filter(f => f.colaborador_id === c.id);
-      const diasUsados = periodos
-        .filter(p => p.status !== 'planejada' || new Date(p.inicio) <= new Date())
-        .reduce((s, p) => s + (p.dias + (p.abono || 0)), 0);
-      const saldo = aq ? Math.max(0, 30 - diasUsados) : 0;
+      const diasUsados = periodos.reduce((s, p) => s + (p.dias + (p.abono || 0)), 0);
+      // Ciclo mais antigo ainda em aberto — é dele que sai o prazo real.
+      // Usar o ciclo corrente aqui tornava o status "Vencido" inalcançável.
+      const aq = this._cicloEmAberto(c.admissao, diasUsados)
+              || this._periodoAquisitivoAtual(c.admissao);
+      const saldo = this._cicloEmAberto(c.admissao, diasUsados)?.saldo ?? 0;
 
       const proximos = periodos
         .filter(p => p.fim >= hoje)
@@ -252,66 +264,122 @@ export class FeriasModule {
     this.$('#fer-modal-title').textContent = `Férias — ${c.nome}`;
     this.$('#form-ferias-periodo').elements['colaborador_id'].value = c.id;
 
-    const aq = this._periodoAquisitivoAtual(c.admissao);
-    const periodos = this.FERIAS.filter(f => f.colaborador_id === c.id).sort((a, b) => a.inicio.localeCompare(b.inicio));
-    const diasUsados = periodos.reduce((s, p) => s + (p.dias + (p.abono || 0)), 0);
-    const saldo = aq ? Math.max(0, 30 - diasUsados) : 0;
+    const sit = this._situacaoFerias(c);
 
+    // Banner: a resposta prática, antes de qualquer detalhe.
+    this.$('#fer-situacao').innerHTML = `
+      <div class="fer-banner fer-${sit.cls}">
+        <div class="fer-banner-topo">
+          <span class="fer-banner-titulo">${this.h(sit.titulo)}</span>
+          ${sit.aquisitivo && sit.tipo !== 'sem_direito'
+            ? `<span class="fer-saldo">${sit.saldo}<span>/30 dias</span></span>` : ''}
+        </div>
+        <div class="fer-banner-detalhe">${this.h(sit.detalhe)}</div>
+      </div>`;
+
+    // Contexto: o detalhe legal e o financeiro, discretos. O bloco de dinheiro
+    // só aparece quando há salário — antes eram quatro campos com "—".
     const sal = parseFloat(this.SALARIOS[c.id]?.valor || 0);
-    let provBruto = 0, provTerco = 0, provTotal = 0;
-    if (sal && saldo > 0) {
-      provBruto = (sal / 30) * saldo;
-      provTerco = provBruto / 3;
-      provTotal = provBruto + provTerco;
+    const partes = [];
+    if (sit.aquisitivo) {
+      partes.push(`Direito adquirido no período de <strong>${this.fmtDate(sit.aquisitivo.inicio)}</strong> a <strong>${this.fmtDate(sit.aquisitivo.fim)}</strong>`);
     }
+    partes.push(`Admitido em <strong>${this.fmtDate(c.admissao)}</strong>`);
+    if (sal && sit.saldo > 0) {
+      const bruto = (sal / 30) * sit.saldo;
+      const total = bruto + bruto / 3;
+      partes.push(`A pagar por ${sit.saldo} dias: <strong>${this.fmtBRL(total)}</strong> <span class="fer-dica">(${this.fmtBRL(bruto)} + 1/3)</span>`);
+    } else if (!sal) {
+      partes.push(`<span class="fer-dica">Salário não cadastrado — o valor das férias não pode ser calculado.</span>`);
+    }
+    this.$('#fer-contexto').innerHTML = `<div class="fer-contexto">${partes.join(' · ')}</div>`;
 
-    this.$('#fer-modal-summary').innerHTML = aq ? `
-      <div class="info-item"><div class="info-label">Admissão</div><div class="info-value mono">${this.fmtDate(c.admissao)}</div></div>
-      <div class="info-item"><div class="info-label">Aquisitivo atual</div><div class="info-value mono">${this.fmtDate(aq.inicio)} → ${this.fmtDate(aq.fim)}</div></div>
-      <div class="info-item"><div class="info-label">Concessivo limite</div><div class="info-value mono">${this.fmtDate(aq.concessivoLimite)}</div></div>
-      <div class="info-item"><div class="info-label">Saldo de dias</div><div class="info-value mono" style="${saldo === 0 ? 'color:var(--text-muted)' : 'color:var(--success); font-weight:700'}">${saldo} / 30</div></div>
-      <div class="info-sep"></div>
-      <div class="info-item"><div class="info-label">Salário base</div><div class="info-value mono">${sal ? this.fmtBRL(sal) : '<span style="color:var(--text-soft)">não cadastrado</span>'}</div></div>
-      <div class="info-item"><div class="info-label">Bruto férias</div><div class="info-value mono">${provBruto ? this.fmtBRL(provBruto) : '—'}</div></div>
-      <div class="info-item"><div class="info-label">+ 1/3 constitucional</div><div class="info-value mono">${provTerco ? this.fmtBRL(provTerco) : '—'}</div></div>
-      <div class="info-item"><div class="info-label">Provisão total</div><div class="info-value mono" style="color:var(--phthalo-dark); font-weight:700">${provTotal ? this.fmtBRL(provTotal) : '—'}</div></div>
-    ` : `<div class="empty" style="grid-column:1/-1">Colaborador ainda não completou o primeiro período aquisitivo (12 meses de admissão).</div>`;
+    const periodos = this.FERIAS.filter(f => f.colaborador_id === c.id)
+      .sort((a, b) => a.inicio.localeCompare(b.inicio));
 
     const tbP = this.$('#tb-fer-periodos');
     tbP.innerHTML = periodos.length ? periodos.map(p => {
       const st = this._periodoStatus(p);
       const stBadge = {
-        planejada: `<span class="badge ok">Planejada</span>`,
-        em_curso:  `<span class="badge info">Em curso</span>`,
-        concluida: `<span class="badge neutral">Concluída</span>`,
+        planejada: `<span class="badge ok">A sair</span>`,
+        em_curso:  `<span class="badge info">Em férias</span>`,
+        concluida: `<span class="badge neutral">Já saiu</span>`,
       }[st];
+      const volta = this._addDays(p.fim, 1);
       const valorTxt = p.valor != null
         ? `<span class="cell-mono" style="font-weight:600; color:var(--phthalo-dark)">${this.fmtBRL(p.valor)}</span>`
         : `<span style="color:var(--text-soft)">—</span>`;
       return `
         <tr>
-          <td class="cell-mono">${this.fmtDate(p.inicio)}</td>
-          <td class="cell-mono">${this.fmtDate(p.fim)}</td>
-          <td class="cell-mono" style="text-align:right">${p.dias}</td>
-          <td class="cell-mono">${p.abono ? p.abono + 'd' : '—'}</td>
+          <td>
+            <div class="cell-mono">${this.fmtDate(p.inicio)} a ${this.fmtDate(p.fim)}</div>
+            <div class="fer-dica">volta em ${this.fmtDate(volta)}</div>
+          </td>
+          <td class="cell-mono" style="text-align:right">
+            ${p.dias}${p.abono ? `<div class="fer-dica">+${p.abono} vendidos</div>` : ''}
+          </td>
           <td style="text-align:right">${valorTxt}</td>
           <td>${stBadge}</td>
           <td class="actions">
             <button class="btn btn-ghost btn-sm btn-icon" title="Editar valor pago" onclick="editarValorFerias(${p.id})">✎</button>
             <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirFerias(${p.id})">🗑</button>
           </td>
-        </tr>
-      `;
-    }).join('') : `<tr><td colspan="7" class="empty">Sem períodos registrados</td></tr>`;
+        </tr>`;
+    }).join('') : `<tr><td colspan="5" class="empty">Nenhum período agendado ainda</td></tr>`;
+
+    this.atualizarPrevia();
   }
 
-  calcDiasFerias() {
+  /**
+   * Recalcula o resumo do período que está sendo montado e os avisos.
+   * Roda a cada digitação: o usuário vê o resultado antes de salvar, em vez
+   * de descobrir por um alert depois de clicar em agendar.
+   */
+  atualizarPrevia() {
     const f = this.$('#form-ferias-periodo');
-    const ini = f.elements['inicio'].value;
-    const fim = f.elements['fim'].value;
-    if (ini && fim && fim >= ini) {
-      f.elements['dias'].value = this._diasEntre(ini, fim);
+    if (!f) return;
+
+    const inicio = f.elements['inicio'].value;
+    const dias   = parseInt(f.elements['dias'].value, 10) || 0;
+    const vender = parseInt(f.elements['vender'].value, 10) || 0;
+    const colabId = parseInt(f.elements['colaborador_id'].value, 10);
+
+    // Destaca o atalho que corresponde ao valor digitado.
+    this.$('#fer-chips-dias')?.querySelectorAll('[data-fer-dias]').forEach(b => {
+      b.classList.toggle('ativo', parseInt(b.dataset.ferDias, 10) === dias);
+    });
+
+    const previa = this.$('#fer-previa');
+    const calc = this._fimEVolta(inicio, dias);
+    if (previa) {
+      previa.innerHTML = calc
+        ? `Último dia de férias: <strong>${this.fmtDate(calc.fim)}</strong>`
+          + ` &nbsp;·&nbsp; Volta ao trabalho: <strong>${this.fmtDate(calc.volta)}</strong>`
+          + (vender > 0 ? ` &nbsp;·&nbsp; <span class="fer-dica">${vender} dias vendidos</span>` : '')
+        : 'Escolha a data de início e a quantidade de dias.';
+      previa.classList.toggle('vazia', !calc);
     }
+
+    const avisos = colabId ? this._avisosDoPeriodo({ colabId, inicio, dias, vender }) : [];
+    const cxAvisos = this.$('#fer-avisos');
+    if (cxAvisos) {
+      cxAvisos.innerHTML = avisos.map(a =>
+        `<div class="fer-aviso fer-aviso-${a.nivel}">${this.h(a.texto)}</div>`).join('');
+    }
+
+    // Erro de regra bloqueia o botão; "atenção" só informa.
+    const btn = this.$('#fer-btn-agendar');
+    if (btn) btn.disabled = avisos.some(a => a.nivel === 'erro');
+  }
+
+  limparFormPeriodo() {
+    const f = this.$('#form-ferias-periodo');
+    if (!f) return;
+    const colabId = f.elements['colaborador_id'].value;
+    limparFormulario(f);
+    f.elements['colaborador_id'].value = colabId;
+    f.elements['vender'].value = 0;
+    this.atualizarPrevia();
   }
 
   async salvarFeriasPeriodo(ev) {
@@ -319,20 +387,27 @@ export class FeriasModule {
     const f = this.$('#form-ferias-periodo');
     const data = Object.fromEntries(new FormData(f));
     const colabId = parseInt(data.colaborador_id, 10);
-    const dias  = parseInt(data.dias, 10) || this._diasEntre(data.inicio, data.fim);
-    const abono = parseInt(data.abono, 10) || 0;
+    const dias  = parseInt(data.dias, 10) || 0;
+    const abono = parseInt(data.vender, 10) || 0;
+    // O fim deixa de ser digitado: sai de início + duração, que é como a
+    // pessoa pensa ("15 dias a partir de tal data").
+    const calc  = this._fimEVolta(data.inicio, dias);
+    data.fim = calc?.fim;
     const valorPago = data.valor_pago !== '' && data.valor_pago != null
       ? parseFloat(String(data.valor_pago).replace(',', '.')) : null;
 
     if (!data.inicio || !data.fim || dias <= 0) {
-      window.showToast?.('Período inválido', 'err');
+      window.showToast?.('Informe a data de início e quantos dias', 'err');
       return;
     }
 
-    const existentes = this.FERIAS.filter(x => x.colaborador_id === colabId)
-                                  .reduce((s, p) => s + (p.dias + (p.abono || 0)), 0);
-    if (existentes + dias + abono > 30) {
-      if (!confirm(`Este período somado aos já existentes (${existentes}d) ultrapassa 30 dias. Confirmar mesmo assim?`)) return;
+    // As regras já aparecem em tempo real no formulário; aqui é a última
+    // barreira, para o caso de alguém burlar o botão desabilitado.
+    const impedimento = this._avisosDoPeriodo({ colabId, inicio: data.inicio, dias, vender: abono })
+      .find(a => a.nivel === 'erro');
+    if (impedimento) {
+      window.showToast?.(impedimento.texto, 'err');
+      return;
     }
 
     const payload = {
@@ -376,7 +451,7 @@ export class FeriasModule {
       window.showToast?.('Período agendado', 'ok');
     }
 
-    limparFormulario(f);
+    this.limparFormPeriodo();
     this.renderFeriasModal();
     this.render();
     window.renderColaboradores?.();
@@ -468,6 +543,172 @@ export class FeriasModule {
     if (p.inicio > hoje) return 'planejada';
     if (p.fim >= hoje) return 'em_curso';
     return 'concluida';
+  }
+
+  // ─── Situação e regras, em linguagem de quem usa ──────────────────────────
+  // "Aquisitivo", "concessivo" e "abono pecuniário" são os termos da lei, mas
+  // não são a pergunta que o RH tem na cabeça. A pergunta é: esta pessoa pode
+  // sair, quantos dias, e até quando eu tenho que resolver isso. É o que estas
+  // funções respondem.
+
+  /**
+   * Ciclo aquisitivo mais ANTIGO que ainda tem dias a tirar — é dele que sai o
+   * prazo real e o risco de pagar em dobro.
+   *
+   * `_periodoAquisitivoAtual` devolve sempre o ciclo mais recente, cujo prazo
+   * está sempre a até 12 meses no futuro. Com ela, quem passou anos sem tirar
+   * férias nunca aparecia como vencido — o alerta mais importante da tela era
+   * inalcançável.
+   *
+   * Como os períodos gravados não dizem a que ciclo pertencem, os dias são
+   * alocados do ciclo mais antigo para o mais novo, que é a ordem em que a lei
+   * manda conceder.
+   */
+  _cicloEmAberto(admissao, diasUsados = 0) {
+    if (!admissao) return null;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const adm = new Date(admissao + 'T00:00:00');
+    const ciclosCompletos = Math.floor((hoje - adm) / (1000 * 60 * 60 * 24 * 365.25));
+    if (ciclosCompletos < 1) return null;
+
+    // Cada ciclo dá 30 dias; quantos já foram inteiramente consumidos.
+    const consumidos = Math.floor(diasUsados / 30);
+    if (consumidos >= ciclosCompletos) return null;   // tudo quitado
+
+    const k = consumidos;                              // índice do ciclo aberto
+    const inicio = this._addYears(admissao, k);
+    const fim    = this._addDays(this._addYears(admissao, k + 1), -1);
+    return {
+      inicio, fim,
+      concessivoLimite: this._addYears(fim, 1),
+      saldo: 30 - (diasUsados % 30),
+      ciclosVencidos: ciclosCompletos - consumidos,
+    };
+  }
+
+  /**
+   * Situação de férias do colaborador. Função de leitura, sem DOM.
+   * @returns {{tipo, titulo, detalhe, cls, saldo, diasUsados, aquisitivo, prazo, diasAteOPrazo}}
+   */
+  _situacaoFerias(colab) {
+    const periodos = this.FERIAS.filter(f => f.colaborador_id === colab?.id);
+    const diasUsados = periodos.reduce((s, p) => s + (p.dias + (p.abono || 0)), 0);
+    const aq = this._cicloEmAberto(colab?.admissao, diasUsados);
+    const temCiclo = !!this._periodoAquisitivoAtual(colab?.admissao);
+    const saldo = aq ? aq.saldo : 0;
+    const base = { saldo, diasUsados, aquisitivo: aq, prazo: aq?.concessivoLimite || null };
+
+    // Sem ciclo aberto, mas já com direito adquirido: tudo tirado.
+    if (!aq && temCiclo) {
+      const atual = this._periodoAquisitivoAtual(colab.admissao);
+      return {
+        ...base, tipo: 'quitado', cls: 'ok', diasAteOPrazo: null,
+        aquisitivo: atual, prazo: atual.concessivoLimite,
+        titulo: 'Férias em dia',
+        detalhe: `Todos os dias a que tem direito já foram usados. `
+               + `O próximo período vence em ${this.fmtDate(atual.concessivoLimite)}.`,
+      };
+    }
+
+    if (!aq) {
+      const umAno = colab?.admissao ? this._addYears(colab.admissao, 1) : null;
+      return {
+        ...base, tipo: 'sem_direito', cls: 'neutro',
+        titulo: 'Ainda não tem direito a férias',
+        detalhe: umAno
+          ? `Completa 1 ano de casa em ${this.fmtDate(umAno)}.`
+          : 'Data de admissão não cadastrada.',
+        diasAteOPrazo: null,
+      };
+    }
+
+    const hoje = this._isoNow();
+    const diasAteOPrazo = this._diasEntre(hoje, aq.concessivoLimite) - 1;
+
+    if (aq.concessivoLimite < hoje) {
+      const atraso = Math.abs(diasAteOPrazo);
+      const acumulados = aq.ciclosVencidos > 1
+        ? ` Há ${aq.ciclosVencidos} períodos acumulados sem tirar.` : '';
+      return {
+        ...base, tipo: 'vencido', cls: 'critico', diasAteOPrazo,
+        titulo: `Prazo vencido há ${atraso} dia${atraso === 1 ? '' : 's'}`,
+        detalhe: `As férias deveriam ter saído até ${this.fmtDate(aq.concessivoLimite)}. `
+               + `Fora do prazo, a lei manda pagar o período em dobro.${acumulados} Agende o quanto antes.`,
+      };
+    }
+
+    if (diasAteOPrazo <= 60) {
+      return {
+        ...base, tipo: 'urgente', cls: 'alerta', diasAteOPrazo,
+        titulo: `Precisa sair em até ${diasAteOPrazo} dia${diasAteOPrazo === 1 ? '' : 's'}`,
+        detalhe: `Prazo final: ${this.fmtDate(aq.concessivoLimite)}. `
+               + `Depois disso o período passa a ser pago em dobro.`,
+      };
+    }
+
+    return {
+      ...base, tipo: 'em_dia', cls: 'tranquilo', diasAteOPrazo,
+      titulo: `${saldo} dia${saldo === 1 ? '' : 's'} disponíveis`,
+      detalhe: `Pode agendar com calma — o prazo vai até ${this.fmtDate(aq.concessivoLimite)}.`,
+    };
+  }
+
+  /**
+   * Avisos sobre o período que está sendo montado. Devolve frases prontas, do
+   * mais grave para o menos. `nivel` 'erro' impede o agendamento.
+   */
+  _avisosDoPeriodo({ colabId, inicio, dias, vender = 0 }) {
+    const avisos = [];
+    const existentes = this.FERIAS.filter(f => f.colaborador_id === colabId);
+    const situacao = this._situacaoFerias(this.COLABORADORES.find(c => c.id === colabId));
+
+    if (!dias || dias < 1) return avisos;
+
+    const total = dias + vender;
+    if (total > situacao.saldo) {
+      avisos.push({
+        nivel: 'erro',
+        texto: `Restam ${situacao.saldo} dias neste período e você está lançando ${total}.`,
+      });
+    }
+
+    // CLT art. 134: até 3 períodos, um deles com 14 dias ou mais, os demais
+    // com pelo menos 5.
+    if (existentes.length >= 3) {
+      avisos.push({
+        nivel: 'erro',
+        texto: `Já existem ${existentes.length} períodos. A lei permite dividir as férias em no máximo 3.`,
+      });
+    }
+
+    if (dias < 5 && existentes.length > 0) {
+      avisos.push({ nivel: 'erro', texto: 'Ao dividir as férias, nenhuma parte pode ter menos de 5 dias.' });
+    }
+
+    const maiorExistente = existentes.reduce((m, p) => Math.max(m, p.dias), 0);
+    if (Math.max(maiorExistente, dias) < 14 && (existentes.length + 1) > 1) {
+      avisos.push({
+        nivel: 'atencao',
+        texto: 'Nenhum dos períodos tem 14 dias ou mais — a lei exige que um deles tenha.',
+      });
+    }
+
+    if (inicio && situacao.prazo && inicio > situacao.prazo) {
+      avisos.push({
+        nivel: 'atencao',
+        texto: `Este período começa depois do prazo (${this.fmtDate(situacao.prazo)}), o que obriga a pagar em dobro.`,
+      });
+    }
+
+    return avisos;
+  }
+
+  /** Último dia e volta ao trabalho, a partir do primeiro dia e da duração. */
+  _fimEVolta(inicio, dias) {
+    if (!inicio || !dias || dias < 1) return null;
+    const fim = this._addDays(inicio, dias - 1);
+    return { fim, volta: this._addDays(fim, 1) };
   }
 
   _diasEntre(a, b) {

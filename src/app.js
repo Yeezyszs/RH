@@ -269,7 +269,8 @@ function bootstrap() {
   window.abrirModalFerias         = (id)   => ferias.abrirModalFerias(id);
   window.fecharModalFerias        = ()     => ferias.fecharModalFerias();
   window.renderFeriasModal        = ()     => ferias.renderFeriasModal();
-  window.calcDiasFerias           = ()     => ferias.calcDiasFerias();
+  window.atualizarPreviaFerias    = ()     => ferias.atualizarPrevia();
+  window.limparFormFerias         = ()     => ferias.limparFormPeriodo();
   window.salvarFeriasPeriodo      = (ev)   => ferias.salvarFeriasPeriodo(ev);
   window.excluirFerias            = (id)   => ferias.excluirFerias(id);
   window.editarValorFerias        = (id)   => ferias.editarValorFerias(id);

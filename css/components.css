@@ -955,3 +955,101 @@ table.data td.actions {
   .falha-box { flex-wrap: wrap; }
   .falha-acoes { width: 100%; justify-content: flex-end; }
 }
+
+/* ─── Férias — modal de agendamento ──────────────────────────────────────────
+   A tela falava a língua da lei ("aquisitivo", "concessivo", "abono
+   pecuniário"). Estes blocos existem para responder antes o que o RH precisa
+   decidir: pode sair, quantos dias, até quando. */
+
+.fer-banner {
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: 1px solid;
+  border-left-width: 4px;
+}
+.fer-banner-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fer-banner-titulo { font-weight: 700; font-size: 1.02rem; }
+.fer-banner-detalhe { font-size: .87rem; margin-top: 5px; line-height: 1.45; opacity: .9; }
+.fer-saldo {
+  font-family: var(--mono);
+  font-size: 1.35rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.fer-saldo span { font-size: .72rem; font-weight: 500; opacity: .7; margin-left: 2px; }
+
+.fer-critico   { background: #FEF2F2; border-color: #FCA5A5; border-left-color: var(--danger);  color: #991B1B; }
+.fer-alerta    { background: #FFFBEB; border-color: #FCD34D; border-left-color: var(--warning); color: #92400E; }
+.fer-tranquilo { background: #F0F9FF; border-color: #BAE6FD; border-left-color: var(--phthalo-light); color: var(--phthalo-dark); }
+.fer-ok        { background: #ECFDF5; border-color: #A7F3D0; border-left-color: var(--success); color: #065F46; }
+.fer-neutro    { background: var(--bluish-bg); border-color: var(--border); border-left-color: var(--text-soft); color: var(--text-muted); }
+
+.fer-contexto {
+  font-size: .82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.fer-contexto strong { color: var(--text); font-weight: 600; }
+
+.fer-secao {
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.fer-chips { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.fer-chip {
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 7px;
+  padding: 7px 13px;
+  font-family: var(--mono);
+  font-size: .86rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all .12s;
+}
+.fer-chip:hover { border-color: var(--phthalo-light); color: var(--phthalo); }
+.fer-chip.ativo {
+  background: var(--phthalo);
+  border-color: var(--phthalo);
+  color: #fff;
+}
+
+.fer-previa {
+  background: var(--bluish-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: .9rem;
+  color: var(--text);
+}
+.fer-previa.vazia { color: var(--text-soft); font-style: italic; }
+.fer-previa strong { color: var(--phthalo-dark); font-weight: 700; }
+
+.fer-dica { font-size: .75rem; color: var(--text-soft); }
+
+.fer-aviso {
+  border-radius: 7px;
+  padding: 9px 12px;
+  font-size: .85rem;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  border-left: 3px solid;
+}
+.fer-aviso-erro    { background: #FEF2F2; border-left-color: var(--danger);  color: #991B1B; }
+.fer-aviso-atencao { background: #FFFBEB; border-left-color: var(--warning); color: #92400E; }

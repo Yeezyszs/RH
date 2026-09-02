@@ -2798,7 +2798,7 @@
 
 <!-- ════════════ MODAL — FÉRIAS DO COLABORADOR ════════════ -->
 <div id="modal-ferias" class="modal">
-  <div class="modal-box" style="max-width:740px;">
+  <div class="modal-box" style="max-width:720px;">
     <div class="modal-header">
       <div class="modal-title" id="fer-modal-title">Férias do colaborador</div>
       <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalFerias">×</button>
@@ -2810,52 +2810,75 @@
         <select id="fer-select-colab" onchange="renderFeriasModal()"></select>
       </div>
 
-      <div class="info-grid" id="fer-modal-summary" style="margin-bottom:18px;"></div>
+      <!-- Responde primeiro a pergunta prática: pode sair, quantos dias,
+           até quando. O detalhe legal vem depois, em letra menor. -->
+      <div id="fer-situacao"></div>
+      <div id="fer-contexto"></div>
 
-      <div style="font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">
-        Períodos agendados / realizados
-      </div>
+      <div class="fer-secao">Períodos já agendados</div>
       <div class="table-card" style="margin-bottom:18px;">
         <div class="table-wrapper">
           <table class="data">
-            <thead><tr><th>Início</th><th>Fim</th><th style="text-align:right">Dias</th><th>Abono</th><th style="text-align:right">Valor pago</th><th>Status</th><th style="width:80px; text-align:right">Ações</th></tr></thead>
+            <thead><tr>
+              <th>Período</th>
+              <th style="text-align:right">Dias</th>
+              <th style="text-align:right">Valor pago</th>
+              <th>Situação</th>
+              <th style="width:80px; text-align:right">Ações</th>
+            </tr></thead>
             <tbody id="tb-fer-periodos"></tbody>
           </table>
         </div>
       </div>
 
-      <div style="font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">
-        Adicionar novo período (CLT: máx. 3 tranches · mín. 14 dias em uma delas)
-      </div>
+      <div class="fer-secao">Agendar novo período</div>
       <form id="form-ferias-periodo" class="form-grid" onsubmit="salvarFeriasPeriodo(event)">
         <input type="hidden" name="colaborador_id">
+
         <div class="form-group">
-          <label>Início</label>
-          <input type="date" name="inicio" required onchange="calcDiasFerias()">
+          <label>Primeiro dia de férias</label>
+          <input type="date" name="inicio" required oninput="atualizarPreviaFerias()">
         </div>
+
         <div class="form-group">
-          <label>Fim</label>
-          <input type="date" name="fim" required onchange="calcDiasFerias()">
+          <label>Quantos dias</label>
+          <div class="fer-chips" id="fer-chips-dias">
+            <button type="button" class="fer-chip" data-fer-dias="30">30</button>
+            <button type="button" class="fer-chip" data-fer-dias="20">20</button>
+            <button type="button" class="fer-chip" data-fer-dias="15">15</button>
+            <button type="button" class="fer-chip" data-fer-dias="10">10</button>
+            <input type="number" name="dias" min="1" max="30" required placeholder="outro"
+                   oninput="atualizarPreviaFerias()" style="width:78px;">
+          </div>
         </div>
+
+        <!-- O que o colaborador e o gestor realmente precisam saber. -->
+        <div class="form-group full" style="margin:2px 0 4px;">
+          <div id="fer-previa" class="fer-previa">Escolha a data de início e a quantidade de dias.</div>
+        </div>
+
         <div class="form-group">
-          <label>Dias de férias</label>
-          <input type="number" name="dias" min="1" max="30" readonly style="background:var(--bluish-soft);">
+          <label>Vender dias em dinheiro</label>
+          <input type="number" name="vender" min="0" max="10" value="0" oninput="atualizarPreviaFerias()">
+          <span class="fer-dica">Até 10 dias podem ser convertidos em pagamento.</span>
         </div>
+
         <div class="form-group">
-          <label>Abono pecuniário (0-10 dias)</label>
-          <input type="number" name="abono" min="0" max="10" value="0">
+          <label>Valor pago (R$)</label>
+          <input type="number" step="0.01" min="0" name="valor_pago" placeholder="opcional">
+          <span class="fer-dica">Deixe vazio para calcular pelo salário.</span>
         </div>
-        <div class="form-group">
-          <label>Valor pago das férias (R$)</label>
-          <input type="number" step="0.01" min="0" name="valor_pago" placeholder="Deixe vazio p/ usar o cálculo">
-        </div>
+
         <div class="form-group full">
           <label>Observações</label>
-          <input type="text" name="observacoes">
+          <input type="text" name="observacoes" placeholder="opcional">
         </div>
+
+        <div class="form-group full" id="fer-avisos"></div>
+
         <div class="form-group full" style="flex-direction:row; justify-content:flex-end; gap:8px;">
-          <button class="btn btn-secondary btn-sm" type="button" onclick="document.getElementById('form-ferias-periodo').reset()">Limpar</button>
-          <button class="btn btn-sm" type="submit">Adicionar período</button>
+          <button class="btn btn-secondary btn-sm" type="button" data-action="limparFormFerias">Limpar</button>
+          <button class="btn btn-sm" type="submit" id="fer-btn-agendar">Agendar férias</button>
         </div>
       </form>
 
