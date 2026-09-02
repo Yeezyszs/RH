@@ -225,11 +225,10 @@ export class ValeCombustivelModule {
             </td>
             <td class="cell-mono" style="text-align:right; color:var(--text-muted)">${this.fmtBRL(r.anterior)}</td>
             <td class="cell-mono" style="text-align:right">${this.fmtBRL(r.credito)}</td>
-            <td class="cell-mono" style="text-align:right; font-weight:700; color:var(--success);">${this.fmtBRL(r.saldo)}</td>
             <td>${statusBadge}</td>
           </tr>
         `;
-      }).join('') : `<tr><td colspan="5" class="empty">Sem dados para ${this.mesLabel(mesAtual)}</td></tr>`;
+      }).join('') : `<tr><td colspan="4" class="empty">Sem dados para ${this.mesLabel(mesAtual)}</td></tr>`;
     }
 
     this._renderEvolucao();

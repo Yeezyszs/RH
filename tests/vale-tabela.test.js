@@ -55,7 +55,7 @@ const primeiraLinha = () => [...doc.querySelectorAll('#tb-vale-resumo tr:first-c
 describe('tabela do vale combustível', () => {
   it('tem exatamente as colunas pedidas', () => {
     expect(cabecalhos()).toEqual([
-      'Colaborador', 'Saldo anterior', 'Crédito', 'Saldo acumulado', 'Status',
+      'Colaborador', 'Saldo anterior', 'Crédito', 'Status',
     ]);
   });
 
@@ -64,6 +64,7 @@ describe('tabela do vale combustível', () => {
     expect(titulos).not.toContain('Utilizado');
     expect(titulos).not.toContain('Descontos');
     expect(titulos).not.toContain('Ações');
+    expect(titulos).not.toContain('Saldo acumulado');
   });
 
   it('o corpo tem o mesmo número de células que o cabeçalho', () => {
@@ -76,9 +77,11 @@ describe('tabela do vale combustível', () => {
 });
 
 describe('os valores continuam corretos sem as colunas', () => {
+  // Nenhum destes aparece mais como coluna, mas todos seguem no cálculo: o
+  // saldo acumulado é o que passa para o mês seguinte e alimenta a coluna
+  // "Saldo anterior" da competência seguinte, além do card de estatística.
   it('o consumo segue descontado do saldo, mesmo sem coluna própria', () => {
-    // Fulano: crédito 150, utilizou 40 → saldo 110. A coluna sumiu da tela,
-    // mas o número não pode sumir da conta.
+    // Fulano: crédito 150, utilizou 40 → saldo 110.
     const r = mod._resumoDoMes('2026-08').find(x => x.colab.id === 1);
     expect(r.utilizado).toBe(40);
     expect(r.saldo).toBe(110);
