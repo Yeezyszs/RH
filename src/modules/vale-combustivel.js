@@ -212,14 +212,6 @@ export class ValeCombustivelModule {
             : r.disponivel === 0
               ? `<span class="badge danger">Perdeu tudo</span>`
               : `<span class="badge warn">Parcial</span>`;
-        const perdStyle = r.perdido > 0 ? 'color:var(--danger); font-weight:700;' : 'color:var(--text-soft);';
-        const tags = r.descontos.length
-          ? `<div style="display:flex; flex-wrap:wrap; gap:3px; margin-top:3px;">` +
-            r.descontos.map(d => {
-              const m = MOTIVOS[d.motivo] || MOTIVOS.outro;
-              return `<span class="badge ${m.cls}" style="font-size:.6rem;">${m.t}</span>`;
-            }).join('') + `</div>`
-          : '';
         return `
           <tr onclick="abrirModalValeDetalhe(${c.id}, '${mesAtual}')">
             <td>
@@ -233,19 +225,11 @@ export class ValeCombustivelModule {
             </td>
             <td class="cell-mono" style="text-align:right; color:var(--text-muted)">${this.fmtBRL(r.anterior)}</td>
             <td class="cell-mono" style="text-align:right">${this.fmtBRL(r.credito)}</td>
-            <td style="text-align:right">
-              <div class="cell-mono" style="${perdStyle}">${r.perdido > 0 ? '− ' : ''}${this.fmtBRL(r.perdido)}</div>
-              ${tags}
-            </td>
-            <td class="cell-mono" style="text-align:right; ${r.utilizado > 0 ? '' : 'color:var(--text-soft);'}">${r.utilizado > 0 ? '− ' : ''}${this.fmtBRL(r.utilizado)}</td>
             <td class="cell-mono" style="text-align:right; font-weight:700; color:var(--success);">${this.fmtBRL(r.saldo)}</td>
             <td>${statusBadge}</td>
-            <td class="actions" onclick="event.stopPropagation()">
-              <button class="btn btn-ghost btn-sm btn-icon" title="Lançar desconto" onclick="abrirModalValeDesconto(null, ${c.id})">−</button>
-            </td>
           </tr>
         `;
-      }).join('') : `<tr><td colspan="8" class="empty">Sem dados para ${this.mesLabel(mesAtual)}</td></tr>`;
+      }).join('') : `<tr><td colspan="5" class="empty">Sem dados para ${this.mesLabel(mesAtual)}</td></tr>`;
     }
 
     this._renderEvolucao();
