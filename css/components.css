@@ -1093,3 +1093,14 @@ table.data td.actions {
 }
 .conta-aberta strong { color: var(--text); }
 .conta-aberta span { font-family: var(--font); }
+
+/* Liberação manual quando a soma do relatório não bate com a nota. */
+.alerta-liberar {
+  display: block;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(153, 27, 27, .18);
+  font-weight: 600;
+  cursor: pointer;
+}
+.alerta-liberar input { margin-right: 6px; vertical-align: middle; }

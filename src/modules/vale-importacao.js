@@ -46,6 +46,7 @@ export class ValeImportacaoModule {
     this._relatorio = null;
     this._vinculos  = {};   // cpf → id escolhido à mão
     this._marcados  = {};   // cpf → true quando "ignorar sempre" está marcado
+    this._forcar    = false; // liberação manual quando a soma não bate com a nota
     this._ocupado   = false;
 
     this._ligarEventos();
@@ -62,6 +63,10 @@ export class ValeImportacaoModule {
       }
       if (e.target.dataset?.ignorar) {
         this._marcados[e.target.dataset.ignorar] = e.target.checked;
+      }
+      if (e.target.id === 'vale-imp-forcar') {
+        this._forcar = e.target.checked;
+        this._renderPreview();
       }
     });
 
@@ -85,6 +90,7 @@ export class ValeImportacaoModule {
     this._relatorio = null;
     this._vinculos  = {};
     this._marcados  = {};
+    this._forcar    = false;
     const file = this.$('#vale-imp-file');
     if (file) file.value = '';
     const res = this.$('#vale-imp-resultado');
@@ -140,6 +146,7 @@ export class ValeImportacaoModule {
       this._relatorio.arquivo = arquivo.name;
       this._vinculos = {};
       this._marcados = {};
+      this._forcar   = false;
       this._preencherCompetencia(this._relatorio.competencia);
       this._renderPreview();
     } catch (err) {
@@ -219,9 +226,20 @@ export class ValeImportacaoModule {
       `<div class="info-item"><div class="info-label">${rot}</div>
        <div class="info-value mono" ${cor ? `style="color:${cor};font-weight:700"` : ''}>${val}</div></div>`;
 
-    // Conferência: tudo que o relatório traz tem que estar em algum balde.
+    // Duas conferências diferentes, e as duas travam a gravação.
+    //
+    // A primeira é interna: cada beneficiário lido tem que estar em algum
+    // balde (importado, sem cadastro ou ignorado).
     const naoImportado = arredondar(c.somaIgnorados + c.somaSemCadastro);
     const fecha = arredondar(c.somaCasados + naoImportado) === arredondar(r.soma);
+
+    // A segunda é contra a nota: a soma dos beneficiários lidos tem que dar o
+    // "Total de crédito" do relatório. É a que pega leitura incompleta — se o
+    // leitor perder uma linha, a competência entra faltando gente e ninguém
+    // percebe. Só que há relatório com diferença conhecida, então em vez de
+    // proibir de vez a gravação fica atrás de um "importar mesmo assim".
+    const bateComANota = r.totalCredito == null
+      || arredondar(r.totalCredito) === arredondar(r.soma);
 
     const avisos = [...r.problemas];
     if (!fecha) {
@@ -231,6 +249,12 @@ export class ValeImportacaoModule {
       avisos.push(`${c.semCadastro.length} beneficiário(s) do relatório não têm cadastro. `
         + 'Ligue cada um a um colaborador ou marque para ignorar — quem ficar sem ligação não será importado.');
     }
+
+    const liberacao = bateComANota ? '' : `
+      <label class="alerta-liberar">
+        <input type="checkbox" id="vale-imp-forcar" ${this._forcar ? 'checked' : ''}>
+        Conferi o PDF e a diferença é conhecida — importar mesmo assim.
+      </label>`;
 
     const cabecalho = `
       <div class="info-grid" style="margin:14px 0 10px;">
@@ -307,7 +331,9 @@ export class ValeImportacaoModule {
 
     this._estado(`
       ${cabecalho}
-      ${avisos.length ? `<div class="alerta-erro">${avisos.map(a => `<div>${this.h(a)}</div>`).join('')}</div>` : ''}
+      ${avisos.length
+        ? `<div class="alerta-erro">${avisos.map(a => `<div>${this.h(a)}</div>`).join('')}${liberacao}</div>`
+        : ''}
       ${resumo}
       ${pendentes}
       ${ignorados}
@@ -317,7 +343,7 @@ export class ValeImportacaoModule {
       </div>
     `);
 
-    this._habilitarConfirmar(c.casados.length > 0 && fecha);
+    this._habilitarConfirmar(c.casados.length > 0 && fecha && (bateComANota || this._forcar));
   }
 
   // ─── Gravação ───────────────────────────────────────────────────────────────

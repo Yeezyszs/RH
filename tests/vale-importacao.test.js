@@ -292,3 +292,45 @@ describe('a conta do relatório fica aberta na tela', () => {
     expect(doc.querySelector('.conta-aberta')).toBeNull();
   });
 });
+
+describe('conferência contra o total da nota', () => {
+  // Se o leitor perder uma linha do PDF, a soma dos beneficiários fica menor
+  // que o "Total de crédito" e a competência entra faltando gente. O aviso já
+  // existia; faltava ele travar a gravação.
+  const FALTANDO = [
+    'Emitido em: 03/07/2026', 'Número da nota: 824',
+    'Total de crédito: R$ 300,00', 'Total de serviço: R$ 0,00',
+    ...CORPO.slice(0, 2),   // 250,00 de 300,00
+  ];
+
+  it('trava o botão quando a soma não bate com o total de crédito', async () => {
+    const { mod, doc } = await montar({ linhas: FALTANDO });
+    await mod.lerArquivo(pdfFalso());
+    expect(doc.querySelector('#btn-vale-imp-confirmar').disabled).toBe(true);
+  });
+
+  it('oferece liberar à mão, e só então destrava', async () => {
+    const { mod, doc } = await montar({ linhas: FALTANDO });
+    await mod.lerArquivo(pdfFalso());
+    expect(doc.querySelector('#vale-imp-forcar')).not.toBeNull();
+    mod._forcar = true;
+    mod._renderPreview();
+    expect(doc.querySelector('#btn-vale-imp-confirmar').disabled).toBe(false);
+    expect(doc.querySelector('#vale-imp-forcar').checked).toBe(true);
+  });
+
+  it('não pede liberação quando a soma bate', async () => {
+    const { mod, doc } = await montar();
+    await mod.lerArquivo(pdfFalso());
+    expect(doc.querySelector('#vale-imp-forcar')).toBeNull();
+  });
+
+  it('a liberação não sobrevive à troca de arquivo', async () => {
+    const { mod, doc } = await montar({ linhas: FALTANDO });
+    await mod.lerArquivo(pdfFalso());
+    mod._forcar = true;
+    mod._renderPreview();
+    await mod.lerArquivo(pdfFalso());
+    expect(doc.querySelector('#btn-vale-imp-confirmar').disabled).toBe(true);
+  });
+});
