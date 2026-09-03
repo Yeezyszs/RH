@@ -1016,6 +1016,7 @@
           <option value="">Todos os setores</option>
         </select>
         <button class="btn btn-secondary btn-sm" type="button" data-action="abrirModalCotas">⚙ Valores</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-action="abrirModalValeImport">⭳ Importar relatório</button>
         <button class="btn" type="button" data-action="abrirModalValeDesconto">− Lançar desconto</button>
       </div>
 
@@ -2725,6 +2726,44 @@
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalValeDesconto">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-vale-desconto">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — IMPORTAR RELATÓRIO DE CRÉDITO ════════════ -->
+<div id="modal-vale-import" class="modal">
+  <div class="modal-box" style="max-width:900px;">
+    <div class="modal-header">
+      <div class="modal-title">Importar relatório de crédito</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalValeImport">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="vale-imp-drop" class="dropzone">
+        <input type="file" id="vale-imp-file" accept="application/pdf,.pdf" hidden>
+        <div class="dropzone-titulo">Arraste o PDF aqui</div>
+        <button class="btn btn-secondary btn-sm" type="button" data-action="escolherArquivoValeImport">ou escolher arquivo</button>
+        <div class="dropzone-dica">Relatório “Produto de Carga” da operadora — o mesmo PDF que acompanha a nota do crédito.</div>
+      </div>
+
+      <div class="form-grid" style="margin-top:14px;">
+        <div class="form-group">
+          <label>Competência a gravar</label>
+          <input type="month" id="vale-imp-competencia">
+        </div>
+        <div class="form-group">
+          <label>Como gravar</label>
+          <select id="vale-imp-modo">
+            <option value="substituir">Substituir a competência</option>
+            <option value="complementar">Somar ao que já existe</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="vale-imp-resultado"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalValeImport">Cancelar</button>
+      <button class="btn btn-sm" type="button" id="btn-vale-imp-confirmar" data-action="confirmarValeImport" disabled>Importar</button>
     </div>
   </div>
 </div>

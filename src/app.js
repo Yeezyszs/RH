@@ -19,6 +19,7 @@ import { EpiModule }              from './modules/epi.js?v=dev';
 import { RotatividadeModule }     from './modules/rotatividade.js?v=dev';
 import { SalariosModule }         from './modules/salarios.js?v=dev';
 import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=dev';
+import { ValeImportacaoModule }   from './modules/vale-importacao.js?v=dev';
 import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=dev';
 import { FeedbackClimaModule }    from './modules/feedback.js?v=dev';
 import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=dev';
@@ -165,6 +166,22 @@ function bootstrap() {
     COLABORADORES, VALE_COTAS, VALE_COTAS_MES, VALE_DESCONTOS, VALE_USO_MES, VALE_SALDO_INI, CONFIG, CHART_COLORS,
     Auth: window.Auth, ValeCombustivel: window.ValeCombustivel,
     ValeDescontos: window.ValeDescontos, Configuracoes: window.Configuracoes, showToast,
+  });
+
+  const valeImportacao = new ValeImportacaoModule({
+    $, h, fmtBRL, mesLabel,
+    COLABORADORES, VALE_COTAS, VALE_COTAS_MES, VALE_USO_MES, VALE_SALDO_INI, CONFIG,
+    Auth: window.Auth, ValeCombustivel: window.ValeCombustivel,
+    Configuracoes: window.Configuracoes, showToast,
+    // Depois de importar, a tela do vale abre já na competência gravada.
+    aoImportar: (mes) => {
+      const sel = $('#vale-mes');
+      if (sel && ![...sel.options].some(o => o.value === mes)) {
+        sel.insertAdjacentHTML('afterbegin', `<option value="${mes}">${mesLabel(mes)}</option>`);
+      }
+      if (sel) sel.value = mes;
+      valeCombustivel.render();
+    },
   });
 
   const valeAlimentacao = new ValeAlimentacaoModule({
@@ -349,6 +366,10 @@ function bootstrap() {
   window.salvarCotas               = ()           => valeCombustivel.salvarCotas();
   window.aplicarCotaSetor          = ()           => valeCombustivel.aplicarCotaSetor();
   window.aplicarValorPadraoTodos   = ()           => valeCombustivel.aplicarValorPadraoTodos();
+  window.abrirModalValeImport      = ()           => valeImportacao.abrirModal();
+  window.fecharModalValeImport     = ()           => valeImportacao.fecharModal();
+  window.escolherArquivoValeImport = ()           => valeImportacao.escolherArquivo();
+  window.confirmarValeImport       = ()           => valeImportacao.confirmar();
 
   // Vale Alimentação
   window.renderValeAlimentacao          = ()     => valeAlimentacao.render();
@@ -441,7 +462,7 @@ function bootstrap() {
   return {
     colaboradores, advertencias, ferias, desligamentos,
     cronograma, vencimentos, epi, rotatividade, salarios,
-    valeCombustivel, valeAlimentacao, feedbackClima, planoCarreiras,
+    valeCombustivel, valeImportacao, valeAlimentacao, feedbackClima, planoCarreiras,
   };
 }
 

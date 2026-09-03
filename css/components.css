@@ -1053,3 +1053,29 @@ table.data td.actions {
 }
 .fer-aviso-erro    { background: #FEF2F2; border-left-color: var(--danger);  color: #991B1B; }
 .fer-aviso-atencao { background: #FFFBEB; border-left-color: var(--warning); color: #92400E; }
+
+/* ── Importação de arquivo (relatório do vale combustível) ────────────────── */
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  background: var(--bluish-bg);
+  padding: 26px 18px;
+  text-align: center;
+  transition: border-color .15s, background .15s;
+}
+.dropzone.dragging { border-color: var(--primary); background: #EFF6FF; }
+.dropzone-titulo { font-weight: 600; margin-bottom: 8px; }
+.dropzone-dica { font-size: .75rem; color: var(--text-muted); margin-top: 10px; }
+
+/* Bloco de avisos da conferência — mesma linguagem dos avisos de férias. */
+.alerta-erro {
+  background: #FEF2F2;
+  border-left: 3px solid var(--danger);
+  color: #991B1B;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: .8rem;
+  line-height: 1.5;
+}
+.alerta-erro > div + div { margin-top: 4px; }

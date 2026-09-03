@@ -108,6 +108,17 @@ const ValeCombustivel = {
     return data;
   },
 
+  // Esvazia uma competência. Usado pela importação do relatório em modo
+  // "substituir": o mês tem que ficar sendo exatamente o que o PDF diz, e
+  // upsert sozinho não apaga quem saiu da lista.
+  async limparCompetencia(mes, ano) {
+    const { error } = await withTimeout(
+      sb.from('vale_combustivel').delete().is('data', null).eq('mes', mes).eq('ano', ano)
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_combustivel');
+  },
+
   // Grava a competência inteira de uma vez: assim o mês fica com o conjunto
   // completo de valores e não sobra ninguém herdando o valor padrão.
   async upsertCotasEmLote(linhas) {
