@@ -366,6 +366,9 @@ function bootstrap() {
   window.salvarCotas               = ()           => valeCombustivel.salvarCotas();
   window.aplicarCotaSetor          = ()           => valeCombustivel.aplicarCotaSetor();
   window.aplicarValorPadraoTodos   = ()           => valeCombustivel.aplicarValorPadraoTodos();
+  window.abrirModalValeJustificar  = ()           => valeCombustivel.abrirModalJustificar();
+  window.fecharModalValeJustificar = ()           => valeCombustivel.fecharModalJustificar();
+  window.salvarValeJustificativas  = ()           => valeCombustivel.salvarJustificativas();
   window.abrirModalValeImport      = ()           => valeImportacao.abrirModal();
   window.fecharModalValeImport     = ()           => valeImportacao.fecharModal();
   window.escolherArquivoValeImport = ()           => valeImportacao.escolherArquivo();

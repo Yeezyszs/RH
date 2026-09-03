@@ -1104,3 +1104,22 @@ table.data td.actions {
   cursor: pointer;
 }
 .alerta-liberar input { margin-right: 6px; vertical-align: middle; }
+
+/* Faixa de aviso com ação — crédito abaixo do valor cheio sem motivo. */
+.alerta-acao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-left: 3px solid var(--warning);
+  border-radius: 8px;
+  padding: 11px 14px;
+  margin-bottom: 14px;
+  font-size: .82rem;
+  color: #92400E;
+  line-height: 1.5;
+}
+.alerta-acao > div > div { font-size: .78rem; opacity: .9; }
+.alerta-acao .btn { flex-shrink: 0; }

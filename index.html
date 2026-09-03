@@ -1044,6 +1044,9 @@
         </div>
       </div>
 
+      <!-- Créditos abaixo do valor cheio ainda sem motivo registrado -->
+      <div id="vale-alerta-justificar" style="display:none;"></div>
+
       <!-- Gráfico evolução -->
       <div class="widget" style="margin-bottom:14px;">
         <div class="widget-header">
@@ -2726,6 +2729,44 @@
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalValeDesconto">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-vale-desconto">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — JUSTIFICAR CRÉDITO REDUZIDO ════════════ -->
+<div id="modal-vale-justificar" class="modal">
+  <div class="modal-box" style="max-width:900px;">
+    <div class="modal-header">
+      <div class="modal-title">Por que o crédito veio menor</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalValeJustificar">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-family:var(--mono); font-size:.75rem; color:var(--text-muted); letter-spacing:.04em; margin-bottom:10px;">
+        Competência: <strong id="vale-just-competencia" style="color:var(--text)">—</strong>
+      </div>
+      <p style="font-size:.82rem; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
+        A operadora já credita o valor descontado. Aqui fica registrado o motivo:
+        o que for penalidade entra no gráfico de perdas; admissão, desligamento e
+        valor contratado menor ficam registrados sem contar como perda.
+      </p>
+      <div class="table-wrapper">
+        <table class="data">
+          <thead>
+            <tr>
+              <th style="width:26%">Colaborador</th>
+              <th style="text-align:right">Creditado</th>
+              <th style="text-align:right">Diferença</th>
+              <th style="width:22%">Motivo</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody id="tb-vale-justificar"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalValeJustificar">Cancelar</button>
+      <button class="btn btn-sm" type="button" data-action="salvarValeJustificativas">Salvar justificativas</button>
     </div>
   </div>
 </div>
