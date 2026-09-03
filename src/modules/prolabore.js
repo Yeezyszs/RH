@@ -25,7 +25,7 @@ export class ProlaboreModule {
 
   init() {
     document.addEventListener('change', (e) => {
-      if (['prolab-competencia', 'prolab-filter-socio'].includes(e.target.id)) this.render();
+      if (['prolab-competencia', 'prolab-filter-socio', 'prolab-filter-tipo'].includes(e.target.id)) this.render();
     });
     document.querySelectorAll('.nav-item[data-page="prolabore"]').forEach(el => {
       el.addEventListener('click', () => setTimeout(() => this.render(), 60));
@@ -91,9 +91,15 @@ export class ProlaboreModule {
       selSoc.value = socioSel;
     }
 
+    // Filtro de tipo: serve para tirar o relatório só do pró-labore ou só do
+    // Cooper. Como o relatório imprime a página como ela está, filtrar aqui já
+    // define o que sai no papel.
+    const tipoSel = this.$('#prolab-filter-tipo')?.value || '';
+
     const lista = this.PROLABORE
       .filter(r => r.competencia === compAtual)
       .filter(r => !socioSel || r.socio === socioSel)
+      .filter(r => !tipoSel || r.tipo === tipoSel)
       .sort((a, b) => (a.socio || '').localeCompare(b.socio || '') || a.tipo.localeCompare(b.tipo));
 
     const linha = (label, valor, opts = {}) => `
@@ -130,7 +136,11 @@ export class ProlaboreModule {
           </div>
         </div>
       `;
-    }).join('') : `<div class="empty" style="grid-column:1/-1; background:var(--white); border:1px solid var(--border); border-radius:12px;">Nenhum lançamento em ${this._labelCompetencia(compAtual)}. Clique em “+ Novo lançamento”.</div>`;
+    }).join('') : `<div class="empty" style="grid-column:1/-1; background:var(--white); border:1px solid var(--border); border-radius:12px;">${
+      tipoSel
+        ? `Nenhum lançamento de ${TIPO_LABEL[tipoSel]} em ${this._labelCompetencia(compAtual)}.`
+        : `Nenhum lançamento em ${this._labelCompetencia(compAtual)}. Clique em “+ Novo lançamento”.`
+    }</div>`;
 
     // Stats
     const totLiquido = lista.reduce((s, r) => s + Math.max(0, this._liquido(r)), 0);
@@ -276,6 +286,8 @@ export class ProlaboreModule {
     this._compAlvo = payload.competencia;
     const selSoc = this.$('#prolab-filter-socio');
     if (selSoc && selSoc.value && selSoc.value !== payload.socio) selSoc.value = '';
+    const selTipo = this.$('#prolab-filter-tipo');
+    if (selTipo && selTipo.value && selTipo.value !== payload.tipo) selTipo.value = '';
 
     this.showToast(
       `${id != null ? 'Lançamento atualizado' : 'Lançamento cadastrado'} · ${this._labelCompetencia(payload.competencia)}`,

@@ -99,6 +99,10 @@
   function sufixoTitulo(modulo, page) {
     if (modulo !== 'prolabore') return '';
     const partes = [];
+    // O tipo vem primeiro: é o recorte que muda o documento inteiro, e sem ele
+    // um relatório só do Cooper sairia com o mesmo título de um completo.
+    const tipo = page.querySelector('#prolab-filter-tipo');
+    if (tipo && tipo.value) partes.push(tipo.options[tipo.selectedIndex]?.text || tipo.value);
     const soc = page.querySelector('#prolab-filter-socio');
     if (soc && soc.value) partes.push(soc.options[soc.selectedIndex]?.text || soc.value);
     const comp = page.querySelector('#prolab-competencia');
