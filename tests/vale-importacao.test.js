@@ -265,3 +265,30 @@ describe('desfazer uma ligação feita à mão', () => {
     expect(gravado.upsert.some(l => l.colaborador_id === 9)).toBe(false);
   });
 });
+
+describe('a conta do relatório fica aberta na tela', () => {
+  it('mostra total = importado + o que fica de fora', async () => {
+    // Sem isto o modal mostra o total da nota e o valor a gravar sem dizer
+    // que a diferença é justamente quem não entra.
+    const { mod, doc } = await montar();
+    await mod.lerArquivo(pdfFalso());
+    const txt = doc.querySelector('.conta-aberta').textContent.replace(/\s+/g, ' ');
+    expect(txt).toContain('300.00 no relatório');
+    expect(txt).toContain('250.00');
+    expect(txt).toContain('2 importado(s)');
+    expect(txt).toContain('50.00');
+    expect(txt).toContain('1 sem cadastro');
+  });
+
+  it('some quando o relatório inteiro entra — não há conta a explicar', async () => {
+    const { mod, doc } = await montar({
+      linhas: [
+        'Emitido em: 03/07/2026', 'Número da nota: 1',
+        'Total de crédito: R$ 250,00', 'Total de serviço: R$ 0,00',
+        ...CORPO.slice(0, 2),
+      ],
+    });
+    await mod.lerArquivo(pdfFalso());
+    expect(doc.querySelector('.conta-aberta')).toBeNull();
+  });
+});

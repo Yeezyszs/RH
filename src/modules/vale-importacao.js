@@ -184,6 +184,30 @@ export class ValeImportacaoModule {
     });
   }
 
+  /**
+   * A conta aberta: total do relatório = importado + o que fica de fora.
+   *
+   * Sem esta linha o modal mostra dois números grandes e diferentes — o total
+   * de crédito da nota e o que vai ser gravado — sem dizer que a diferença é
+   * justamente quem não entra. Depois de importado, a tela do vale passa a
+   * mostrar o segundo número, e a diferença para a nota vira dúvida.
+   */
+  _contaAberta(r, c) {
+    const parcelas = [
+      [c.somaCasados,     `${c.casados.length} importado(s)`],
+      [c.somaSemCadastro, `${c.semCadastro.length} sem cadastro`],
+      [c.somaIgnorados,   `${c.ignorados.length} ignorado(s)`],
+    ].filter(([v]) => v > 0);
+
+    if (parcelas.length <= 1) return '';
+
+    return `
+      <div class="conta-aberta">
+        <strong>${this.fmtBRL(r.soma)}</strong> no relatório
+        = ${parcelas.map(([v, rot]) => `<strong>${this.fmtBRL(v)}</strong> <span>(${rot})</span>`).join(' + ')}
+      </div>`;
+  }
+
   _renderPreview() {
     const r = this._relatorio;
     if (!r) return;
@@ -228,7 +252,8 @@ export class ValeImportacaoModule {
           c.semCadastro.length ? 'var(--danger)' : '')}
         ${linhaConf('Ativos fora do relatório', c.ausentes.length,
           c.ausentes.length ? 'var(--warning)' : '')}
-      </div>`;
+      </div>
+      ${this._contaAberta(r, c)}`;
 
     const opcoesColab = (escolhido) => ['<option value="">— não importar —</option>']
       .concat(this.COLABORADORES

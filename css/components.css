@@ -1079,3 +1079,17 @@ table.data td.actions {
   line-height: 1.5;
 }
 .alerta-erro > div + div { margin-top: 4px; }
+
+/* A conta do relatório aberta em parcelas — total = importado + o que fica de fora. */
+.conta-aberta {
+  background: var(--bluish-bg);
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin-bottom: 10px;
+  font-size: .8rem;
+  font-family: var(--mono);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.conta-aberta strong { color: var(--text); }
+.conta-aberta span { font-family: var(--font); }
