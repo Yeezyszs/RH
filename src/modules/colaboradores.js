@@ -243,6 +243,46 @@ export class ColaboradoresModule {
     controls.innerHTML = btns.join('');
   }
 
+  /**
+   * Ajusta o clone da página antes de imprimir: troca a página visível pela
+   * lista inteira.
+   *
+   * A tela pagina de 50 em 50 e o relatório clona o que está na tela, então
+   * quem caísse na segunda página não saía no papel. Com o cadastro atual isso
+   * deixava dezenas de nomes de fora — afastados entre eles — e o documento
+   * ainda parecia completo, porque nada na folha dizia que era só um pedaço.
+   *
+   * Os filtros da tela continuam valendo: o relatório é o que está filtrado,
+   * inteiro. Só a paginação é ignorada.
+   */
+  prepararRelatorio(wrapper) {
+    const tbody = wrapper.querySelector('#tb-colaboradores');
+    if (!tbody) return;
+
+    const busca  = (this.$('#col-search')?.value || '').trim();
+    const status = this.$('#col-filter-status')?.value || '';
+    const setor  = this.$('#col-filter-setor')?.value  || '';
+
+    const lista = this._filtrarMock(busca, status, setor)
+      .slice()
+      .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+
+    tbody.innerHTML = lista.length
+      ? this._renderLinhas(lista)
+      : `<tr><td colspan="5" class="empty">Nenhum colaborador encontrado</td></tr>`;
+
+    // A barra de paginação não tem sentido num documento com a lista inteira;
+    // no lugar dela fica o total, para quem lê o papel conferir.
+    wrapper.querySelectorAll('.pagination-bar').forEach(el => el.remove());
+    const card = wrapper.querySelector('.table-card');
+    if (card) {
+      const rodape = document.createElement('div');
+      rodape.className = 'rpt-total-lista';
+      rodape.textContent = `${lista.length} colaborador${lista.length === 1 ? '' : 'es'} na relação`;
+      card.appendChild(rodape);
+    }
+  }
+
   _filtrarMock(busca, status, setor) {
     let lista = this.COLABORADORES;
     if (busca) {

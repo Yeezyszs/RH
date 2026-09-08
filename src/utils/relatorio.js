@@ -51,6 +51,7 @@
     .stat-label, .kpi-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: #667; }
     .stat-value, .kpi-value { font-size: 20px; font-weight: 700; color: #123e6b; }
     .stat-sub { font-size: 10px; color: #667; margin-top: 2px; }
+    .rpt-total-lista { font-size: 11px; color: #667; margin: -8px 0 16px; }
     .widget { margin: 8px 0 18px; page-break-inside: avoid; }
     .widget-title { font-weight: 700; font-size: 13px; color: #123e6b; margin-bottom: 6px; }
     .widget-badge, .kpi-trend { font-size: 11px; color: #667; }
@@ -136,6 +137,18 @@
 
     const wrapper = document.createElement('div');
     escopos.forEach(e => wrapper.appendChild(e.cloneNode(true)));
+
+    // Módulos que paginam a tela precisam corrigir o clone antes da limpeza:
+    // o relatório tem que sair com a lista inteira do que está filtrado, e não
+    // só com a página que estava à vista. Quem precisa disso se registra em
+    // window.RELATORIO_HOOKS[modulo]. Roda antes de limparClone para que o
+    // conteúdo injetado passe pela mesma limpeza do resto.
+    const ajuste = window.RELATORIO_HOOKS && window.RELATORIO_HOOKS[modulo];
+    if (typeof ajuste === 'function') {
+      try { ajuste(wrapper); }
+      catch (err) { console.error('[RH] Falha ao preparar o relatório de ' + modulo + ':', err); }
+    }
+
     limparClone(wrapper, escopos);
 
     // Pró-labore: o relatório é por sócio; os cards de resumo do mês não fazem

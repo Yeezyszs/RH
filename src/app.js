@@ -229,6 +229,10 @@ function bootstrap() {
   // ─── Expor globais para onclick inline no index.html ────────────────────────
 
   // Colaboradores
+  // O relatório impresso sai com a lista inteira, não com a página à vista.
+  window.RELATORIO_HOOKS = window.RELATORIO_HOOKS || {};
+  window.RELATORIO_HOOKS.colaboradores = (wrapper) => colaboradores.prepararRelatorio(wrapper);
+
   window.colabIrPagina              = (p)    => colaboradores.irPagina(p);
   window.renderColaboradores        = ()     => colaboradores.render();
   window.abrirDrawerColab           = (id)   => colaboradores.abrirDrawerColab(id);
