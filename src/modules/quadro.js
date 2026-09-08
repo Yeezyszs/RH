@@ -1,5 +1,5 @@
 // Quadro de Funcionários Module
-// Visão por setor/área do efetivo ativo.
+// Visão por setor/área do efetivo da empresa.
 //
 // Extraído de colaboradores.js, que passava de 1.100 linhas com seis assuntos
 // no mesmo arquivo. Este era o único bloco sem amarras: não chama nenhum outro
@@ -43,11 +43,15 @@ export class QuadroModule {
     const fStatus = this.$('#quad-filter-status')?.value || '';
     const fTurno  = this.$('#quad-filter-turno')?.value || '';
 
+    // Quem conta como efetivo da empresa. Afastado entra: o contrato está
+    // suspenso, não encerrado — a pessoa continua sendo funcionária, aparece no
+    // quadro e no relatório impresso dele. Férias, pela mesma razão. Só o
+    // desligado (inativo) fica fora.
+    const NO_EFETIVO = ['ativo', 'ferias', 'afastado'];
+
     const filtrados = this.COLABORADORES.filter(c => {
-      // Afastados nunca aparecem no quadro (continuam acessíveis na página de Colaboradores)
-      if (c.status === 'afastado') return false;
-      // Se nenhum filtro de status é aplicado, exclui inativos automaticamente
-      if (!fStatus && c.status === 'inativo') return false;
+      // Sem filtro de status, o quadro mostra o efetivo — e só ele.
+      if (!fStatus && !NO_EFETIVO.includes(c.status)) return false;
       if (fStatus && c.status !== fStatus) return false;
       if (fTurno && (c.turno || 'diurno') !== fTurno) return false;
       if (q && !c.nome.toLowerCase().includes(q)) return false;

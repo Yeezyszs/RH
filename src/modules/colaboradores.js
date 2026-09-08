@@ -189,9 +189,20 @@ export class ColaboradoresModule {
 
   _updateStats(lista) {
     const count = (s) => lista.filter(x => x.status === s).length;
-    this.$('#stat-ativos').textContent    = count('ativo');
-    this.$('#stat-ferias').textContent    = count('ferias');
-    this.$('#stat-afastados').textContent = count('afastado');
+
+    // Efetivo = quem tem contrato em vigor. O afastado entra: o contrato está
+    // suspenso, não encerrado — ele continua sendo funcionário da empresa, e é
+    // isso que o relatório impresso precisa dizer. Quem está de férias entra
+    // pela mesma razão. Só o desligado fica fora.
+    //
+    // Antes o card de cabeçalho contava apenas status = 'ativo', então o
+    // relatório saía com o efetivo menor do que é. Férias e afastados seguem
+    // com card próprio, agora como recorte do efetivo e não como grupo à parte.
+    const ferias    = count('ferias');
+    const afastados = count('afastado');
+    this.$('#stat-efetivo').textContent   = count('ativo') + ferias + afastados;
+    this.$('#stat-ferias').textContent    = ferias;
+    this.$('#stat-afastados').textContent = afastados;
 
     const now = new Date();
     this.$('#stat-admitidos').textContent = lista.filter(x => {

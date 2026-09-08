@@ -1123,3 +1123,11 @@ table.data td.actions {
 }
 .alerta-acao > div > div { font-size: .78rem; opacity: .9; }
 .alerta-acao .btn { flex-shrink: 0; }
+
+/* Linha de apoio de um card de estatística — diz o que o número inclui. */
+.stat-sub {
+  font-size: .7rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  letter-spacing: .01em;
+}

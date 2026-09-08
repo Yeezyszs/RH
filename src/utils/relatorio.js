@@ -50,6 +50,7 @@
     .stat, .kpi-card { border: 1px solid #cdd6e0; border-radius: 8px; padding: 10px 14px; min-width: 150px; }
     .stat-label, .kpi-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: #667; }
     .stat-value, .kpi-value { font-size: 20px; font-weight: 700; color: #123e6b; }
+    .stat-sub { font-size: 10px; color: #667; margin-top: 2px; }
     .widget { margin: 8px 0 18px; page-break-inside: avoid; }
     .widget-title { font-weight: 700; font-size: 13px; color: #123e6b; margin-bottom: 6px; }
     .widget-badge, .kpi-trend { font-size: 11px; color: #667; }
@@ -59,6 +60,22 @@
     .cell-person-sub { font-size: 10px; color: #667; }
     .rpt-foot { margin-top: 24px; border-top: 1px solid #cdd6e0; padding-top: 8px; font-size: 10.5px; color: #889; text-align: center; }
     .empty { color: #889; font-style: italic; }
+    /* Quadro de funcionários: na tela o status é uma bolinha colorida, e o
+       estilo do relatório não a conhecia — no papel os nomes saíam todos
+       iguais. Com afastado contando como efetivo, isso passaria a esconder
+       quem está afastado, então a bolinha ganha forma impressa e uma legenda. */
+    .func-list { display: flex; flex-wrap: wrap; gap: 3px 14px; }
+    .func-mini { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; }
+    .func-mini-status {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+      border: 1px solid #667; background: #2f9e6e;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .func-mini-status.ferias   { background: #2e7ab8; }
+    .func-mini-status.afastado { background: #e0a300; }
+    .func-mini-status.inativo  { background: #fff; }
+    .rpt-legenda { font-size: 11px; color: #667; margin: 4px 0 14px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .rpt-legenda span { display: inline-flex; align-items: center; gap: 5px; }
     @media print { body { margin: 12mm; } .widget, table, tr { page-break-inside: avoid; } }
   `;
 
@@ -125,6 +142,18 @@
     // parte do documento impresso.
     if (modulo === 'prolabore') {
       wrapper.querySelectorAll('.stats-row').forEach(el => el.remove());
+    }
+
+    // Quadro: legenda das bolinhas de status, senão quem lê o papel não tem
+    // como saber quem está de férias ou afastado.
+    if (modulo === 'quadro') {
+      const legenda = document.createElement('div');
+      legenda.className = 'rpt-legenda';
+      legenda.innerHTML = [['', 'Ativo'], ['ferias', 'Férias'], ['afastado', 'Afastado'], ['inativo', 'Inativo']]
+        .map(([cls, txt]) => '<span><i class="func-mini-status ' + cls + '"></i>' + txt + '</span>').join('');
+      const grid = wrapper.querySelector('.setor-grid');
+      if (grid) grid.parentNode.insertBefore(legenda, grid);
+      else wrapper.appendChild(legenda);
     }
 
     const agora = new Date().toLocaleString('pt-BR');

@@ -299,7 +299,7 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Colaboradores</h1>
-          <div class="page-subtitle">Cadastro · contatos de emergência · aniversariantes</div>
+          <div class="page-subtitle">Cadastro · contatos de emergência · aniversariantes · afastados contam no efetivo</div>
         </div>
       </div>
 
@@ -325,16 +325,19 @@
       <!-- Stats -->
       <div class="stats-row">
         <div class="stat stat-success">
-          <div class="stat-label">Ativos</div>
-          <div class="stat-value" id="stat-ativos">—</div>
+          <div class="stat-label">Efetivo</div>
+          <div class="stat-value" id="stat-efetivo">—</div>
+          <div class="stat-sub">ativos, em férias e afastados</div>
         </div>
         <div class="stat">
           <div class="stat-label">Em férias</div>
           <div class="stat-value" id="stat-ferias">—</div>
+          <div class="stat-sub">do efetivo</div>
         </div>
         <div class="stat stat-warn">
           <div class="stat-label">Afastados</div>
           <div class="stat-value" id="stat-afastados">—</div>
+          <div class="stat-sub">do efetivo</div>
         </div>
         <div class="stat">
           <div class="stat-label">Admitidos/mês</div>
@@ -371,7 +374,7 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Quadro de Funcionários</h1>
-          <div class="page-subtitle">Organização por setor e área · clique em qualquer nome para ver detalhes</div>
+          <div class="page-subtitle">Organização por setor e área · afastados contam como efetivo · clique em qualquer nome para ver detalhes</div>
         </div>
       </div>
 
@@ -386,9 +389,10 @@
           <option value="noturno">🌙 Noturno</option>
         </select>
         <select id="quad-filter-status">
-          <option value="">Todos os status</option>
+          <option value="">Efetivo (ativo, férias e afastado)</option>
           <option value="ativo">Ativo</option>
           <option value="ferias">Em férias</option>
+          <option value="afastado">Afastado</option>
           <option value="inativo">Inativo</option>
         </select>
       </div>
