@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'node:fs';
+import { statusCasa } from './helpers-efetivo.js';
 
 // O quadro de funcionários é o efetivo da empresa, e afastado continua sendo
 // funcionário — contrato suspenso, não encerrado. Antes ele era escondido do
@@ -36,6 +37,7 @@ async function criar(pessoas) {
       afastado: { t: 'Afastado' },
       inativo:  { t: 'Inativo' },
     },
+    statusCasa,
     SETOR_ICON: {},
   });
   return { mod, doc };

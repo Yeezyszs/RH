@@ -122,7 +122,7 @@ const Colaboradores = {
         (c.nome || '').toLowerCase().includes(q) ||
         (c.area || '').toLowerCase().includes(q));
     }
-    if (status) filtrados = filtrados.filter(c => c.status === status);
+    if (status) filtrados = filtrados.filter(c => statusCasa(c, status));
     if (setor)  filtrados = filtrados.filter(c => String(c.departamento_id) === String(setor));
 
     const total      = filtrados.length;

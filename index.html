@@ -312,11 +312,12 @@
           <option value="">Todos os setores</option>
         </select>
         <select id="col-filter-status">
-          <option value="">Todos os status</option>
-          <option value="ativo">Ativo</option>
-          <option value="ferias">Em férias</option>
-          <option value="afastado">Afastado</option>
-          <option value="inativo">Inativo</option>
+          <option value="efetivo" selected>Efetivo — ativos, férias e afastados</option>
+          <option value="">Todos, inclusive desligados</option>
+          <option value="ativo">Somente ativos</option>
+          <option value="ferias">Somente em férias</option>
+          <option value="afastado">Somente afastados</option>
+          <option value="inativo">Somente desligados</option>
         </select>
         <button class="btn btn-secondary btn-sm" type="button" data-action="exportColaboradores">↓ Exportar</button>
         <button class="btn" type="button" data-action="abrirModalColaborador">+ Novo colaborador</button>
@@ -389,11 +390,11 @@
           <option value="noturno">🌙 Noturno</option>
         </select>
         <select id="quad-filter-status">
-          <option value="">Efetivo (ativo, férias e afastado)</option>
-          <option value="ativo">Ativo</option>
-          <option value="ferias">Em férias</option>
-          <option value="afastado">Afastado</option>
-          <option value="inativo">Inativo</option>
+          <option value="">Efetivo — ativos, férias e afastados</option>
+          <option value="ativo">Somente ativos</option>
+          <option value="ferias">Somente em férias</option>
+          <option value="afastado">Somente afastados</option>
+          <option value="inativo">Somente desligados</option>
         </select>
       </div>
 

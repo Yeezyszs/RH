@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'node:fs';
+import { statusCasa } from './helpers-efetivo.js';
 
 // O card de cabeçalho da tela de Colaboradores é o número que sai como
 // "quantos funcionários a empresa tem" no relatório impresso. Ele contava só
@@ -36,6 +37,7 @@ async function criar(pessoas) {
       afastado: { t: 'Afastado', cls: 'warn' },
       inativo:  { t: 'Inativo',  cls: 'neutral' },
     },
+    statusCasa,
     Auth: { sessaoAtual: async () => null },
     Colaboradores: null,
     Departamentos: null,

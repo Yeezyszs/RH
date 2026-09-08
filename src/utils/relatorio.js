@@ -115,6 +115,17 @@
 
   // Sufixo opcional no título (ex.: pró-labore usa o sócio/competência selecionados)
   function sufixoTitulo(modulo, page) {
+    // Cadastro e quadro saem por padrão só com o efetivo. O documento tem de
+    // dizer isso na primeira linha: sem o recorte no título, uma relação só de
+    // afastados sairia com o mesmo cabeçalho da relação inteira.
+    const FILTRO_STATUS = { colaboradores: '#col-filter-status', quadro: '#quad-filter-status' };
+    if (FILTRO_STATUS[modulo]) {
+      const sel = page.querySelector(FILTRO_STATUS[modulo]);
+      const txt = sel && sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].text;
+      const curto = (txt || '').split('—')[0].trim();
+      return curto ? ' — ' + curto : '';
+    }
+
     if (modulo !== 'prolabore') return '';
     const partes = [];
     // O tipo vem primeiro: é o recorte que muda o documento inteiro, e sem ele

@@ -99,6 +99,7 @@ function bootstrap() {
 
   const colaboradores = new ColaboradoresModule({
     $, h, iniciais, fmtDate, fmtBRL, tempoCasa, showToast,
+    statusCasa: window.statusCasa,
     COLABORADORES, DEPENDENTES, CONTATOS_EMERG,
     EPI_ENTREGAS, VENCIMENTOS, DESLIGAMENTOS, AFASTAMENTOS,
     STATUS_LABEL, SETOR_ICON, PARENTESCO_OPTS: window.PARENTESCO_OPTS,
@@ -112,6 +113,7 @@ function bootstrap() {
 
   const quadro = new QuadroModule({
     $, h, iniciais, COLABORADORES, STATUS_LABEL, SETOR_ICON,
+    statusCasa: window.statusCasa,
   });
 
   const advertencias = new AdvertenciasModule({

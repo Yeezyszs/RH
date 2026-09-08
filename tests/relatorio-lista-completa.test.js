@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'node:fs';
+import { statusCasa } from './helpers-efetivo.js';
 
 // A lista de colaboradores pagina de 50 em 50 e o relatório clona o que está
 // na tela. Resultado: quem caía na segunda página não saía no papel — e o
@@ -35,6 +36,7 @@ async function criar(pessoas) {
       afastado: { t: 'Afastado', cls: 'warn' },
       inativo:  { t: 'Inativo',  cls: 'neutral' },
     },
+    statusCasa,
     Auth: { sessaoAtual: async () => null },
     Colaboradores: null,
     Departamentos: null,
@@ -161,5 +163,70 @@ describe('o ajuste não derruba a impressão quando a página não tem a tabela'
     const { mod } = await criar(PESSOAS);
     const vazio = global.document.createElement('div');
     expect(() => mod.prepararRelatorio(vazio)).not.toThrow();
+  });
+});
+
+describe('o padrão é o efetivo — afastados junto com os ativos', () => {
+  const COM_DESLIGADO = [
+    ...PESSOAS,
+    { id: 99, nome: 'Aaa Desligado', matricula: '000099', setor: 'Admin', departamento_id: 2, status: 'inativo', admissao: '2015-01-01' },
+  ];
+
+  it('sem tocar em nada, o relatório sai com ativos e afastados juntos', async () => {
+    const { mod, doc } = await criar(COM_DESLIGADO);
+    const wrapper = doc.querySelector('#page-colaboradores').cloneNode(true);
+    mod.prepararRelatorio(wrapper);
+    const lista = nomes(wrapper);
+    expect(lista).toContain('Zeca Afastado');
+    expect(lista).toContain('Pessoa 01');
+    expect(lista).not.toContain('Aaa Desligado');
+  });
+
+  it('o afastado sai no meio da lista, na ordem alfabética', async () => {
+    // "Juntos com os ativos" é isto: uma relação só, sem seção separada.
+    const { mod, doc } = await criar(COM_DESLIGADO);
+    const wrapper = doc.querySelector('#page-colaboradores').cloneNode(true);
+    mod.prepararRelatorio(wrapper);
+    const lista = nomes(wrapper);
+    expect(lista.indexOf('Zeca Afastado')).toBeGreaterThan(lista.indexOf('Pessoa 58'));
+    expect(lista.indexOf('Zeca Afastado')).toBeLessThan(lista.indexOf('Zulmira Afastada'));
+  });
+
+  it('o desligado sai quando escolhido de propósito', async () => {
+    const { mod, doc } = await criar(COM_DESLIGADO);
+    doc.querySelector('#col-filter-status').value = '';
+    const wrapper = doc.querySelector('#page-colaboradores').cloneNode(true);
+    mod.prepararRelatorio(wrapper);
+    expect(nomes(wrapper)).toContain('Aaa Desligado');
+  });
+
+  it('o filtro de status vem em Efetivo por padrão', async () => {
+    const { doc } = await criar(PESSOAS);
+    expect(doc.querySelector('#col-filter-status').value).toBe('efetivo');
+  });
+});
+
+describe('procurar quem saiu da empresa não parece cadastro perdido', () => {
+  const COM_DESLIGADO = [
+    ...PESSOAS,
+    { id: 99, nome: 'Joana Desligada', matricula: '000099', setor: 'Admin', departamento_id: 2, status: 'inativo', admissao: '2015-01-01' },
+  ];
+
+  it('avisa que há desligado casando com a busca e onde vê-lo', async () => {
+    const { mod } = await criar(COM_DESLIGADO);
+    const msg = mod._mensagemVazia('joana', 'efetivo', '');
+    expect(msg).toContain('1 desligado');
+    expect(msg).toContain('Todos, inclusive desligados');
+  });
+
+  it('busca sem nenhum resultado em lugar nenhum fica na mensagem simples', async () => {
+    const { mod } = await criar(COM_DESLIGADO);
+    expect(mod._mensagemVazia('xyz nao existe', 'efetivo', ''))
+      .toBe('Nenhum colaborador encontrado');
+  });
+
+  it('com outro filtro escolhido não sugere nada — a escolha foi explícita', async () => {
+    const { mod } = await criar(COM_DESLIGADO);
+    expect(mod._mensagemVazia('joana', 'ativo', '')).toBe('Nenhum colaborador encontrado');
   });
 });

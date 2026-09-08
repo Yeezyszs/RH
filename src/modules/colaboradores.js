@@ -22,6 +22,7 @@ export class ColaboradoresModule {
     this.SETOR_ICON = deps.SETOR_ICON;
     this.PARENTESCO_OPTS = deps.PARENTESCO_OPTS;
     this.COLABORADORES = deps.COLABORADORES;
+    this.statusCasa = deps.statusCasa;
     this.DEPENDENTES = deps.DEPENDENTES;
     this.CONTATOS_EMERG = deps.CONTATOS_EMERG;
     this.ContatosEmergencia = deps.ContatosEmergencia;
@@ -114,7 +115,7 @@ export class ColaboradoresModule {
 
         tbody.innerHTML = res.data.length
           ? this._renderLinhas(res.data)
-          : `<tr><td colspan="5" class="empty">Nenhum colaborador encontrado</td></tr>`;
+          : `<tr><td colspan="5" class="empty">${this.h(this._mensagemVazia(busca, status, setor))}</td></tr>`;
 
         this._updateStats(this.COLABORADORES);
         this._renderPaginacao(res.page, res.totalPages, res.total);
@@ -125,11 +126,29 @@ export class ColaboradoresModule {
       const lista = this._filtrarMock(busca, status, setor);
       tbody.innerHTML = lista.length
         ? this._renderLinhas(lista)
-        : `<tr><td colspan="5" class="empty">Nenhum colaborador encontrado</td></tr>`;
+        : `<tr><td colspan="5" class="empty">${this.h(this._mensagemVazia(busca, status, setor))}</td></tr>`;
       this._updateStats(this.COLABORADORES);
       const bar = this.$('#col-pagination-bar');
       if (bar) bar.style.display = 'none';
     }
+  }
+
+  /**
+   * Mensagem de lista vazia.
+   *
+   * O filtro padrão mostra só o efetivo, então procurar por quem saiu da
+   * empresa devolve nada — e "Nenhum colaborador encontrado" faria parecer que
+   * o cadastro perdeu a pessoa. Quando há desligado casando com a busca, a
+   * mensagem diz quantos são e onde vê-los.
+   */
+  _mensagemVazia(busca, status, setor) {
+    const padrao = 'Nenhum colaborador encontrado';
+    if (status !== 'efetivo') return padrao;
+    const fora = this._filtrarMock(busca, 'inativo', setor).length;
+    if (!fora) return padrao;
+    return `Nenhum colaborador no efetivo${busca ? ` para “${this.h(busca)}”` : ''}. `
+      + `${fora} desligado${fora === 1 ? '' : 's'} ${fora === 1 ? 'casa' : 'casam'} com a busca — `
+      + 'escolha “Todos, inclusive desligados” para ver.';
   }
 
   async popularFiltroSetores() {
@@ -293,7 +312,7 @@ export class ColaboradoresModule {
         (x.area || '').toLowerCase().includes(q)
       );
     }
-    if (status) lista = lista.filter(x => x.status === status);
+    if (status) lista = lista.filter(x => this.statusCasa(x, status));
     if (setor)  lista = lista.filter(x => String(x.departamento_id) === String(setor));
     return lista;
   }

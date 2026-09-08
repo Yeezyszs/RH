@@ -64,3 +64,33 @@ describe('fmtBRL()', () => {
     expect(out).toContain('0,00');
   });
 });
+
+// ─── Efetivo da empresa ──────────────────────────────────────────────────────
+// Afastamento suspende o contrato, não encerra: a pessoa continua sendo
+// funcionária. A regra mora aqui porque quem precisa dela está espalhado (API,
+// cadastro, quadro, relatório) e cópias em cada lugar iam divergir.
+describe('noEfetivo()', () => {
+  it('ativo faz parte', () => expect(window.noEfetivo({ status: 'ativo' })).toBe(true));
+  it('em férias faz parte', () => expect(window.noEfetivo({ status: 'ferias' })).toBe(true));
+  it('afastado faz parte', () => expect(window.noEfetivo({ status: 'afastado' })).toBe(true));
+  it('desligado não faz parte', () => expect(window.noEfetivo({ status: 'inativo' })).toBe(false));
+  it('status novo não entra sem decisão', () => expect(window.noEfetivo({ status: 'aposentado' })).toBe(false));
+  it('sem status não entra', () => expect(window.noEfetivo({})).toBe(false));
+  it('sem colaborador não quebra', () => expect(window.noEfetivo(undefined)).toBe(false));
+});
+
+describe('statusCasa()', () => {
+  it('sem filtro passa todo mundo, inclusive desligado', () => {
+    expect(window.statusCasa({ status: 'inativo' }, '')).toBe(true);
+  });
+  it('filtro "efetivo" aceita o afastado', () => {
+    expect(window.statusCasa({ status: 'afastado' }, 'efetivo')).toBe(true);
+  });
+  it('filtro "efetivo" recusa o desligado', () => {
+    expect(window.statusCasa({ status: 'inativo' }, 'efetivo')).toBe(false);
+  });
+  it('filtro de status exato compara igual', () => {
+    expect(window.statusCasa({ status: 'ferias' }, 'ferias')).toBe(true);
+    expect(window.statusCasa({ status: 'ativo' }, 'ferias')).toBe(false);
+  });
+});

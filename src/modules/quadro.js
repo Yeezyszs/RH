@@ -13,6 +13,7 @@ export class QuadroModule {
     this.h            = deps.h;
     this.iniciais     = deps.iniciais;
     this.COLABORADORES = deps.COLABORADORES;
+    this.statusCasa   = deps.statusCasa;
     this.STATUS_LABEL = deps.STATUS_LABEL;
     this.SETOR_ICON   = deps.SETOR_ICON;
 
@@ -43,16 +44,11 @@ export class QuadroModule {
     const fStatus = this.$('#quad-filter-status')?.value || '';
     const fTurno  = this.$('#quad-filter-turno')?.value || '';
 
-    // Quem conta como efetivo da empresa. Afastado entra: o contrato está
-    // suspenso, não encerrado — a pessoa continua sendo funcionária, aparece no
-    // quadro e no relatório impresso dele. Férias, pela mesma razão. Só o
-    // desligado (inativo) fica fora.
-    const NO_EFETIVO = ['ativo', 'ferias', 'afastado'];
-
     const filtrados = this.COLABORADORES.filter(c => {
-      // Sem filtro de status, o quadro mostra o efetivo — e só ele.
-      if (!fStatus && !NO_EFETIVO.includes(c.status)) return false;
-      if (fStatus && c.status !== fStatus) return false;
+      // Sem escolha explícita, o quadro mostra o efetivo da empresa — o que
+      // inclui os afastados. A regra é a mesma de base.js, usada também pelo
+      // cadastro e pelos relatórios.
+      if (!this.statusCasa(c, fStatus || 'efetivo')) return false;
       if (fTurno && (c.turno || 'diurno') !== fTurno) return false;
       if (q && !c.nome.toLowerCase().includes(q)) return false;
       return true;
