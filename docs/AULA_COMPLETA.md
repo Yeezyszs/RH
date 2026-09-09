@@ -1,5 +1,36 @@
 # 🎓 AULA COMPLETA — Sistema de Gestão de RH (SPA)
 
+> ### 📌 Leia isto antes
+>
+> Este documento cobre a arquitetura e os padrões do sistema. Duas ressalvas:
+>
+> **1. Para o banco de dados, leia a aula dedicada.**
+> [`AULA_BACKEND_E_BANCO.md`](AULA_BACKEND_E_BANCO.md) tem as rotas HTTP de
+> cada operação, o cadastro do clique ao `INSERT`, o RLS, a criptografia de PII
+> e a RPC de leitura — com os caminhos de arquivo de cada passo.
+>
+> **2. Três coisas mudaram de lugar desde a primeira versão deste texto:**
+>
+> | O texto pode dizer | Hoje está em |
+> |---|---|
+> | `withTimeout`, `withRetry`, `makeCache` em `supabase.js` | [`src/utils/rede.js`](../src/utils/rede.js) |
+> | mappers (`mapColaborador`…) em `supabase.js` | [`src/utils/mappers.js`](../src/utils/mappers.js) |
+> | `setupRealTimeListeners()` em `src/api/init.js` | [`src/api/realtime.js`](../src/api/realtime.js) |
+>
+> Os três saíram para poderem ser testados: `supabase.js` instancia o client ao
+> carregar, o que impede importá-lo fora do navegador. Enquanto os mappers
+> moravam lá, os testes exercitavam uma **cópia** — e a cópia divergiu, deixando
+> a suíte verde com a produção quebrada.
+>
+> Também nasceram depois deste texto: [`src/utils/ui.js`](../src/utils/ui.js),
+> [`src/utils/arrays.js`](../src/utils/arrays.js),
+> [`src/utils/carregamento.js`](../src/utils/carregamento.js),
+> [`src/utils/relatorio-vale.js`](../src/utils/relatorio-vale.js),
+> [`src/modules/quadro.js`](../src/modules/quadro.js) e
+> [`src/modules/vale-importacao.js`](../src/modules/vale-importacao.js).
+
+---
+
 ## Bem-vindo!
 
 Este documento é uma **aula prática e completa** sobre a arquitetura e funcionamento do seu sistema de Recursos Humanos. Vamos explorar desde os conceitos fundamentais até exemplos práticos de código.

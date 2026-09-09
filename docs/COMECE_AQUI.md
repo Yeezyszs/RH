@@ -21,19 +21,24 @@ Escolha o que você quer entender:
 ---
 
 ### 🎯 Objetivo 2: "Como o banco de dados funciona?" (Supabase)
-→ Leia: [`supabase.js`](../supabase.js) (comentários com `//`)
+→ Leia: [`docs/AULA_BACKEND_E_BANCO.md`](AULA_BACKEND_E_BANCO.md)
 
 **Você aprenderá:**
-- O que é Supabase
-- Como se conecta ao PostgreSQL
-- Como criar, ler, atualizar, deletar dados
+- que **não existe backend próprio** — quem faz esse papel é o Supabase
+- **qual rota o cadastro usa** (`POST /rest/v1/colaboradores`) e a tabela de
+  tradução de `sb.from(...)` para HTTP
+- os doze passos do cadastro de colaborador, com arquivo e função em cada um
+- por que gravar e ler seguem caminhos diferentes (o trigger de PII e a RPC)
+- quem autoriza cada operação (RLS) e como depurar
+  `violates row-level security policy`
+- como conferir tudo isso na aba Network do navegador
 
-**Tempo:** 20 minutos
+**Tempo:** 45 minutos
 
 ---
 
 ### 🎯 Objetivo 3: "Qual arquivo faz o quê?" (estrutura do código)
-→ Leia: [`ESTRUTURA.md`](ESTRUTURA.md) (abaixo)
+→ Leia: o mapa completo [logo abaixo, neste arquivo](#-estrutura-do-código--mapa-completo)
 
 **Você aprenderá:**
 - Para cada pasta e arquivo: responsabilidade
@@ -50,10 +55,17 @@ Escolha o que você quer entender:
 
 | Arquivo | O que é? | Por que existe? |
 |---------|----------|-----------------|
-| `index.html` | HTML único da SPA | Contém toda a interface (15 páginas, 18 modais, 18 tabelas, 134 botões) |
-| `supabase.js` | Cliente Supabase | Se conecta ao banco de dados PostgreSQL |
-| `package.json` | Dependências | Define vitest para testes automatizados |
-| `vitest.config.js` | Config de testes | Define cobertura mínima de 80% |
+| `index.html` | HTML único da SPA | Contém toda a interface: as páginas, os modais e a ordem de carregamento dos scripts (no fim do arquivo) |
+| `sac.html` | Página pública do SAC | Canal sem login — grava por RPC, não pela tabela |
+| `privacidade.html` | Política de privacidade | Exigência de LGPD, servida junto com o app |
+| `supabase.js` | Cliente Supabase | Cria o `sb` e define o objeto `Auth`. **Único lugar com a URL e a chave `anon`** |
+| `package.json` | Dependências e scripts | `npm test`, `npm run coverage`; exige Node ≥ 22 |
+| `vitest.config.js` | Config de testes | Cobertura medida sobre `src/**`, com pisos por pasta (ver o próprio arquivo — os números são o piso do que já está coberto, não uma meta) |
+| `eslint.config.js` | Config do lint | Declara as globais dos scripts clássicos; sem isso o lint acusa `no-undef` à toa |
+
+**Onde ficam as rotas do banco?** Em nenhum desses. Não existe servidor neste
+projeto — quem faz o papel de backend é o Supabase. Isso está explicado em
+[`AULA_BACKEND_E_BANCO.md`](AULA_BACKEND_E_BANCO.md).
 
 ---
 
@@ -74,17 +86,20 @@ window.COLABORADORES = COLABORADORES;
 
 ---
 
-#### `/src/supabase.js`
+#### `supabase.js` (na raiz, não em `/src`)
 **O que:** Cliente que se conecta ao banco remoto
 **Por que:** Ponte entre JavaScript e PostgreSQL
 **O que faz:**
-- `Auth` — login/logout
-- `Cache` — localStorage
-- `withRetry()` — tenta novamente se falhar
-- `withTimeout()` — não fica pendurado
-- Mappers — transforma dados do banco
+- cria o `sb` com a URL do projeto e a chave `anon`
+- define `Auth` — login, logout, `sessaoAtual()`, `onMudanca()`
+- monta o `Cache` chamando `makeCache()`
 
-**Quando editar:** Se precisar mudar Supabase de projeto (URL, chave)
+**O que NÃO faz mais:** `withTimeout`, `withRetry`, `makeCache` e os mappers
+saíram daqui. Eles foram para `src/utils/rede.js` e `src/utils/mappers.js` para
+poderem ser testados — este arquivo instancia o client ao carregar, o que
+impede importá-lo fora do navegador. O arquivo caiu de 213 para 54 linhas.
+
+**Quando editar:** Se precisar mudar de projeto Supabase (URL, chave)
 
 ---
 
@@ -146,20 +161,28 @@ export const STATUS_LABEL = {
 
 #### `/src/utils/`
 
-**`base.js`** (plain script, carregado cedo)
+Nove arquivos — a tabela completa está mais abaixo, em
+[`/src/utils` — Utilitários compartilhados](#-srcutils--utilitários-compartilhados).
+Os dois de entrada:
+
+**`base.js`** (script clássico, carregado antes de tudo)
 ```javascript
-h()          // Escape HTML (prevenção XSS)
-diasAte()    // Dias até uma data
-fmtBRL()     // Formatar moeda
+h()           // Escape HTML (prevenção XSS)
+diasAte()     // Dias até uma data
+fmtBRL()      // Formatar moeda
+statusCasa()  // O colaborador casa com o filtro de status?
+noEfetivo()   // Ele faz parte do efetivo da empresa?
 ```
 
-**`formatting.js`** (módulo ES6)
+**`formatting.js`** (ES module)
 ```javascript
-h(), iniciais(), fmtDate(), fmtBRL(), tempoCasa(), diasAte(), 
+h(), iniciais(), fmtDate(), fmtBRL(), tempoCasa(), diasAte(),
 vencStatus(), vencBadge(), mesChave(), mesLabel(), addDays()
 ```
 
-**Quando editar:** Se criar novas funções reutilizáveis
+**Quando editar:** Se criar novas funções reutilizáveis. Se a função precisa
+valer tanto para script clássico quanto para ES module — como `statusCasa` —
+ela vai em `base.js` e é **injetada** nos módulos por `app.js`.
 
 ---
 
@@ -167,54 +190,75 @@ vencStatus(), vencBadge(), mesChave(), mesLabel(), addDays()
 
 Cada arquivo define operações de banco para um domínio:
 
+> 🔑 **Esta é a única camada que fala com o banco.** Nenhum arquivo em
+> `src/modules/` chama `sb.*` — ele recebe o objeto de API por injeção em
+> `app.js`. É o que permite testar os módulos sem rede.
+
 **`pessoas.js`**
-- `Colaboradores` — listar, buscar, criar, atualizar, excluir
-- `Departamentos` — dados de setores
-- `Cargos` — nomes de cargos
+- `Colaboradores` — `listar`, `buscar`, `criar`, `atualizar`, `excluir`
+- `Departamentos`, `Cargos` — setores e cargos
 - `HistoricoColaboradores` — histórico de mudanças
+- `Desligamentos`, `Rotatividade`, `ContatosEmergencia`
 
 **`compliance.js`**
 - `Vencimentos` — ASO, documentos, treinamentos
-- `Epis` — equipamentos de proteção
-- `Treinamentos` — cursos/capacitações
+- `Epis` — EPIs, catálogo e kits
+- `Treinamentos` — cursos e capacitações
 
 **`beneficios.js`**
 - `Ferias` — períodos de férias
-- `Salarios` — salários por período
-- `ValeCombustivel` — combustível
-- `ValeAlimentacao` — vale refeição
+- `Salarios` — salários por período (tabela `salario_atual`)
+- `ValeCombustivel` — crédito por competência, `limparCompetencia`, `upsertCotasEmLote`
+- `ValeDescontos` — descontos, adições e justificativa de crédito reduzido
+- `Configuracoes` — chave/valor (ex.: valor padrão do vale)
+- `ValeAlimentacao`, `Afastamentos`
 
 **`gestao.js`**
-- `Advertencias` — advertências formais
-- `FeedbackClima` — pesquisas de clima
-- `Cronograma` — eventos e reuniões
-- `PlanoCarreiras` — cargos e progressão
+- `Advertencias`, `FeedbackClima`, `Cronograma`, `PlanoCarreiras`
+- `PoliticasEmpresa`, `ProcedimentosEmpresa`, `PrestadoresServico`
+- `ProlaboreSocios`, `SacMensagens`, `RespostasPesquisa`
+- `StorageDocs` (arquivos), `Dashboard` (agregados)
 
 **`init.js`** (Especial!)
-- `inicializarSupabase()` — carrega TODOS os dados ao iniciar
-- `setupRealTimeListeners()` — ativa websocket para atualizações em tempo real
+- `carregarDadosIniciais()` — carrega TODOS os dados ao abrir, em paralelo, e
+  reporta o que falhou em vez de falhar calado
+
+**`realtime.js`** (Especial!)
+- `setupRealTimeListeners()` — um canal websocket com filtro para 24 tabelas.
+  Saiu do `init.js`, que tinha três assuntos no mesmo arquivo
 
 ---
 
 #### `/src/modules/` — Lógica de Cada Página
 
-13 módulos, um para cada aba do sistema:
+19 módulos:
 
 ```
-colaboradores.js       → Aba de Colaboradores
+colaboradores.js       → Aba de Colaboradores (cadastro, drawer, afastamentos)
+quadro.js              → Quadro de Funcionários (extraído de colaboradores.js)
 advertencias.js        → Aba de Advertências
-ferias.js             → Aba de Férias
-desligamentos.js      → Aba de Desligamentos
-cronograma.js         → Aba de Cronograma
-vencimentos.js        → Aba de Vencimentos
-epi.js                → Aba de EPI
-rotatividade.js       → Aba de Rotatividade
-salarios.js           → Aba de Salários
-vale-combustivel.js   → Aba de Vale Combustível
-vale-alimentacao.js   → Aba de Vale Alimentação
-feedback.js           → Aba de Feedback & Clima
-plano-carreiras.js    → Aba de Plano de Carreiras
+ferias.js              → Aba de Férias (regras da CLT)
+desligamentos.js       → Aba de Desligamentos
+rotatividade.js        → Aba de Rotatividade
+cronograma.js          → Aba de Cronograma
+vencimentos.js         → Aba de Vencimentos (ASO, docs, treinamentos)
+epi.js                 → Aba de EPI
+salarios.js            → Aba de Salários
+vale-combustivel.js    → Vale Combustível (crédito, descontos, adições)
+vale-importacao.js     → Importa o PDF de crédito do vale
+vale-alimentacao.js    → Vale Alimentação
+beneficios.js          → Painel consolidado de benefícios
+prolabore.js           → Pró-labore e Cooper dos sócios
+prestadores.js         → Prestadores de serviço
+feedback.js            → Organizacional (clima, feedback, políticas)
+plano-carreiras.js     → Plano de Carreiras
+sac.js                 → SAC (tratativa das mensagens recebidas)
 ```
+
+**Por que `quadro.js` é separado de `colaboradores.js`?** Porque
+`colaboradores.js` passou de 1.100 linhas com seis assuntos dentro. O quadro
+era o único bloco sem amarras — não chamava nenhum método do módulo de origem,
+só lia `COLABORADORES` e desenhava. Foi o primeiro a sair.
 
 **Cada módulo segue o padrão:**
 ```javascript
@@ -244,6 +288,42 @@ export class ColaboradoresModule {
 
 ---
 
+### 📁 `/src/utils` — Utilitários compartilhados
+
+Dois sabores, e a diferença importa: **script clássico** é carregado por
+`<script src>` e publica no `window`; **ES module** é importado com `import`.
+Script clássico não pode importar de ES module.
+
+| Arquivo | Tipo | O que oferece |
+|---------|------|---------------|
+| `base.js` | clássico | `h()` (escape de HTML), `diasAte()`, `fmtBRL()`, `statusCasa()`, `noEfetivo()` |
+| `rede.js` | clássico | `withTimeout` (6 s), `withRetry`, `makeCache` |
+| `mappers.js` | clássico | `mapColaborador` e irmãos — traduzem linha do banco em objeto de tela |
+| `arrays.js` | clássico | `_preencherArray`, `_filtrarArray`, `_upsertArray` — mexem no array **sem reatribuir** |
+| `carregamento.js` | clássico | `descreverErro`, `coletarFalhas`, `resumirFalhas` — fazem falha de carga aparecer |
+| `relatorio.js` | clássico | impressão de relatório por módulo (clona a página, limpa e abre a janela) |
+| `ui.js` | ES module | `debounce`, `limparFormulario`, `competenciaAtual`, `optionsColaboradores` |
+| `formatting.js` | ES module | formatação para os módulos |
+| `relatorio-vale.js` | ES module | leitura do PDF de crédito do vale combustível |
+
+---
+
+### 📁 `/scripts` — Ferramentas de build
+
+| Arquivo | O que faz |
+|---------|-----------|
+| `versionar.mjs` | troca `?v=dev` pelo hash do commit no deploy (cache-busting) |
+| `checar-segredos.mjs` | decodifica todo JWT do repositório e reprova o build se achar `service_role` |
+
+### 📁 `/.github/workflows` — CI e deploy
+
+| Arquivo | Roda |
+|---------|------|
+| `ci.yml` | lint, testes, cobertura e a checagem de segredos |
+| `deploy.yml` | versiona os arquivos e publica no GitHub Pages |
+
+---
+
 ### 📁 `/css` — Estilos
 
 | Arquivo | Responsável por |
@@ -262,11 +342,28 @@ export class ColaboradoresModule {
 
 | Arquivo | Contém |
 |---------|---------|
-| `schema.sql` | 24 tabelas PostgreSQL |
-| `schema.md` | Documentação das tabelas |
-| `migrations/` | Scripts SQL de criação do banco |
+| `schema.sql` | as 24 tabelas do desenho inicial |
+| `schema.md` | descrição das tabelas em texto |
+| `migrations/` | **51 migrations numeradas** — a história real do banco |
 
-**Quando editar:** Nunca (banco é gerenciado pelo Supabase)
+As migrations são a fonte da verdade, não o `schema.sql`: metade do banco de
+hoje (criptografia de PII, RLS, RPCs, protocolo do SAC, colunas do vale) nasceu
+nelas. As que vale conhecer:
+
+| Migration | O que trouxe |
+|-----------|--------------|
+| `001_criptografia_pii.sql` | criptografia de CPF, RG, telefone, endereço, nascimento + o trigger |
+| `010_rls_completo.sql` | RLS da maioria das tabelas |
+| `013_rls_colaboradores_fix.sql` | RLS de `colaboradores` (a causa do erro "violates row-level security") |
+| `024_rpc_colaboradores_turno.sql` | `listar_colaboradores_seguro()` — a rota de leitura com PII aberta |
+| `042_sac_protocolo_sequencial.sql` | protocolo `SAC-01-27/08/2026` gerado no banco |
+| `049_endurecer_funcoes.sql` | `search_path` fixo e validação do SAC no banco, não só no navegador |
+| `053_vale_zerar_para_importacao.sql` | zera o vale para ele passar a vir do PDF |
+| `054_vale_desconto_no_credito.sql` | justificativa do crédito que já veio menor |
+
+**Quando editar:** ao mudar o banco, sempre por uma migration nova numerada —
+nunca alterando uma antiga. Editar migration aplicada faz o banco recriado do
+zero divergir do banco em produção.
 
 ---
 
@@ -275,29 +372,43 @@ export class ColaboradoresModule {
 | Arquivo | Leia quando... |
 |---------|--------|
 | **`COMECE_AQUI.md`** | Quer saber por onde começar (este arquivo!) |
+| **`AULA_BACKEND_E_BANCO.md`** | Quer saber **qual rota o cadastro usa**, como o banco autoriza e por que ler é diferente de gravar |
 | **`FLUXOS.md`** | Quer entender como uma ação funciona |
 | **`AULA_COMPLETA.md`** | Quer aprender a fundo (padrões, exemplos) |
 | **`aula-visual.html`** | Quer estudar com design visual (abrir no navegador) |
 | **`GUIA_CODIGO.md`** | Quer documentação técnica detalhada |
-| **`ESTRUTURA.md`** | Quer saber cada pasta e arquivo (em breve) |
 | **`AUDIT_SEGURANCA.md`** | Quer entender a segurança |
+| **`CHECKLIST_PROTECAO_DADOS.md`** | Quer o checklist de LGPD |
 | **`POLITICA_PRIVACIDADE.md`** | Quer ver conformidade LGPD |
 
 ---
 
 ### 📁 `/tests` — Testes Automatizados
 
+São 30 arquivos de teste. Os que valem conhecer primeiro:
+
 ```
 tests/
-├── base.test.js              → Testes da função h()
-├── formatting.test.js        → Testes de formatação
-├── colaboradores.test.js     → Testes do CRUD de colaboradores
-├── mappers.test.js           → Testes de transformação de dados
-├── mappers-extra.test.js     → Mais testes de mappers
-├── rls-logic.test.js         → Testes de Row Level Security
-├── timeout-retry.test.js     → Testes de retry/timeout
-├── cache.test.js             → Testes de cache
-└── helpers.js                → Funções auxiliares para testes
+├── base.test.js                   → h(), fmtBRL, statusCasa/noEfetivo (o efetivo da empresa)
+├── mappers.test.js                → banco → tela, com o arquivo REAL de produção
+├── timeout-retry.test.js          → withTimeout e withRetry
+├── cache.test.js                  → o cache que evita rebaixar a RPC
+├── rls-logic.test.js              → a lógica de papéis do RLS
+├── relatorio-vale.test.js         → leitura do PDF de crédito (31 testes)
+├── vale-importacao.test.js        → a tela de importação, com pdf.js falso
+├── vale-credito-reduzido.test.js  → crédito abaixo do valor cheio e o gráfico
+├── ferias-calculo.test.js         → regras de férias (CLT)
+├── relatorio-lista-completa.test.js → o relatório impresso não sai truncado
+├── handlers-inline.test.js        → todo onclick do HTML tem função registrada
+├── formulario-id.test.js          → form.reset() não limpa input hidden
+├── ambiente.test.js               → a versão do Node bate com a do CI
+└── helpers-efetivo.js             → carrega base.js real e reexporta (não é cópia)
+```
+
+> **Um princípio que este projeto aprendeu na dor:** teste nunca deve exercitar
+> uma **cópia** do código de produção. Já aconteceu — os mappers tinham uma
+> cópia num `tests/helpers.js` (hoje removido), ela divergiu, e a suíte ficou verde com a
+> produção quebrada. Por isso `helpers-efetivo.js` carrega o arquivo real.
 ```
 
 **195 testes**, **100% de cobertura**, rodados via `npm run test:coverage`
@@ -359,11 +470,17 @@ tests/
 | **Autenticação** | `src/auth.js` | `supabase.js` → Auth object |
 | **Carregamento inicial** | `src/api/init.js` | `src/app.js` → bootstrap() |
 | **Como renderizar tabela** | `src/modules/colaboradores.js` | `src/utils/formatting.js` |
-| **Banco de dados** | `database/schema.sql` | `src/api/*.js` |
+| **Banco de dados** | `docs/AULA_BACKEND_E_BANCO.md` | `database/migrations/` |
+| **Qual rota faz o cadastro** | `docs/AULA_BACKEND_E_BANCO.md` seção 4 | `src/api/pessoas.js` → `criar()` |
+| **Permissão / RLS** | `docs/AULA_BACKEND_E_BANCO.md` seção 6 | `database/migrations/013_rls_colaboradores_fix.sql` |
+| **Criptografia de CPF** | `database/migrations/001_criptografia_pii.sql` | `database/migrations/024_rpc_colaboradores_turno.sql` |
+| **Tempo real (websocket)** | `src/api/realtime.js` | `docs/AULA_BACKEND_E_BANCO.md` seção 8 |
+| **Impressão de relatório** | `src/utils/relatorio.js` | `RELATORIO_HOOKS` em `src/app.js` |
 | **Padrões do código** | `docs/AULA_COMPLETA.md` | Todos os módulos |
 | **Testes** | `tests/base.test.js` | `npm run test:coverage` |
 | **CSS/Design** | `css/tokens.css` | `css/components.css` |
 | **Integração Supabase** | `supabase.js` | `src/api/pessoas.js` → comentários JSDoc |
+| **Efetivo da empresa** | `src/utils/base.js` → `statusCasa()` | `src/modules/quadro.js` |
 | **Adicionar aba nova** | `docs/AULA_COMPLETA.md` seção 14 | Clonar `src/modules/colaboradores.js` |
 
 ---

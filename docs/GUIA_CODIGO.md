@@ -4,6 +4,37 @@
 
 ---
 
+> ### 📌 Leia isto antes
+>
+> Este documento cobre a arquitetura e os padrões do sistema. Duas ressalvas:
+>
+> **1. Para o banco de dados, leia a aula dedicada.**
+> [`AULA_BACKEND_E_BANCO.md`](AULA_BACKEND_E_BANCO.md) tem as rotas HTTP de
+> cada operação, o cadastro do clique ao `INSERT`, o RLS, a criptografia de PII
+> e a RPC de leitura — com os caminhos de arquivo de cada passo.
+>
+> **2. Três coisas mudaram de lugar desde a primeira versão deste texto:**
+>
+> | O texto pode dizer | Hoje está em |
+> |---|---|
+> | `withTimeout`, `withRetry`, `makeCache` em `supabase.js` | [`src/utils/rede.js`](../src/utils/rede.js) |
+> | mappers (`mapColaborador`…) em `supabase.js` | [`src/utils/mappers.js`](../src/utils/mappers.js) |
+> | `setupRealTimeListeners()` em `src/api/init.js` | [`src/api/realtime.js`](../src/api/realtime.js) |
+>
+> Os três saíram para poderem ser testados: `supabase.js` instancia o client ao
+> carregar, o que impede importá-lo fora do navegador. Enquanto os mappers
+> moravam lá, os testes exercitavam uma **cópia** — e a cópia divergiu, deixando
+> a suíte verde com a produção quebrada.
+>
+> Também nasceram depois deste texto: [`src/utils/ui.js`](../src/utils/ui.js),
+> [`src/utils/arrays.js`](../src/utils/arrays.js),
+> [`src/utils/carregamento.js`](../src/utils/carregamento.js),
+> [`src/utils/relatorio-vale.js`](../src/utils/relatorio-vale.js),
+> [`src/modules/quadro.js`](../src/modules/quadro.js) e
+> [`src/modules/vale-importacao.js`](../src/modules/vale-importacao.js).
+
+---
+
 ## Sumário
 
 1. [Visão Geral da Arquitetura](#1-visão-geral-da-arquitetura)
@@ -20,6 +51,14 @@
 12. [Padrões de Comunicação](#12-padrões-de-comunicação)
 13. [CSS — Estrutura de Estilos](#13-css--estrutura-de-estilos)
 14. [Como Adicionar Nova Funcionalidade](#14-como-adicionar-nova-funcionalidade)
+
+---
+
+## 15. Arquivos que nasceram depois — referência
+
+Os utilitários, módulos e scripts criados após a primeira versão deste guia
+estão documentados na [seção 15](#15-arquivos-que-nasceram-depois--referência),
+no fim do arquivo.
 
 ---
 
@@ -1065,3 +1104,176 @@ this._meuChart = new Chart(ctx, {
 ---
 
 *Documento gerado em 2026-05-27. Reflete a estrutura após as refatorações P1–P5.*
+
+---
+
+## 15. Arquivos que nasceram depois — referência
+
+Esta seção cobre o que não existia quando as seções 1 a 14 foram escritas.
+Todos os caminhos são reais e clicáveis.
+
+### `src/utils/rede.js` — script clássico
+
+Saiu de `supabase.js` para poder ser testado.
+
+| Função | Contrato |
+|---|---|
+| `withTimeout(promise, ms = 6000)` | rejeita com `Error('Tempo excedido…')` se a promise não resolver |
+| `withRetry(fn, maxRetries = 3)` | tenta de novo com espera crescente; só para erro de rede |
+| `makeCache()` | devolve `{ get, set, invalidate }` sobre `localStorage`, com TTL |
+
+`supabase.js` usa `const Cache = makeCache();`.
+
+### `src/utils/mappers.js` — script clássico
+
+`mapColaborador`, `mapAdvertencia`, `mapFerias`, `mapDesligamento`,
+`mapEvento`. Traduzem a linha do banco no objeto que a tela espera — nome de
+coluna, join de setor/cargo, valor padrão para campo nulo.
+
+> 🐛 **A história que justifica este arquivo:** enquanto os mappers moravam em
+> `supabase.js`, não davam para testar (o arquivo instancia o client ao
+> carregar). Os testes exercitavam uma cópia no `tests/helpers.js` — arquivo que já não existe. A cópia
+> emitia `colab_id`; a produção emitia `colaborador_id`. Resultado: a suíte
+> passava verde afirmando um campo que a produção nunca produziu.
+
+### `src/utils/arrays.js` — script clássico
+
+| Função | Para que |
+|---|---|
+| `_preencherArray(arr, novos)` | troca o conteúdo **sem reatribuir** o array |
+| `_filtrarArray(arr, pred)` | remove no lugar quem não passa |
+| `_upsertArray(arr, item)` | substitui pelo `id` ou insere no começo |
+
+**Por que não `arr = novos`?** Porque todos os módulos guardam a **mesma
+referência** ao array de `data-store.js`. Reatribuir cria um array novo que só
+o `init.js` conhece — cada tela continuaria olhando o antigo, com dados velhos,
+sem nenhum erro no console.
+
+### `src/utils/carregamento.js` — script clássico
+
+`descreverErro(e)`, `coletarFalhas(promessas)`, `resumirFalhas(falhas)`.
+Existe porque a carga inicial usa `Promise.allSettled`: sem isto, uma tabela
+que falha ao carregar deixa a tela vazia e calada. Agora a falha aparece na
+interface e no console, com o nome do que não veio.
+
+### `src/utils/ui.js` — ES module
+
+| Função | Nota |
+|---|---|
+| `debounce(fn, ms)` | tem `.cancel()` |
+| `limparFormulario(form)` | `form.reset()` **e** limpa os `input[type=hidden]` |
+| `competenciaAtual(data)` | `'2026-09'` |
+| `optionsColaboradores(lista, h)` | `<option>` com os inativos num `optgroup` |
+
+> 🐛 **`limparFormulario` conserta um bug do HTML, não do código:**
+> `form.reset()` devolve cada campo ao *default value*, e para
+> `<input type="hidden">` o default é o valor que está no atributo — ou seja,
+> ele **não limpa**. O sintoma: lançar um Cooper depois de um pró-labore
+> substituía o anterior, porque o `id` do registro editado tinha ficado no
+> campo escondido. Estava assim em 14 formulários de 7 módulos.
+> Trava de regressão: [`tests/formulario-id.test.js`](../tests/formulario-id.test.js).
+
+### `src/utils/relatorio.js` — script clássico
+
+`imprimirRelatorio(modulo)`: clona a página ativa, converte `canvas` em imagem,
+remove toolbars/botões/coluna de ações e abre a janela de impressão.
+
+Dois pontos de extensão:
+
+- **`sufixoTitulo(modulo, page)`** — põe o recorte no título (o filtro de
+  status no cadastro e no quadro; tipo, sócio e competência no pró-labore).
+- **`window.RELATORIO_HOOKS[modulo]`** — deixa um módulo corrigir o clone antes
+  da limpeza. Existe porque a tela de colaboradores pagina de 50 em 50 e o
+  relatório clonava só a página visível: dezenas de nomes nunca saíam no papel,
+  e nada na folha dizia que era um pedaço. O hook está registrado em
+  [`src/app.js`](../src/app.js) e implementado como
+  `prepararRelatorio(wrapper)` em
+  [`src/modules/colaboradores.js`](../src/modules/colaboradores.js).
+
+### `src/utils/relatorio-vale.js` — ES module
+
+Leitura do PDF "Produto de Carga" da operadora do vale combustível. Sem DOM,
+sem rede, sem pdf.js nas dependências — só texto entra e dados conferidos saem.
+
+| Função | O que faz |
+|---|---|
+| `linhasDeItens(itens)` | reconstrói as linhas visuais a partir dos itens do pdf.js |
+| `lerRelatorioVale(linhas)` | cabeçalho, beneficiários, totais e a lista de problemas |
+| `conciliarRelatorio(rel, colabs, opts)` | cruza com o cadastro por CPF, depois por nome |
+
+Três decisões com motivo:
+
+1. **Tolerância vertical de 4 pt** ao agrupar células numa linha. Agrupando por
+   Y exato, um nome comprido saía com as células em alturas levemente
+   diferentes (282,54 / 280,74 / 278,94) e a linha se partia em três — perdendo
+   o beneficiário inteiro.
+2. **Nome que casa com duas pessoas não é adivinhado.** Vira pendência para o
+   operador. Pagar o homônimo errado é pior do que pedir a ligação.
+3. **A conferência é contra o "Total de crédito", não contra o valor da nota.**
+   O "Total de serviço" (reimpressão de cartão) é cobrança da operadora e não
+   é benefício de ninguém.
+
+### `src/api/realtime.js` — script clássico
+
+`setupRealTimeListeners()`. Um canal `sb.channel('rh-realtime')` com filtro
+`postgres_changes` para 24 tabelas. Saiu do `init.js`, que passava de 750 linhas
+com três assuntos no mesmo arquivo.
+
+Para `colaboradores` o handler **não usa o payload**: o payload do realtime
+traz a PII zerada pelo trigger, então ele invalida o cache e recarrega pela
+RPC. Para as outras tabelas, usa `_upsertArray` direto.
+
+### `src/modules/quadro.js` — ES module
+
+`QuadroModule`. Extraído de `colaboradores.js`, que passava de 1.100 linhas.
+Mostra o **efetivo** por setor/área/turno.
+
+A regra de quem é efetivo mora em `src/utils/base.js` (`statusCasa`,
+`noEfetivo`) e é injetada — o afastado entra, porque afastamento suspende o
+contrato e não o encerra. Antes o quadro escondia o afastado por regra
+explícita, e um setor só de afastados desaparecia inteiro do relatório.
+
+### `src/modules/vale-importacao.js` — ES module
+
+`ValeImportacaoModule`. A tela que recebe o PDF: arquivo, conferência,
+gravação. Carrega o pdf.js do CDN por `import()` dinâmico só quando o modal
+abre (~350 kB que não fazem falta em nenhuma outra tela) — e a função de carga
+é injetável, para o teste passar um pdf.js falso.
+
+Grava de dois modos: **substituir** a competência (`limparCompetencia` +
+`upsertCotasEmLote`) ou **somar** ao que já existe, para a nota avulsa emitida
+depois do crédito principal do mês.
+
+### `scripts/versionar.mjs`
+
+Troca `?v=dev` pelo hash do commit em todo `src` e no `index.html` durante o
+deploy. Sem isso, o navegador do usuário serve o JS antigo do cache depois de
+uma correção. O marcador `?v=dev` fica no código-fonte para o desenvolvimento
+funcionar sem build.
+
+### `scripts/checar-segredos.mjs`
+
+Roda no CI. Decodifica o payload de qualquer JWT que apareça no repositório e
+reprova o build se achar `role: service_role`.
+
+> 🐛 **A versão anterior não servia para nada:** era um `grep` pela string
+> `service_role`, que dentro de um JWT está em **base64** — a chave real
+> passaria batida. Em compensação, quebrava o build por causa de comentários
+> que mencionavam a palavra. Ou seja: falso positivo garantido e falso negativo
+> no caso que importa.
+
+### `src/utils/base.js` — o que foi adicionado
+
+Além de `h()`, `diasAte()` e `fmtBRL()`, o arquivo passou a definir o conceito
+de **efetivo**:
+
+```js
+const STATUS_EFETIVO = ['ativo', 'ferias', 'afastado'];
+function noEfetivo(colab)          { … }
+function statusCasa(colab, filtro) { … }   // '' = tudo · 'efetivo' = o efetivo
+```
+
+Mora aqui, num script clássico carregado antes de tudo, porque quem precisa da
+regra está espalhado: a API que filtra a lista (`src/api/pessoas.js`), o módulo
+do cadastro, o do quadro e a contagem do card. Com uma cópia em cada lugar, uma
+delas ia divergir.

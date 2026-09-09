@@ -49,55 +49,70 @@ AQUI ACONTECE A MÁGICA: Dados vão para o backend
 
 ### 🔑 PONTO CRÍTICO: Dados saindo do JavaScript para o banco
 
-**Arquivo:** `src/api/pessoas.js`
+**Arquivo:** [`src/api/pessoas.js`](../src/api/pessoas.js) → `Colaboradores.criar`
 
 ```javascript
 // Isso é o que salvarColaborador() chama:
 await Colaboradores.criar(payload);
 
 // Dentro de Colaboradores.criar():
-const { data, error } = await sb
-  .from('colaboradores')           // ← Nome da tabela no Supabase
-  .insert([payload])               // ← INSERT (criar nova linha)
-  .select()                        // ← Retornar dados criados
-  .single();                       // ← Uma linha (não array)
+const { data, error } = await withTimeout(       // corta em 6 s
+  sb.from('colaboradores')           // ← nome da tabela no Postgres
+    .insert(payload)                 // ← INSERT
+    .select()                        // ← devolve a linha gravada
+    .single()                        // ← uma linha, não array
+);
+if (error) throw error;
+Cache.invalidate();
+return mapColaborador(data);
 ```
 
-**O que é `sb`?** Cliente Supabase definido em `supabase.js`
+**O que é `sb`?** O cliente Supabase, criado em
+[`supabase.js`](../supabase.js).
 
 ---
 
-### Arquivo `supabase.js` — O Coração da Conexão
+### Arquivo `supabase.js` — a ponte
 
 ```javascript
-// 1. Criar cliente Supabase (conecta ao banco remoto)
-const sb = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON);
-
-// Exemplo do que acontece internamente:
-// sb.from('colaboradores').insert([{nome: 'João', email: 'joao@...', ...}])
-// ↓
-// HTTP POST para https://smfiujgaxaodyfwvoxwy.supabase.co/rest/v1/colaboradores
-// Body: {"name":"João","email":"joao@..."}
-// ↓
-// Supabase recebe
-// ↓
-// PostgreSQL executa: INSERT INTO colaboradores (nome, email, ...) VALUES (...)
-// ↓
-// Registro criado no banco ✅
-// ↓
-// Resposta volta para JavaScript com o novo ID e dados
+const SUPABASE_URL  = 'https://smfiujgaxaodyfwvoxwy.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOi…';                 // chave pública
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 ```
 
-**Fluxo de dados:**
+O que aquele `insert` vira na rede:
+
+```http
+POST https://smfiujgaxaodyfwvoxwy.supabase.co/rest/v1/colaboradores
+apikey: <chave anon>
+Authorization: Bearer <token do usuário logado>
+Prefer: return=representation
+
+{"nome":"João Silva","cpf":"123.456.789-00", …}
 ```
-JavaScript (seu código)
-    ↓ (HTTP POST)
-Supabase (servidor remoto)
+
+E o que o banco faz com isso — **três etapas, não uma**:
+
+```
+POST /rest/v1/colaboradores
     ↓
-PostgreSQL (banco de dados)
-    ↓ (resposta com novo ID)
-JavaScript (seu código recebe dados)
+1. RLS decide se PODE                (013_rls_colaboradores_fix.sql)
+   admin/rh → sim · gerente/colaborador → não
+   recusa = "new row violates row-level security policy"
+    ↓
+2. TRIGGER criptografa a PII         (001_criptografia_pii.sql)
+   cpf → cpf_enc (AES) e cpf = NULL
+    ↓
+3. INSERT grava a linha
+    ↓
+resposta: a linha gravada, com cpf: null  ← não é bug, é o passo 2
 ```
+
+> ⚠️ **É por isso que o módulo não usa a resposta do `insert` para atualizar a
+> tela.** A PII volta zerada. Ele recarrega pela RPC
+> `listar_colaboradores_seguro`, que descriptografa. O passo a passo completo,
+> com os doze passos e as rotas de cada operação, está em
+> [`AULA_BACKEND_E_BANCO.md`](AULA_BACKEND_E_BANCO.md).
 
 ---
 

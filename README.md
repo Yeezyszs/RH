@@ -163,8 +163,14 @@ RH/
 ├── database/
 │   ├── schema.sql                # Schema completo (24 tabelas)
 │   ├── schema.md                 # Documentação das tabelas
-│   └── migrations/               # 12 migrações SQL históricas
+│   └── migrations/               # 51 migrações SQL numeradas
 ├── docs/
+│   ├── COMECE_AQUI.md            # Por onde começar + mapa dos arquivos
+│   ├── AULA_BACKEND_E_BANCO.md   # Rotas, RLS, criptografia de PII, RPC
+│   ├── AULA_COMPLETA.md          # Arquitetura e padrões
+│   ├── GUIA_CODIGO.md            # Arquivo por arquivo, função por função
+│   ├── FLUXOS.md                 # Criar, editar, deletar, tempo real
+│   ├── AUDIT_SEGURANCA.md        # Auditoria de segurança
 │   ├── POLITICA_PRIVACIDADE.md   # Política de Privacidade LGPD
 │   └── CHECKLIST_PROTECAO_DADOS.md
 ├── .github/workflows/
@@ -341,6 +347,25 @@ Para adicionar um novo módulo:
 
 ## 📚 Documentação Adicional
 
+### Aulas sobre o código
+
+Comece por aqui se o objetivo é **entender o sistema**:
+
+- **[docs/COMECE_AQUI.md](./docs/COMECE_AQUI.md)** — por onde começar, o mapa
+  completo dos arquivos e um roteiro de estudo por nível
+- **[docs/AULA_BACKEND_E_BANCO.md](./docs/AULA_BACKEND_E_BANCO.md)** — como o
+  código conversa com o banco: **qual rota o cadastro usa**, o caminho do
+  clique ao `INSERT` com arquivo e função em cada passo, RLS, criptografia de
+  CPF e a RPC de leitura
+- **[docs/FLUXOS.md](./docs/FLUXOS.md)** — criar, editar, deletar e sincronizar
+  em tempo real, passo a passo
+- **[docs/AULA_COMPLETA.md](./docs/AULA_COMPLETA.md)** — arquitetura, camadas e
+  padrões de projeto
+- **[docs/GUIA_CODIGO.md](./docs/GUIA_CODIGO.md)** — referência arquivo por
+  arquivo, função por função
+
+### Conformidade e segurança
+
 - **[DOCUMENTO_JURIDICO_SISTEMA_RH](https://docs.google.com/document/d/11XjAH1tz-Wcl9lvtHmzRZkVb8QQ56wDD5hAjr58HQjw)** (Google Drive) — Análise jurídica-técnica completa: LGPD, CLT, NRs, RLS, segurança, conformidade (Status: **PRODUÇÃO v1.0 — Maio 2026**)
 - **[docs/POLITICA_PRIVACIDADE.md](./docs/POLITICA_PRIVACIDADE.md)** — Política de Privacidade LGPD completa (21 seções)
 - **[docs/CHECKLIST_PROTECAO_DADOS.md](./docs/CHECKLIST_PROTECAO_DADOS.md)** — Checklist de implementação LGPD (7 fases)
@@ -353,7 +378,7 @@ Para adicionar um novo módulo:
 ## 📧 Suporte
 
 Para questões sobre:
-- **Banco de dados** - Ver [DATABASE_SETUP_STATUS.md](./DATABASE_SETUP_STATUS.md)
+- **Banco de dados** - Ver [docs/AULA_BACKEND_E_BANCO.md](./docs/AULA_BACKEND_E_BANCO.md) e `database/migrations/`
 - **Módulos** - Consultar documentação em `src/modules/`
 - **Testes** - Ver `tests/` e `vitest.config.js`
 - **Deploy** - Contatar administrador do Supabase
