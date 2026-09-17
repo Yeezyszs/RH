@@ -357,6 +357,9 @@ Comece por aqui se o objetivo é **entender o sistema**:
   código conversa com o banco: **qual rota o cadastro usa**, o caminho do
   clique ao `INSERT` com arquivo e função em cada passo, RLS, criptografia de
   CPF e a RPC de leitura
+- **[docs/GUIA_FERIAS.md](./docs/GUIA_FERIAS.md)** — informativo para quem
+  opera o RH: como lançar férias, o que cada aviso quer dizer e as regras da
+  CLT que o sistema cobra
 - **[docs/FLUXOS.md](./docs/FLUXOS.md)** — criar, editar, deletar e sincronizar
   em tempo real, passo a passo
 - **[docs/AULA_COMPLETA.md](./docs/AULA_COMPLETA.md)** — arquitetura, camadas e

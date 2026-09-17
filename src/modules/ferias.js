@@ -55,6 +55,8 @@ export class FeriasModule {
     const tb = this.$('#tb-ferias');
     if (!tb) return;
 
+    await this._reconciliarStatus();
+
     const q = (this.$('#fer-search')?.value || '').trim().toLowerCase();
     const fSet = this.$('#fer-filter-setor')?.value || '';
     const fSt = this.$('#fer-filter-status')?.value || '';
@@ -457,6 +459,55 @@ export class FeriasModule {
     window.renderColaboradores?.();
   }
 
+  /**
+   * Devolve o status do colaborador ao que os períodos dizem.
+   *
+   * O sistema marcava 'ferias' quando o período começava e **nunca**
+   * desmarcava: porta de mão única. Quem saiu de férias em 2024 seguia marcado
+   * hoje, e excluir o período também não devolvia o status — foi assim que o
+   * ADAO RIBEIRO ficou 'ferias' sem ter um único período cadastrado.
+   *
+   * Mexe só entre 'ativo' e 'ferias'. Afastado e desligado nunca são tocados:
+   * são decisão de contrato, não estado de calendário.
+   *
+   * @returns {Promise<number>} quantos status foram corrigidos
+   */
+  async _reconciliarStatus() {
+    // Se a carga de férias falhou, a lista está vazia por erro e não por
+    // ausência de períodos — corrigir com base nela tiraria de férias quem
+    // está de férias de verdade.
+    const falhou = (window.FALHAS_CARREGAMENTO || []).some(f => /f[ée]rias/i.test(f.nome || ''));
+    if (falhou || !Array.isArray(this.FERIAS) || !Array.isArray(this.COLABORADORES)) return 0;
+
+    const hoje = this._isoNow();
+    const emFerias = new Set(this.FERIAS
+      .filter(f => f.inicio && f.fim && f.inicio <= hoje && f.fim >= hoje)
+      .map(f => f.colaborador_id));
+
+    const correcoes = this.COLABORADORES.filter(c =>
+      (c.status === 'ferias' && !emFerias.has(c.id)) ||
+      (c.status === 'ativo'  && emFerias.has(c.id)));
+    if (!correcoes.length) return 0;
+
+    const temSessao = this.Colaboradores && this.Auth
+      && await this.Auth.sessaoAtual().catch(() => null);
+
+    let corrigidos = 0;
+    for (const c of correcoes) {
+      const novo = emFerias.has(c.id) ? 'ferias' : 'ativo';
+      if (temSessao) {
+        try { await this.Colaboradores.atualizar(c.id, { status: novo }); }
+        catch { continue; }          // sem permissão de escrita: não insiste
+      }
+      c.status = novo;
+      corrigidos++;
+      console.info(`[RH] Status de ${c.nome} corrigido para "${novo}" pelos períodos de férias.`);
+    }
+
+    if (corrigidos) window.renderColaboradores?.();
+    return corrigidos;
+  }
+
   async excluirFerias(id) {
     if (!confirm('Excluir este período?')) return;
     const temSessao = this.Ferias && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
@@ -473,6 +524,7 @@ export class FeriasModule {
       window.FERIAS = this.FERIAS;
       window.showToast?.('Período excluído');
     }
+    await this._reconciliarStatus();
     this.renderFeriasModal();
     this.render();
   }
