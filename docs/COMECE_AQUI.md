@@ -374,6 +374,7 @@ zero divergir do banco em produção.
 | **`COMECE_AQUI.md`** | Quer saber por onde começar (este arquivo!) |
 | **`AULA_BACKEND_E_BANCO.md`** | Quer saber **qual rota o cadastro usa**, como o banco autoriza e por que ler é diferente de gravar |
 | **`GUIA_FERIAS.md`** | Vai **lançar férias** — passo a passo para quem opera o RH |
+| **`GUIA_FOLHA.md`** | Vai **importar a folha de pagamento** para atualizar os salários |
 | **`FLUXOS.md`** | Quer entender como uma ação funciona |
 | **`AULA_COMPLETA.md`** | Quer aprender a fundo (padrões, exemplos) |
 | **`aula-visual.html`** | Quer estudar com design visual (abrir no navegador) |

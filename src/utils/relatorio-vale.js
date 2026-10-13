@@ -20,80 +20,17 @@
 // operadora (reimpressão de cartão, por exemplo) e NÃO pertence a ninguém —
 // por isso a conferência é contra o crédito, não contra o valor da nota.
 
-const RE_CPF        = /\d{3}\.\d{3}\.\d{3}-\d{2}/;
-const RE_CPF_SO     = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/;
-const RE_DINHEIRO   = /R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/;
-const RE_DATA_BR    = /(\d{2})\/(\d{2})\/(\d{4})/;
+import {
+  normalizarTexto, normalizarNome, soDigitos, valorBR, linhasDeItens,
+  arredondar, dataBR,
+} from './texto-pdf.js?v=dev';
 
-// A fonte do PDF usa ligaduras tipográficas (ﬁ, ﬂ…). Sem desfazê-las,
-// "beneficiário" não casa com nada e o cabeçalho passa despercebido.
-const LIGADURAS = { 'ﬀ': 'ff', 'ﬁ': 'fi', 'ﬂ': 'fl', 'ﬃ': 'ffi', 'ﬄ': 'ffl' };
+// Reexporta o que já era importado daqui antes de estas peças virarem
+// `texto-pdf.js` — leitor de folha e de relatório do vale usam as mesmas.
+export { normalizarTexto, normalizarNome, soDigitos, valorBR, linhasDeItens, arredondar };
 
-/** Desfaz ligaduras e normaliza espaços (inclusive os não-quebráveis). */
-export function normalizarTexto(s) {
-  return String(s ?? '')
-    .replace(/[\uFB00-\uFB04]/g, (c) => LIGADURAS[c])
-    .replace(/\u00a0/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-/** "R$ 1.234,50" → 1234.5. Devolve null quando não há número. */
-export function valorBR(s) {
-  const m = RE_DINHEIRO.exec(String(s ?? ''));
-  if (!m) return null;
-  return parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
-}
-
-/** Nome em caixa alta, sem acento e sem espaço sobrando — chave de comparação. */
-export function normalizarNome(s) {
-  return normalizarTexto(s)
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase();
-}
-
-/** Só os dígitos — é assim que CPF de origens diferentes se compara. */
-export function soDigitos(s) {
-  return String(s ?? '').replace(/\D/g, '');
-}
-
-// Tolerância vertical ao agrupar células numa linha, em pontos.
-//
-// Não dá para agrupar por Y exato: neste relatório as células de uma mesma
-// linha saem com baselines levemente diferentes quando o nome é comprido —
-// "GABRIEL MARTINS RIBEIRO BEDETI" veio em 282,54 / 280,74 / 278,94, e o
-// agrupamento exato partia a linha em três, perdendo o beneficiário inteiro.
-// O espaçamento entre linhas é de ~10 pt, então 4 pt separa com folga.
-const TOLERANCIA_LINHA = 4;
-
-/**
- * Reconstrói as linhas visuais a partir dos itens de texto de uma página do
- * pdf.js. O extrator devolve pedaços soltos com coordenadas; agrupar por Y e
- * ordenar por X devolve a linha como ela aparece impressa — que é o formato
- * que `lerRelatorioVale` espera.
- *
- * @param {{str: string, transform: number[]}[]} itens
- */
-export function linhasDeItens(itens) {
-  const celulas = (itens || [])
-    .filter(it => it?.str && it.str.trim())
-    .map(it => ({ y: it.transform[5], x: it.transform[4], s: it.str }))
-    .sort((a, b) => b.y - a.y);               // do topo para o rodapé
-
-  const linhas = [];
-  let grupo = [], topo = null;
-  const fechar = () => {
-    if (!grupo.length) return;
-    linhas.push(normalizarTexto(grupo.sort((a, b) => a.x - b.x).map(c => c.s).join(' ')));
-    grupo = [];
-  };
-  for (const c of celulas) {
-    if (topo == null || topo - c.y > TOLERANCIA_LINHA) { fechar(); topo = c.y; }
-    grupo.push(c);
-  }
-  fechar();
-  return linhas;
-}
+const RE_CPF    = /\d{3}\.\d{3}\.\d{3}-\d{2}/;
+const RE_CPF_SO = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/;
 
 /**
  * Valor de um campo "Rótulo: conteúdo" do cabeçalho.
@@ -116,14 +53,6 @@ function campo(linhas, rotulo) {
     }
   }
   return '';
-}
-
-/** "03/07/2026" → { iso: '2026-07-03', competencia: '2026-07' }. */
-function dataBR(txt) {
-  const m = RE_DATA_BR.exec(txt || '');
-  if (!m) return { iso: '', competencia: '' };
-  const [, d, mes, ano] = m;
-  return { iso: `${ano}-${mes}-${d}`, competencia: `${ano}-${mes}` };
 }
 
 /**
@@ -213,11 +142,6 @@ export function lerRelatorioVale(linhasBrutas) {
     totalNota, totalCredito, totalServico,
     registros, soma, problemas,
   };
-}
-
-/** Duas casas — evita que a soma de centavos apareça como 6239.999999. */
-export function arredondar(v) {
-  return Math.round((Number(v) || 0) * 100) / 100;
 }
 
 function moeda(v) {

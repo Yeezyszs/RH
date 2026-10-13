@@ -1305,6 +1305,7 @@
           <option value="4">Acima R$ 7.500</option>
         </select>
         <button class="btn btn-secondary btn-sm" type="button" data-action="exportSalarios">↓ Exportar</button>
+        <button class="btn" type="button" data-action="abrirModalFolhaImport">⭳ Importar folha</button>
       </div>
 
       <!-- Stats -->
@@ -2777,6 +2778,33 @@
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalValeJustificar">Cancelar</button>
       <button class="btn btn-sm" type="button" data-action="salvarValeJustificativas">Salvar justificativas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — IMPORTAR FOLHA DE PAGAMENTO ════════════ -->
+<div id="modal-folha-import" class="modal">
+  <div class="modal-box" style="max-width:980px;">
+    <div class="modal-header">
+      <div class="modal-title">Importar folha de pagamento</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalFolhaImport">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="folha-drop" class="dropzone">
+        <input type="file" id="folha-file" accept="application/pdf,.pdf" hidden>
+        <div class="dropzone-titulo">Arraste o PDF da folha aqui</div>
+        <button class="btn btn-secondary btn-sm" type="button" data-action="escolherArquivoFolha">ou escolher arquivo</button>
+        <div class="dropzone-dica">
+          O arquivo de recibos que a contabilidade exporta. O sistema lê o
+          <strong>salário base</strong> de cada holerite — vencimentos e descontos do mês
+          aparecem só como conferência e não viram cadastro.
+        </div>
+      </div>
+      <div id="folha-resultado"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalFolhaImport">Cancelar</button>
+      <button class="btn btn-sm" type="button" id="btn-folha-confirmar" data-action="confirmarFolhaImport" disabled>Atualizar salários</button>
     </div>
   </div>
 </div>

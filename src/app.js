@@ -20,6 +20,7 @@ import { RotatividadeModule }     from './modules/rotatividade.js?v=dev';
 import { SalariosModule }         from './modules/salarios.js?v=dev';
 import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=dev';
 import { ValeImportacaoModule }   from './modules/vale-importacao.js?v=dev';
+import { FolhaImportacaoModule }  from './modules/folha-importacao.js?v=dev';
 import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=dev';
 import { FeedbackClimaModule }    from './modules/feedback.js?v=dev';
 import { PlanoCarreirasModule }   from './modules/plano-carreiras.js?v=dev';
@@ -184,6 +185,14 @@ function bootstrap() {
       if (sel) sel.value = mes;
       valeCombustivel.render();
     },
+  });
+
+  const folhaImportacao = new FolhaImportacaoModule({
+    $, h, fmtBRL, mesLabel,
+    COLABORADORES, SALARIOS, CONFIG,
+    Auth: window.Auth, Salarios: window.Salarios,
+    Configuracoes: window.Configuracoes, showToast,
+    aoImportar: () => { salarios.render(); window.renderDashboard?.(); },
   });
 
   const valeAlimentacao = new ValeAlimentacaoModule({
@@ -375,6 +384,10 @@ function bootstrap() {
   window.abrirModalValeJustificar  = ()           => valeCombustivel.abrirModalJustificar();
   window.fecharModalValeJustificar = ()           => valeCombustivel.fecharModalJustificar();
   window.salvarValeJustificativas  = ()           => valeCombustivel.salvarJustificativas();
+  window.abrirModalFolhaImport     = ()           => folhaImportacao.abrirModal();
+  window.fecharModalFolhaImport    = ()           => folhaImportacao.fecharModal();
+  window.escolherArquivoFolha      = ()           => folhaImportacao.escolherArquivo();
+  window.confirmarFolhaImport      = ()           => folhaImportacao.confirmar();
   window.abrirModalValeImport      = ()           => valeImportacao.abrirModal();
   window.fecharModalValeImport     = ()           => valeImportacao.fecharModal();
   window.escolherArquivoValeImport = ()           => valeImportacao.escolherArquivo();
@@ -471,7 +484,7 @@ function bootstrap() {
   return {
     colaboradores, advertencias, ferias, desligamentos,
     cronograma, vencimentos, epi, rotatividade, salarios,
-    valeCombustivel, valeImportacao, valeAlimentacao, feedbackClima, planoCarreiras,
+    valeCombustivel, valeImportacao, folhaImportacao, valeAlimentacao, feedbackClima, planoCarreiras,
   };
 }
 
