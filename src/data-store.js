@@ -29,6 +29,9 @@ var VALE_SALDO_INI = {};
 var CONFIG         = {};
 var VA_BENEFICIOS  = {};
 var SALARIOS       = {};
+// Histórico da folha por competência — a série que alimenta o seletor de mês
+// da tela de Salários. `SALARIOS` continua sendo o salário vigente.
+var FOLHA_HIST     = [];
 var FEEDBACK         = [];
 var CLIMA            = [];
 var POLITICAS        = [];
@@ -72,6 +75,7 @@ window.VALE_SALDO_INI   = VALE_SALDO_INI;
 window.CONFIG           = CONFIG;
 window.VA_BENEFICIOS    = VA_BENEFICIOS;
 window.SALARIOS         = SALARIOS;
+window.FOLHA_HIST       = FOLHA_HIST;
 window.FAIXAS           = FAIXAS;
 window.FEEDBACK         = FEEDBACK;
 window.CLIMA            = CLIMA;

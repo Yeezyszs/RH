@@ -1290,6 +1290,9 @@
 
       <!-- Toolbar -->
       <div class="toolbar">
+        <select id="sal-competencia" style="min-width:210px; display:none;">
+          <option value="">Salário atual (cadastro)</option>
+        </select>
         <div class="toolbar-search">
           <input type="text" id="sal-search" placeholder="Buscar colaborador ou cargo…">
         </div>
@@ -1323,10 +1326,13 @@
           <div class="stat-value" id="sal-stat-mediana" style="font-size:1.25rem;">—</div>
         </div>
         <div class="stat stat-warn">
-          <div class="stat-label">Sem cadastro</div>
+          <div class="stat-label" id="sal-stat-sem-label">Sem salário cadastrado</div>
           <div class="stat-value" id="sal-stat-sem">—</div>
         </div>
       </div>
+
+      <!-- Avisa que a tela está mostrando uma folha passada, não o cadastro -->
+      <div id="sal-aviso-historico" class="alerta-historico" style="display:none;"></div>
 
       <!-- Charts -->
       <div class="dash-row-charts" style="grid-template-columns: 1fr 1.2fr;">
@@ -1360,7 +1366,7 @@
                 <th>Setor / Área</th>
                 <th style="text-align:right">Salário base</th>
                 <th>Faixa</th>
-                <th>Última alteração</th>
+                <th id="sal-th-ultima">Última alteração</th>
                 <th style="width:100px; text-align:right">Ações</th>
               </tr>
             </thead>
@@ -2804,7 +2810,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalFolhaImport">Cancelar</button>
-      <button class="btn btn-sm" type="button" id="btn-folha-confirmar" data-action="confirmarFolhaImport" disabled>Atualizar salários</button>
+      <button class="btn btn-sm" type="button" id="btn-folha-confirmar" data-action="confirmarFolhaImport" disabled>Importar folha</button>
     </div>
   </div>
 </div>

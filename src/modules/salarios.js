@@ -13,6 +13,8 @@ export class SalariosModule {
     this.faixaIdx = deps.faixaIdx;
     this.COLABORADORES = deps.COLABORADORES;
     this.SALARIOS = deps.SALARIOS;
+    this.FOLHA_HIST = deps.FOLHA_HIST || [];
+    this.mesLabel = deps.mesLabel;
     this.FAIXAS = deps.FAIXAS;
     this.CHART_COLORS = deps.CHART_COLORS;
     this.Auth = deps.Auth;
@@ -34,12 +36,31 @@ export class SalariosModule {
     });
 
     document.addEventListener('change', (e) => {
-      if (e.target.id === 'sal-filter-setor' || e.target.id === 'sal-filter-faixa') this.render();
+      if (['sal-filter-setor', 'sal-filter-faixa', 'sal-competencia'].includes(e.target.id)) this.render();
     });
 
     document.querySelectorAll('.nav-item[data-page="salarios"]').forEach(el => {
       el.addEventListener('click', () => setTimeout(() => this.render(), 60));
     });
+  }
+
+  /** Competências com folha importada, da mais nova para a mais antiga. */
+  _competencias() {
+    return [...new Set(this.FOLHA_HIST.map(h => h.competencia).filter(Boolean))].sort().reverse();
+  }
+
+  /** Preenche o seletor de mês e devolve a competência escolhida ('' = atual). */
+  _preencherCompetencias() {
+    const sel = this.$('#sal-competencia');
+    if (!sel) return '';
+    const comps = this._competencias();
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Salário atual (cadastro)</option>'
+      + comps.map(c => `<option value="${c}">Folha de ${this.h(this.mesLabel(c))}</option>`).join('');
+    sel.value = comps.includes(atual) ? atual : '';
+    // Sem folha importada o seletor não tem o que oferecer.
+    sel.style.display = comps.length ? '' : 'none';
+    return sel.value;
   }
 
   render() {
@@ -49,17 +70,40 @@ export class SalariosModule {
     const q    = (this.$('#sal-search')?.value || '').trim().toLowerCase();
     const fSet = this.$('#sal-filter-setor')?.value || '';
     const fFx  = this.$('#sal-filter-faixa')?.value;
+    const comp = this._preencherCompetencias();
 
-    const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo');
+    // Olhando uma competência passada, a lista é a daquela folha — inclusive
+    // quem já foi desligado depois. Olhando o atual, é o efetivo de hoje.
+    const doMes = comp
+      ? new Map(this.FOLHA_HIST.filter(h => h.competencia === comp).map(h => [h.colaborador_id, h]))
+      : null;
+
+    const ativos = comp
+      ? this.COLABORADORES.filter(c => doMes.has(c.id))
+      : this.COLABORADORES.filter(c => c.status !== 'inativo');
 
     const linhas = ativos.map(c => {
+      if (comp) {
+        const h = doMes.get(c.id);
+        return {
+          colab:          c,
+          valor:          parseFloat(h.salario_base) || 0,
+          data_alteracao: null,
+          observacoes:    '',
+          liquido:        h.liquido != null ? parseFloat(h.liquido) : null,
+          temSalario:     true,
+          historico:      true,
+        };
+      }
       const s = this.SALARIOS[c.id];
       return {
         colab:          c,
         valor:          s?.valor || 0,
         data_alteracao: s?.data_alteracao || null,
         observacoes:    s?.observacoes || '',
+        liquido:        null,
         temSalario:     !!s,
+        historico:      false,
       };
     });
 
@@ -91,6 +135,24 @@ export class SalariosModule {
     this.$('#sal-stat-mediana').textContent = this.fmtBRL(mediana);
     this.$('#sal-stat-sem').textContent     = linhas.filter(r => !r.temSalario).length;
 
+    // Rótulos que mudam com o modo: no histórico não existe "sem cadastro",
+    // existe "pessoas na folha"; e a última coluna passa a ser o líquido pago.
+    const rotSem = this.$('#sal-stat-sem-label');
+    if (rotSem) rotSem.textContent = comp ? 'Pessoas na folha' : 'Sem salário cadastrado';
+    if (comp) this.$('#sal-stat-sem').textContent = linhas.length;
+    const thUlt = this.$('#sal-th-ultima');
+    if (thUlt) thUlt.textContent = comp ? 'Líquido do mês' : 'Última alteração';
+    const aviso = this.$('#sal-aviso-historico');
+    if (aviso) {
+      aviso.style.display = comp ? '' : 'none';
+      if (comp) {
+        const liq = linhas.reduce((s2, r) => s2 + (r.liquido || 0), 0);
+        aviso.innerHTML = `Você está vendo a <strong>folha de ${this.h(this.mesLabel(comp))}</strong>, `
+          + `como ela foi importada — não dá para editar o passado. `
+          + `Líquido pago no mês: <strong>${this.fmtBRL(liq)}</strong>.`;
+      }
+    }
+
     tb.innerHTML = filtradas.length
       ? filtradas.map(r => {
           const c = r.colab;
@@ -102,7 +164,7 @@ export class SalariosModule {
             ? `<span class="badge info">${faixa}</span>`
             : `<span class="badge neutral">—</span>`;
           return `
-            <tr onclick="abrirModalSalario(${c.id})">
+            <tr${r.historico ? '' : ` onclick="abrirModalSalario(${c.id})"`}>
               <td>
                 <div class="cell-person">
                   <div class="cell-avatar">${this.h(this.iniciais(c.nome))}</div>
@@ -118,9 +180,11 @@ export class SalariosModule {
               </td>
               <td style="text-align:right">${salDisp}</td>
               <td>${faixaDisp}</td>
-              <td class="cell-mono">${r.data_alteracao ? this.fmtDate(r.data_alteracao) : '—'}</td>
+              <td class="cell-mono">${r.historico
+                ? (r.liquido != null ? this.fmtBRL(r.liquido) : '—')
+                : (r.data_alteracao ? this.fmtDate(r.data_alteracao) : '—')}</td>
               <td class="actions" onclick="event.stopPropagation()">
-                <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalSalario(${c.id})">✎</button>
+                ${r.historico ? '' : `<button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalSalario(${c.id})">✎</button>`}
               </td>
             </tr>
           `;

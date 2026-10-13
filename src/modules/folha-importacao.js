@@ -33,6 +33,8 @@ export class FolhaImportacaoModule {
     this.CONFIG        = deps.CONFIG || {};
     this.Auth          = deps.Auth;
     this.Salarios      = deps.Salarios;
+    this.FolhaCompetencia = deps.FolhaCompetencia;
+    this.FOLHA_HIST       = deps.FOLHA_HIST || [];
     this.Configuracoes = deps.Configuracoes;
     this.showToast     = deps.showToast;
     this.aoImportar    = deps.aoImportar || (() => {});
@@ -272,19 +274,60 @@ export class FolhaImportacaoModule {
       ${pendentes}
       ${ausentes}
       ${c.mudancas.length === 0 && c.iguais.length
-        ? '<div class="empty">Todos os salários da folha já conferem com o sistema — nada a atualizar.</div>'
+        ? `<div class="empty">Todos os salários já conferem com o sistema. Importar mesmo assim `
+          + `registra ${this.h(this.mesLabel(f.competencia))} no histórico.</div>`
         : ''}
     `);
 
-    this._habilitarConfirmar(c.mudancas.length > 0 && f.problemas.length === 0);
+    // Vale importar mesmo quando nenhum salário muda: o histórico da
+    // competência é registro próprio, e é dele que sai o seletor de mês.
+    const temOQueGravar = c.mudancas.length > 0 || c.iguais.length > 0;
+    this._habilitarConfirmar(temOQueGravar && f.problemas.length === 0);
   }
 
   // ─── Gravação ───────────────────────────────────────────────────────────────
 
+  /**
+   * Grava a competência inteira no histórico.
+   *
+   * Entram os que mudam E os que já conferem: a pergunta que o histórico
+   * responde é "quanto esta pessoa ganhava em setembro", e quem não teve
+   * aumento também ganhava algo. Guarda também vencimentos, descontos e
+   * líquido — não são salário, são o custo real daquele mês.
+   */
+  async _gravarHistorico(c, temSessao) {
+    const comp = this._folha.competencia;
+    if (!comp) return;
+
+    const linhas = c.mudancas.concat(c.iguais).map(({ holerite, colab }) => ({
+      colaborador_id: colab.id,
+      competencia:    comp,
+      salario_base:   holerite.salarioBase,
+      vencimentos:    holerite.vencimentos,
+      descontos:      holerite.descontos,
+      liquido:        holerite.liquido,
+      cargo:          holerite.cargo,
+      codigo_folha:   holerite.codigo,
+    }));
+    if (!linhas.length) return;
+
+    if (temSessao && this.FolhaCompetencia) {
+      await this.FolhaCompetencia.upsertEmLote(linhas);
+    }
+
+    // Espelha no estado local: reimportar a mesma competência substitui.
+    const restante = this.FOLHA_HIST.filter(h => h.competencia !== comp);
+    this.FOLHA_HIST.length = 0;
+    this.FOLHA_HIST.push(...restante, ...linhas);
+  }
+
   async confirmar() {
     if (this._ocupado || !this._folha) return;
     const c = this._conciliacao();
-    if (!c.mudancas.length) { this.showToast('Nenhum salário a atualizar', 'err'); return; }
+    if (!c.mudancas.length && !c.iguais.length) {
+      this.showToast('Nenhum holerite casou com o cadastro', 'err');
+      return;
+    }
 
     const hoje = new Date().toISOString().slice(0, 10);
     const obs = `Folha de ${this.mesLabel(this._folha.competencia)}`;
@@ -295,6 +338,11 @@ export class FolhaImportacaoModule {
     const temSessao = this.Salarios && this.Auth && await this.Auth.sessaoAtual().catch(() => null);
     let gravados = 0;
     try {
+      // Primeiro o histórico da competência: é o registro do que a folha
+      // disse, e vale para TODO mundo que casou — inclusive quem já estava com
+      // o salário certo e por isso não aparece em "o que vai mudar".
+      await this._gravarHistorico(c, temSessao);
+
       for (const m of c.mudancas) {
         const payload = { colaborador_id: m.colab.id, valor: m.novo, data_alteracao: hoje, observacoes: obs };
         if (temSessao) {
@@ -332,7 +380,10 @@ export class FolhaImportacaoModule {
     this._ocupado = false;
 
     this.fecharModal();
-    this.showToast(`${gravados} salário(s) atualizados pela folha de ${this.mesLabel(this._folha.competencia)}`, 'ok');
+    const mes = this.mesLabel(this._folha.competencia);
+    this.showToast(gravados
+      ? `${gravados} salário(s) atualizados · ${mes} registrado no histórico`
+      : `${mes} registrado no histórico — nenhum salário mudou`, 'ok');
     this.aoImportar(this._folha.competencia);
   }
 }

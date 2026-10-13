@@ -135,13 +135,15 @@ describe('a conferência mostra o que muda', () => {
     expect(doc.querySelector('#folha-resultado').textContent).toContain('não cadastrado');
   });
 
-  it('avisa quando tudo já confere e não libera gravação', async () => {
+  it('quando tudo já confere, diz isso — mas deixa importar pelo histórico', async () => {
+    // Nenhum salário muda, e ainda assim vale gravar: a competência é
+    // registro próprio, e é dela que sai o seletor de mês.
     const { mod, doc } = await montar({
       salarios: { 1: { id: 7, valor: 3674.64 }, 2: { id: 8, valor: 2800 } },
     });
     await mod.lerArquivo(pdfFalso());
     expect(doc.querySelector('#folha-resultado').textContent).toMatch(/já conferem com o sistema/);
-    expect(doc.querySelector('#btn-folha-confirmar').disabled).toBe(true);
+    expect(doc.querySelector('#btn-folha-confirmar').disabled).toBe(false);
   });
 
   it('oferece ligar à mão quem não casou pelo nome', async () => {
@@ -248,5 +250,67 @@ describe('as ligações podem ser lembradas', () => {
     mod.abrirModal();
     await mod.lerArquivo(pdfFalso());
     expect(mod._conciliacao().mudancas).toHaveLength(2);
+  });
+});
+
+describe('o histórico da competência', () => {
+  it('grava uma linha por pessoa que casou, não só quem mudou', async () => {
+    // Quem já estava com o salário certo também ganhava algo em setembro.
+    const hist = [];
+    const { mod } = await montar({ salarios: { 1: { id: 7, valor: 3674.64 } } });
+    mod.FOLHA_HIST = hist;
+    const gravadas = [];
+    mod.FolhaCompetencia = { upsertEmLote: async (l) => { gravadas.push(...l); return l; } };
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+    expect(gravadas.map(l => l.colaborador_id).sort()).toEqual([1, 2]);
+  });
+
+  it('guarda salário base, totais do mês e a competência', async () => {
+    const { mod } = await montar();
+    const gravadas = [];
+    mod.FOLHA_HIST = [];
+    mod.FolhaCompetencia = { upsertEmLote: async (l) => { gravadas.push(...l); return l; } };
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+    expect(gravadas[0]).toMatchObject({
+      competencia: '2026-09', salario_base: 3674.64,
+      vencimentos: 3998.84, descontos: 1878.21, liquido: 2120.63,
+      cargo: 'OPERADOR DE FORNO', codigo_folha: '5',
+    });
+  });
+
+  it('reimportar a mesma competência substitui, não duplica', async () => {
+    const hist = [{ colaborador_id: 1, competencia: '2026-09', salario_base: 1 }];
+    const { mod } = await montar();
+    mod.FOLHA_HIST = hist;
+    mod.FolhaCompetencia = { upsertEmLote: async (l) => l };
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+    expect(hist.filter(h => h.competencia === '2026-09' && h.colaborador_id === 1)).toHaveLength(1);
+    expect(hist.find(h => h.colaborador_id === 1).salario_base).toBe(3674.64);
+  });
+
+  it('competência anterior continua no histórico', async () => {
+    const hist = [{ colaborador_id: 1, competencia: '2026-08', salario_base: 3500 }];
+    const { mod } = await montar();
+    mod.FOLHA_HIST = hist;
+    mod.FolhaCompetencia = { upsertEmLote: async (l) => l };
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+    expect(hist.some(h => h.competencia === '2026-08')).toBe(true);
+    expect(hist.some(h => h.competencia === '2026-09')).toBe(true);
+  });
+
+  it('quem não casou com o cadastro não entra no histórico', async () => {
+    const { mod } = await montar({
+      linhas: [...via({}), ...via({ codigo: '99', nome: 'NAO EXISTE NO CADASTRO' })],
+    });
+    const gravadas = [];
+    mod.FOLHA_HIST = [];
+    mod.FolhaCompetencia = { upsertEmLote: async (l) => { gravadas.push(...l); return l; } };
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+    expect(gravadas.map(l => l.colaborador_id)).toEqual([1]);
   });
 });

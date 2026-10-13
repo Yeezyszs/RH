@@ -88,6 +88,40 @@ const Salarios = {
   },
 };
 
+// Série histórica da folha: o que cada competência importada disse.
+// `salario_atual` continua sendo o salário vigente; isto é o passado, e é o
+// que permite escolher um mês na tela de Salários.
+const FolhaCompetencia = {
+  async listar() {
+    const cached = Cache.get('folha_competencia');
+    if (cached) return cached;
+    const { data, error } = await withTimeout(
+      sb.from('folha_competencia')
+        .select('id, colaborador_id, competencia, salario_base, vencimentos, descontos, liquido, cargo, codigo_folha')
+        .order('competencia', { ascending: false })
+        .order('colaborador_id')
+    );
+    if (error) throw error;
+    Cache.set('folha_competencia', data ?? []);
+    return data ?? [];
+  },
+
+  // Uma competência inteira de uma vez. Reimportar o mesmo mês substitui o que
+  // estava lá — é o que se espera de quem subiu a folha errada e corrigiu.
+  async upsertEmLote(linhas) {
+    if (!linhas.length) return [];
+    const { data, error } = await withTimeout(
+      sb.from('folha_competencia')
+        .upsert(linhas, { onConflict: 'colaborador_id,competencia' })
+        .select(),
+      15000
+    );
+    if (error) throw error;
+    Cache.invalidate('folha_competencia');
+    return data ?? [];
+  },
+};
+
 const ValeCombustivel = {
   // O benefício é gerido por competência: cada linha tem `data` nula e guarda
   // crédito (valor_mensal), consumo (utilizado) e saldo de abertura do mês.

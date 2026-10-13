@@ -73,17 +73,12 @@ uma:
 A ligação é guardada pelo **código da folha** (o número que aparece à esquerda
 do nome no holerite), que não muda de mês para mês.
 
-> **Na primeira importação você vai ter três dessas**, todas por erro de
-> digitação no cadastro do sistema:
->
-> | Na folha | No sistema |
-> |---|---|
-> | ANA CLAUDIA DE **OLIVEIRA** VIEIRA MAGALHAES | ANA CLAUDIA DE **OLIVERIA** VIEIRA MAGALHAES |
-> | GUILHERME **VINICIUS** MAEL LOURENCO DE MACEDO | GUILHERME **VICNICIUS** MAEL LOURENCO DE MACEDO |
-> | VALDECIR **GONCALVES** BUENO | VALDECIR **GONÇALVEZ** BUENO |
->
-> Vale corrigir o nome na ficha delas em Colaboradores — aí nem precisa de
-> ligação. Se corrigir, elas passam a casar sozinhas.
+> **Os três casos que existiam foram corrigidos no cadastro** (eram erros de
+> digitação no sistema: OLIVERIA por OLIVEIRA, VICNICIUS por VINICIUS,
+> GONÇALVEZ por GONÇALVES). Hoje os 39 holerites da folha de setembro casam
+> sozinhos. Se aparecer um caso novo, é porque alguém foi cadastrado com o nome
+> diferente do que a contabilidade usa — vale corrigir a ficha, que é mais
+> limpo do que carregar a ligação para sempre.
 
 Se deixar alguém como "— não importar —", o salário dela simplesmente não é
 gravado. Nada quebra.
@@ -102,7 +97,34 @@ O botão **Atualizar salários** fica bloqueado quando:
 
 ---
 
-## 5. Perguntas rápidas
+## 5. Ver um mês passado
+
+Cada folha importada fica guardada por competência. Na tela de **Salários**,
+assim que existir pelo menos uma folha importada, aparece um seletor no começo
+da barra:
+
+| Opção | Mostra |
+|---|---|
+| **Salário atual (cadastro)** | o salário vigente — é o normal, e é o que dá para editar |
+| **Folha de setembro de 2026** | a folha daquele mês, como foi importada |
+
+Escolhendo um mês, a tela muda de assunto:
+
+- os valores são os **daquela folha**, não os de hoje;
+- entra quem estava naquela folha, **inclusive quem foi desligado depois**;
+- a última coluna deixa de ser "última alteração" e passa a ser o
+  **líquido do mês**;
+- uma faixa azul no topo avisa que você está no passado e mostra o **total
+  líquido pago** naquele mês;
+- **não dá para editar** — passado não se edita; para mexer no salário de hoje,
+  volte para "Salário atual".
+
+> **Reimportar o mesmo mês substitui**, não duplica. Subiu a folha errada? Suba
+> a certa por cima.
+
+---
+
+## 6. Perguntas rápidas
 
 **Importei a folha errada. E agora?**
 Importe a certa por cima — o valor é substituído. O campo de observação de cada
@@ -116,9 +138,15 @@ sistema pode ler um valor que não é salário. Use a **folha mensal**.
 Não. Ele só avisa quando estão diferentes. Mudar cadastro é em Colaboradores.
 
 **Dá para importar meses anteriores?**
-Dá, mas o salário é um valor único e atual — importar uma folha antiga por cima
-de uma recente faz o sistema voltar ao valor antigo. Importe em ordem, ou só a
-mais recente.
+Dá, e vale a pena: cada competência fica guardada e passa a aparecer no seletor
+de mês. Mas atenção à ordem — o **salário atual** do cadastro é sempre o da
+última folha importada. Se você importar setembro depois de outubro, o cadastro
+volta para o valor de setembro. O histórico fica certo nos dois casos; o que
+depende da ordem é o valor vigente.
+
+**Importar um mês onde nada mudou adianta?**
+Adianta: mesmo sem nenhum salário mudar, a competência é registrada no
+histórico e passa a aparecer no seletor de mês.
 
 ---
 
@@ -130,5 +158,6 @@ mais recente.
 | Reconstrução das linhas do PDF | [`src/utils/texto-pdf.js`](../src/utils/texto-pdf.js) |
 | Tela de importação | [`src/modules/folha-importacao.js`](../src/modules/folha-importacao.js) |
 | Gravação | [`src/api/beneficios.js`](../src/api/beneficios.js) → `Salarios` |
-| Tabela | `salario_atual` |
-| Testes | [`tests/folha-pagamento.test.js`](../tests/folha-pagamento.test.js), [`tests/folha-importacao.test.js`](../tests/folha-importacao.test.js) |
+| Tabelas | `salario_atual` (vigente) e `folha_competencia` (histórico) |
+| Seletor de mês | [`src/modules/salarios.js`](../src/modules/salarios.js) → `_preencherCompetencias()` |
+| Testes | [`tests/folha-pagamento.test.js`](../tests/folha-pagamento.test.js), [`tests/folha-importacao.test.js`](../tests/folha-importacao.test.js), [`tests/salarios-competencia.test.js`](../tests/salarios-competencia.test.js) |

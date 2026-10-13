@@ -109,6 +109,8 @@ const globaisDoProjeto = {
   'mapAdvertencia': 'writable',
   'STATUS_EFETIVO': 'writable',
   'statusCasa': 'writable',
+  'FOLHA_HIST': 'writable',
+  'FolhaCompetencia': 'writable',
   'mapColaborador': 'writable',
   'mapDesligamento': 'writable',
   'mapEvento': 'writable',

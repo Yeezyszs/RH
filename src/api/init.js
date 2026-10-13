@@ -12,7 +12,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, afastamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac, valeDesc, config] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac, valeDesc, config, folhaHist] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -40,6 +40,7 @@ async function inicializarSupabase() {
         SacMensagens.listar(),
         ValeDescontos.listar(),
         Configuracoes.listar(),
+        FolhaCompetencia.listar(),
       ]);
 
     // Nada acima rejeita (allSettled), então o que falhou precisa ser
@@ -71,6 +72,7 @@ async function inicializarSupabase() {
       'SAC':                 sac,
       'descontos do vale':   valeDesc,
       'configurações':       config,
+      'histórico da folha':  folhaHist,
     });
 
     window.FALHAS_CARREGAMENTO = falhas;
@@ -211,6 +213,14 @@ async function inicializarSupabase() {
       if (lista.length > 0) {
         _preencherArray(SAC, lista);
         console.info(`[RH] ${SAC.length} mensagens de SAC carregadas.`);
+      }
+    }
+
+    if (folhaHist.status === 'fulfilled') {
+      const lista = folhaHist.value ?? [];
+      if (lista.length > 0) {
+        _preencherArray(FOLHA_HIST, lista);
+        console.info(`[RH] ${FOLHA_HIST.length} linhas de histórico da folha carregadas.`);
       }
     }
 
@@ -396,6 +406,7 @@ window.Epis                   = Epis;
 window.Treinamentos           = Treinamentos;
 window.Ferias                 = Ferias;
 window.Salarios               = Salarios;
+window.FolhaCompetencia       = FolhaCompetencia;
 window.ValeCombustivel        = ValeCombustivel;
 window.ValeDescontos          = ValeDescontos;
 window.Configuracoes          = Configuracoes;

@@ -75,6 +75,7 @@ function bootstrap() {
   const EPI_KITS         = window.EPI_KITS;
   const AFASTAMENTOS     = window.AFASTAMENTOS;
   const SALARIOS         = window.SALARIOS;
+  const FOLHA_HIST       = window.FOLHA_HIST;
   const FAIXAS           = window.FAIXAS;
   const VALE_COTAS       = window.VALE_COTAS;
   const VALE_COTAS_MES   = window.VALE_COTAS_MES;
@@ -159,8 +160,8 @@ function bootstrap() {
   });
 
   const salarios = new SalariosModule({
-    $, h, iniciais, fmtDate, fmtBRL, faixaIdx,
-    COLABORADORES, SALARIOS, FAIXAS, CHART_COLORS,
+    $, h, iniciais, fmtDate, fmtBRL, faixaIdx, mesLabel,
+    COLABORADORES, SALARIOS, FOLHA_HIST, FAIXAS, CHART_COLORS,
     Auth: window.Auth, Salarios: window.Salarios,
   });
 
@@ -189,8 +190,9 @@ function bootstrap() {
 
   const folhaImportacao = new FolhaImportacaoModule({
     $, h, fmtBRL, mesLabel,
-    COLABORADORES, SALARIOS, CONFIG,
+    COLABORADORES, SALARIOS, FOLHA_HIST, CONFIG,
     Auth: window.Auth, Salarios: window.Salarios,
+    FolhaCompetencia: window.FolhaCompetencia,
     Configuracoes: window.Configuracoes, showToast,
     aoImportar: () => { salarios.render(); window.renderDashboard?.(); },
   });
