@@ -230,3 +230,39 @@ describe('procurar quem saiu da empresa não parece cadastro perdido', () => {
     expect(mod._mensagemVazia('joana', 'ativo', '')).toBe('Nenhum colaborador encontrado');
   });
 });
+
+describe('o relatório impresso leva a data de nascimento', () => {
+  const COM_NASCIMENTO = PESSOAS.map(p => ({ ...p, nascimento: '1990-07-02' }));
+
+  it('a data sai em cada linha do documento', async () => {
+    const { mod, doc } = await criar(COM_NASCIMENTO);
+    const wrapper = doc.querySelector('#page-colaboradores').cloneNode(true);
+    mod.prepararRelatorio(wrapper);
+    const linha = [...wrapper.querySelectorAll('#tb-colaboradores tr')][0];
+    expect(linha.textContent).toContain('1990-07-02');
+  });
+
+  it('sai para todo mundo da relação, não só para a primeira página', async () => {
+    const { mod, doc } = await criar(COM_NASCIMENTO);
+    comPrimeiraPagina(mod, doc, COM_NASCIMENTO);
+    const wrapper = doc.querySelector('#page-colaboradores').cloneNode(true);
+    mod.prepararRelatorio(wrapper);
+    const comData = [...wrapper.querySelectorAll('#tb-colaboradores tr')]
+      .filter(tr => tr.textContent.includes('1990-07-02'));
+    expect(comData).toHaveLength(60);
+  });
+
+  it('a coluna do cabeçalho impresso continua alinhada com as linhas', async () => {
+    const { mod, doc } = await criar(COM_NASCIMENTO);
+    const wrapper = doc.querySelector('#page-colaboradores').cloneNode(true);
+    mod.prepararRelatorio(wrapper);
+    // O relatório remove a coluna de ações — cabeçalho e linha caem juntos.
+    wrapper.querySelectorAll('.actions').forEach(el => el.remove());
+    wrapper.querySelectorAll('th').forEach(th => {
+      if (th.textContent.trim().toLowerCase() === 'ações') th.remove();
+    });
+    const nTh = wrapper.querySelectorAll('thead th').length;
+    const nTd = wrapper.querySelector('#tb-colaboradores tr').querySelectorAll('td').length;
+    expect(nTd).toBe(nTh);
+  });
+});

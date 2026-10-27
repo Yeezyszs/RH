@@ -103,7 +103,7 @@ export class ColaboradoresModule {
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
 
     if (temSessao) {
-      tbody.innerHTML = `<tr><td colspan="5" class="empty" style="color:var(--text-muted)">Carregando…</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="empty" style="color:var(--text-muted)">Carregando…</td></tr>`;
       try {
         const res = await this.Colaboradores.listar({
           page: this.state.page,
@@ -115,18 +115,18 @@ export class ColaboradoresModule {
 
         tbody.innerHTML = res.data.length
           ? this._renderLinhas(res.data)
-          : `<tr><td colspan="5" class="empty">${this.h(this._mensagemVazia(busca, status, setor))}</td></tr>`;
+          : `<tr><td colspan="6" class="empty">${this.h(this._mensagemVazia(busca, status, setor))}</td></tr>`;
 
         this._updateStats(this.COLABORADORES);
         this._renderPaginacao(res.page, res.totalPages, res.total);
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="5" class="empty">Erro ao carregar: ${this.h(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="empty">Erro ao carregar: ${this.h(err.message)}</td></tr>`;
       }
     } else {
       const lista = this._filtrarMock(busca, status, setor);
       tbody.innerHTML = lista.length
         ? this._renderLinhas(lista)
-        : `<tr><td colspan="5" class="empty">${this.h(this._mensagemVazia(busca, status, setor))}</td></tr>`;
+        : `<tr><td colspan="6" class="empty">${this.h(this._mensagemVazia(busca, status, setor))}</td></tr>`;
       this._updateStats(this.COLABORADORES);
       const bar = this.$('#col-pagination-bar');
       if (bar) bar.style.display = 'none';
@@ -195,6 +195,7 @@ export class ColaboradoresModule {
             <div>${this.h(c.setor)}</div>
             ${c.area ? `<div class="cell-person-sub">${this.h(c.area)}</div>` : ''}
           </td>
+          <td class="cell-mono">${c.nascimento ? this.fmtDate(c.nascimento) : '—'}</td>
           <td class="cell-mono">${this.fmtDate(c.admissao)}</td>
           <td><span class="badge ${st.cls}">${st.t}</span></td>
           <td class="actions" onclick="event.stopPropagation()">
@@ -288,7 +289,7 @@ export class ColaboradoresModule {
 
     tbody.innerHTML = lista.length
       ? this._renderLinhas(lista)
-      : `<tr><td colspan="5" class="empty">Nenhum colaborador encontrado</td></tr>`;
+      : `<tr><td colspan="6" class="empty">Nenhum colaborador encontrado</td></tr>`;
 
     // A barra de paginação não tem sentido num documento com a lista inteira;
     // no lugar dela fica o total, para quem lê o papel conferir.

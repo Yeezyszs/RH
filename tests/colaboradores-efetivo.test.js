@@ -134,3 +134,60 @@ describe('a lista continua mostrando o afastado', () => {
     expect(linha.querySelector('.badge').textContent).toBe('Afastado');
   });
 });
+
+describe('a data de nascimento na lista e no relatório', () => {
+  const COM_NASCIMENTO = PESSOAS.map((p, i) => ({
+    ...p, nascimento: i === 0 ? '1985-03-14' : '1990-07-02',
+  }));
+
+  it('cada linha traz a data de nascimento', async () => {
+    const { mod, doc } = await criar(COM_NASCIMENTO);
+    doc.querySelector('#tb-colaboradores').innerHTML = mod._renderLinhas(COM_NASCIMENTO);
+    const linha = [...doc.querySelectorAll('#tb-colaboradores tr')][0];
+    expect(linha.textContent).toContain('1985-03-14');
+  });
+
+  it('a coluna fica entre o setor e a admissão', async () => {
+    // A ordem importa: o relatório impresso sai com as colunas desta ordem.
+    const { mod, doc } = await criar(COM_NASCIMENTO);
+    doc.querySelector('#tb-colaboradores').innerHTML = mod._renderLinhas([COM_NASCIMENTO[0]]);
+    const celulas = [...doc.querySelectorAll('#tb-colaboradores tr td')].map(td => td.textContent.trim());
+    expect(celulas[2]).toBe('1985-03-14');
+    expect(celulas[3]).toBe('2020-01-10');
+  });
+
+  it('quem não tem nascimento cadastrado sai com travessão, não em branco', async () => {
+    const { mod, doc } = await criar(PESSOAS);
+    doc.querySelector('#tb-colaboradores').innerHTML = mod._renderLinhas([{ ...PESSOAS[0], nascimento: '' }]);
+    const celulas = [...doc.querySelectorAll('#tb-colaboradores tr td')].map(td => td.textContent.trim());
+    expect(celulas[2]).toBe('—');
+  });
+
+  it('o cabeçalho da tabela tem a coluna Nascimento', () => {
+    const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+    const ini = html.indexOf('<tbody id="tb-colaboradores">');
+    const cab = html.slice(html.lastIndexOf('<thead>', ini), ini);
+    const ths = [...cab.matchAll(/<th[^>]*>([^<]*)<\/th>/g)].map(m => m[1].trim());
+    expect(ths).toEqual(['Colaborador', 'Setor / Área', 'Nascimento', 'Admissão', 'Status', 'Ações']);
+  });
+
+  it('o número de colunas do cabeçalho bate com o das linhas', async () => {
+    // Cabeçalho e linha fora de sincronia desalinham o relatório inteiro.
+    const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+    const ini = html.indexOf('<tbody id="tb-colaboradores">');
+    const cab = html.slice(html.lastIndexOf('<thead>', ini), ini);
+    // `<th[^>]*>` também casaria com `<thead>` — daí o lookahead.
+    const nTh = [...cab.matchAll(/<th(?=[\s>])[^>]*>/g)].length;
+
+    const { mod, doc } = await criar(COM_NASCIMENTO);
+    doc.querySelector('#tb-colaboradores').innerHTML = mod._renderLinhas([COM_NASCIMENTO[0]]);
+    expect(doc.querySelectorAll('#tb-colaboradores tr td')).toHaveLength(nTh);
+  });
+
+  it('a linha vazia ocupa a largura toda da tabela', async () => {
+    const { mod, doc } = await criar(PESSOAS);
+    doc.querySelector('#tb-colaboradores').innerHTML =
+      `<tr><td colspan="6" class="empty">${mod._mensagemVazia('', '', '')}</td></tr>`;
+    expect(doc.querySelector('#tb-colaboradores td').getAttribute('colspan')).toBe('6');
+  });
+});
