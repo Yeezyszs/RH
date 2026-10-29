@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Carrega a fonte que o sistema realmente usa.
+   Antes importava Syne e JetBrains Mono e não usava nenhuma das duas: as
+   variáveis apontavam para Work Sans (que não era carregada, então caía no
+   system-ui) e Courier New. Duas fontes baixadas a cada abertura para nada. */
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap');
 
 :root {
   /* ── Phthalo Blue ── */
