@@ -16,6 +16,7 @@
     quadro:            'Relatório — Quadro de Funcionários',
     rotatividade:      'Relatório de Rotatividade',
     desligamentos:     'Relatório de Desligamentos',
+    rescisoes:         'Relatório de Rescisões',
     vencimentos:       'Relatório de Vencimentos',
     epi:               'Relatório de EPIs',
     'vale-combustivel':'Relatório de Vale Combustível',

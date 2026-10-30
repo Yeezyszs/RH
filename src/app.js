@@ -13,6 +13,7 @@ import { QuadroModule }           from './modules/quadro.js?v=dev';
 import { AdvertenciasModule }     from './modules/advertencias.js?v=dev';
 import { FeriasModule }           from './modules/ferias.js?v=dev';
 import { DesligamentosModule }    from './modules/desligamentos.js?v=dev';
+import { RescisoesModule }        from './modules/rescisoes.js?v=dev';
 import { CronogramaModule }       from './modules/cronograma.js?v=dev';
 import { VencimentosModule }      from './modules/vencimentos.js?v=dev';
 import { EpiModule }              from './modules/epi.js?v=dev';
@@ -135,6 +136,12 @@ function bootstrap() {
     $, h, iniciais, fmtDate,
     DESLIGAMENTOS, COLABORADORES,
     Auth: window.Auth, Desligamentos: window.Desligamentos,
+  });
+
+  const rescisoes = new RescisoesModule({
+    $, h, iniciais, fmtDate, fmtBRL, mesLabel,
+    DESLIGAMENTOS, CHART_COLORS,
+    Auth: window.Auth, Desligamentos: window.Desligamentos, showToast,
   });
 
   const cronograma = new CronogramaModule({
@@ -320,7 +327,13 @@ function bootstrap() {
   window.fecharModalEntrevista         = ()     => desligamentos.fecharModalEntrevista();
   window.salvarEntrevista              = (ev)   => desligamentos.salvarEntrevista(ev);
   window.abrirModalEntrevistaDoDrawer  = ()     => desligamentos.abrirModalEntrevistaDoDrawer();
-  window.renderDesligamentos           = ()     => desligamentos.render();
+  window.renderDesligamentos           = ()     => { desligamentos.render(); rescisoes.render(); };
+
+  // Rescisões — mesma fonte de dados dos desligamentos, outra tela.
+  window.abrirModalRescisao            = (id)   => rescisoes.abrirModal(id);
+  window.fecharModalRescisao           = ()     => rescisoes.fecharModal();
+  window.salvarRescisao                = (ev)   => rescisoes.salvar(ev);
+  window.renderRescisoes               = ()     => rescisoes.render();
 
   // Cronograma
   window.navCalendar              = (d)         => cronograma.navCalendar(d);

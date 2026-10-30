@@ -111,6 +111,11 @@
         <span class="nav-icon">⇲</span>
         <span>Desligamentos</span>
       </div>
+      <div class="nav-item nav-restricted" data-page="rescisoes">
+        <span class="nav-icon">⊟</span>
+        <span>Rescisões</span>
+        <span class="nav-lock">🔒</span>
+      </div>
     </div>
 
     <div class="nav-group">
@@ -614,6 +619,87 @@
               </tr>
             </thead>
             <tbody id="tb-desligamentos"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───── RESCISÕES ───── -->
+    <section id="page-rescisoes" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Rescisões</h1>
+          <div class="page-subtitle">Valor pago em cada acerto rescisório · gasto acumulado por período</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="resc-search" placeholder="Buscar por nome, setor ou motivo…">
+        </div>
+        <select id="resc-filter-ano"></select>
+        <select id="resc-filter-motivo">
+          <option value="">Todos os motivos</option>
+          <option>Pedido do colaborador</option>
+          <option>Sem justa causa</option>
+          <option>Justa causa</option>
+          <option>Término de contrato</option>
+          <option>Aposentadoria</option>
+          <option>Acordo mútuo</option>
+        </select>
+        <select id="resc-filter-situacao">
+          <option value="">Lançadas e pendentes</option>
+          <option value="lancada">Somente lançadas</option>
+          <option value="pendente">Somente pendentes</option>
+        </select>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat stat-danger">
+          <div class="stat-label">Total pago em rescisões</div>
+          <div class="stat-value" id="resc-stat-total" style="font-size:1.25rem; line-height:1.8;">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Rescisões lançadas</div>
+          <div class="stat-value" id="resc-stat-qtd">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Valor médio</div>
+          <div class="stat-value" id="resc-stat-media" style="font-size:1.25rem; line-height:1.8;">—</div>
+        </div>
+        <div class="stat stat-warn">
+          <div class="stat-label">Sem valor lançado</div>
+          <div class="stat-value" id="resc-stat-pendente">—</div>
+        </div>
+      </div>
+
+      <!-- Gráfico de gasto -->
+      <div class="widget" style="margin-bottom:14px;">
+        <div class="widget-header">
+          <div class="widget-title">Gasto com rescisões</div>
+          <span class="widget-badge">por mês do acerto</span>
+        </div>
+        <div class="chart-container" style="height:200px;">
+          <canvas id="chart-rescisoes"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width:30%">Colaborador</th>
+                <th>Data da rescisão</th>
+                <th>Motivo</th>
+                <th>Valor da rescisão</th>
+                <th style="width:80px; text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-rescisoes"></tbody>
           </table>
         </div>
       </div>
@@ -3662,6 +3748,39 @@
 </div>
 
 <!-- ════════════ MODAL — CONFIG. VALE ALIMENTAÇÃO (1 colab) ════════════ -->
+<div id="modal-rescisao" class="modal">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">Lançar rescisão</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalRescisao">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px;">
+        <div class="cell-person-name" id="resc-modal-nome" style="font-size:1rem;"></div>
+        <div class="cell-person-sub" id="resc-modal-sub"></div>
+      </div>
+      <form id="form-rescisao" class="form-grid" onsubmit="salvarRescisao(event)">
+        <input type="hidden" name="desligamento_id">
+        <div class="form-group">
+          <label>Data da rescisão</label>
+          <input type="date" name="data" required>
+        </div>
+        <div class="form-group">
+          <label>Valor da rescisão (R$)</label>
+          <input type="number" name="valor" step="0.01" min="0" placeholder="0,00">
+        </div>
+        <div class="form-group full">
+          <div class="cell-person-sub">Deixe o valor em branco para marcar a rescisão como pendente de lançamento.</div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalRescisao">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-rescisao">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-vale-alimentacao" class="modal">
   <div class="modal-box">
     <div class="modal-header">

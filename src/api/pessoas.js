@@ -74,6 +74,9 @@ function mapDesligamento(raw) {
     data: raw.data_desligamento,
     nome: raw.colaboradores?.nome || raw.nome || '',
     admissao: raw.colaboradores?.data_admissao || raw.admissao || '',
+    // Acerto rescisório — alimentado pela tela de Rescisões.
+    valor: raw.encargos_rescisao,
+    data_rescisao: raw.data_pagamento || null,
   };
 }
 

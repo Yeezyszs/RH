@@ -88,6 +88,8 @@ function mapDesligamento(row) {
     observacoes: row.observacoes  || '',
     entrevista:  row.entrevista   || { realizada: false },
     valor:       row.encargos_rescisao,
+    // Acerto rescisório: a tela de Rescisões lê estes dois campos.
+    data_rescisao: row.data_pagamento || null,
   };
 }
 

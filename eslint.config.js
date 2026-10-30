@@ -141,6 +141,7 @@ const globaisDoProjeto = {
   'renderProcedimentos': 'writable',
   'renderProlabore': 'writable',
   'renderQuadro': 'writable',
+  'renderRescisoes': 'writable',
   'renderRotatividade': 'writable',
   'renderSac': 'writable',
   'renderSacTratativas': 'writable',
