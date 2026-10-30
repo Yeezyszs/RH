@@ -283,38 +283,41 @@ describe('lançamento', () => {
   });
 });
 
-// A multa só existe em justa causa. O risco aqui não é a tela: é o dado. Um
-// valor de multa gravado num desligamento que não a admite entraria no total
-// do período para sempre, e ninguém olharia duas vezes.
+// A multa só existe nos dois motivos de dispensa. O risco aqui não é a tela:
+// é o dado. Um valor de multa gravado num desligamento que não a admite
+// entraria no total do período para sempre, e ninguém olharia duas vezes.
 describe('multa rescisória', () => {
-  it('a regra vive num só lugar e cobre apenas justa causa', async () => {
+  it('a regra vive num só lugar e cobre os dois motivos de dispensa', async () => {
     const { MOTIVOS_COM_MULTA, admiteMulta } = await import('../src/modules/rescisoes.js');
-    expect(MOTIVOS_COM_MULTA).toEqual(['Justa causa']);
+    expect(MOTIVOS_COM_MULTA).toEqual(['Justa causa', 'Sem justa causa']);
     expect(admiteMulta('Justa causa')).toBe(true);
-    ['Sem justa causa', 'Pedido do colaborador', 'Acordo mútuo',
+    expect(admiteMulta('Sem justa causa')).toBe(true);
+    ['Pedido do colaborador', 'Acordo mútuo',
       'Término de contrato', 'Aposentadoria', '', undefined].forEach(m => {
       expect(admiteMulta(m)).toBe(false);
     });
   });
 
-  it('a coluna mostra "não se aplica" fora da justa causa', async () => {
+  it('a coluna mostra "não se aplica" fora dos motivos de dispensa', async () => {
     const { mod, doc } = await criar(clonar());
     mod.render();
     doc.querySelector('#resc-filter-ano').value = '';
     mod.render();
 
     const porNome = (n) => linhas(doc).find(tr => tr.textContent.includes(n));
-    expect(porNome('Ana').textContent).toContain('não se aplica');
+    expect(porNome('Bruno').textContent).toContain('não se aplica');   // pedido
     expect(porNome('Elza').textContent).toContain('R$ 800.00');
-    // Justa causa sem multa lançada é lançamento a fazer, não "não se aplica".
-    expect(porNome('Carla').textContent).toContain('A lançar');
-    expect(porNome('Carla').textContent).not.toContain('não se aplica');
+    // Dispensa sem multa lançada é lançamento a fazer, não "não se aplica".
+    ['Carla', 'Ana'].forEach(n => {
+      expect(porNome(n).textContent).toContain('A lançar');
+      expect(porNome(n).textContent).not.toContain('não se aplica');
+    });
   });
 
   it('ignora multa gravada em motivo que não a admite', async () => {
     // Linha adulterada à mão no banco: a tela não pode exibi-la nem somá-la.
     const dados = clonar();
-    dados.find(d => d.id === 1).multa = 5000;       // Ana, sem justa causa
+    dados.find(d => d.id === 2).multa = 5000;       // Bruno, pedido do colaborador
     const { mod, doc } = await criar(dados);
     mod.render();
     doc.querySelector('#resc-filter-ano').value = '2026';
@@ -331,7 +334,8 @@ describe('multa rescisória', () => {
     mod.render();
 
     expect(doc.querySelector('#resc-stat-multa').textContent).toBe('R$ 800.00');
-    expect(doc.querySelector('#resc-stat-multa-sub').textContent).toBe('1 de 2 por justa causa');
+    // Elegíveis em 2026: Ana e Carla (dispensa) e Elza; só a Elza tem multa.
+    expect(doc.querySelector('#resc-stat-multa-sub').textContent).toBe('1 de 3 elegíveis lançadas');
     expect(doc.querySelector('#resc-stat-total-sub').textContent)
       .toBe('R$ 7000.00 de acerto + R$ 800.00 de multa');
   });
@@ -352,7 +356,7 @@ describe('multa rescisória', () => {
     delete global.Chart;
   });
 
-  it('o campo abre na justa causa e fica fora do formulário nos outros motivos', async () => {
+  it('o campo abre nas dispensas e fica fora do formulário nos outros motivos', async () => {
     const { mod, doc } = await criar(clonar());
     mod.render();
     const form = doc.querySelector('#form-rescisao');
@@ -363,6 +367,10 @@ describe('multa rescisória', () => {
     expect(form.elements['multa'].value).toBe('800.00');
 
     mod.abrirModal(1);                                // Ana, sem justa causa
+    expect(doc.querySelector('#resc-grupo-multa').style.display).toBe('');
+    expect(form.elements['multa'].disabled).toBe(false);
+
+    mod.abrirModal(2);                                // Bruno, pedido
     expect(doc.querySelector('#resc-grupo-multa').style.display).toBe('none');
     // Desabilitado, não só escondido: campo oculto mas habilitado volta no
     // FormData e viraria dado.
@@ -371,7 +379,7 @@ describe('multa rescisória', () => {
     expect(doc.querySelector('#resc-multa-aviso').textContent).toContain('não se aplica');
   });
 
-  it('grava a multa na justa causa', async () => {
+  it('grava a multa na dispensa', async () => {
     const salvos = [];
     const dados = clonar();
     const { mod, doc } = await criar(dados, salvos);
@@ -394,7 +402,7 @@ describe('multa rescisória', () => {
     const dados = clonar();
     const { mod, doc } = await criar(dados, salvos);
     mod.render();
-    mod.abrirModal(1);                                // Ana, sem justa causa
+    mod.abrirModal(2);                                // Bruno, pedido do colaborador
 
     // Reabilita o campo à força e preenche: é o que um formulário já aberto
     // faria se o motivo mudasse por baixo, ou um usuário pelo console.
@@ -405,7 +413,7 @@ describe('multa rescisória', () => {
     await mod.salvar(new global.Event('submit'));
 
     expect(salvos[0].multa_rescisoria).toBeNull();
-    expect(dados.find(d => d.id === 1).multa).toBeNull();
+    expect(dados.find(d => d.id === 2).multa).toBeNull();
   });
 
   it('limpar o campo remove a multa lançada', async () => {

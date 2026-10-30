@@ -19,7 +19,7 @@
  * gravação — travar só na interface deixaria passar valor por um formulário
  * já aberto quando o motivo mudasse.
  */
-export const MOTIVOS_COM_MULTA = ['Justa causa'];
+export const MOTIVOS_COM_MULTA = ['Justa causa', 'Sem justa causa'];
 
 export function admiteMulta(motivo) {
   return MOTIVOS_COM_MULTA.includes(motivo);
@@ -218,7 +218,7 @@ export class RescisoesModule {
     const subMulta = this.$('#resc-stat-multa-sub');
     if (subMulta) {
       const elegiveis = lista.filter(d => admiteMulta(d.motivo)).length;
-      subMulta.textContent = `${multas.length} de ${elegiveis} por justa causa`;
+      subMulta.textContent = `${multas.length} de ${elegiveis} elegíveis lançadas`;
     }
   }
 
@@ -267,7 +267,7 @@ export class RescisoesModule {
             stack: 'g', borderRadius: 3,
           },
           {
-            label: 'Multa (justa causa)',
+            label: 'Multa rescisória',
             data: multas,
             backgroundColor: this.CHART_COLORS.vibrant?.[1] || '#E74C3C',
             stack: 'g', borderRadius: 3,
@@ -322,7 +322,8 @@ export class RescisoesModule {
     if (aviso) {
       aviso.textContent = podeMulta
         ? 'Multa vinculada a este desligamento. Soma-se ao valor do acerto no total do período.'
-        : `Multa não se aplica: a empresa vincula multa rescisória somente em ${MOTIVOS_COM_MULTA.join(', ').toLowerCase()}.`;
+        : 'Multa não se aplica: a empresa vincula multa rescisória somente em '
+          + MOTIVOS_COM_MULTA.join(' ou ').toLowerCase() + '.';
     }
 
     this.$('#modal-rescisao').classList.add('active');
