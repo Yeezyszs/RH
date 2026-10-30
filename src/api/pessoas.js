@@ -77,6 +77,7 @@ function mapDesligamento(raw) {
     // Acerto rescisório — alimentado pela tela de Rescisões.
     valor: raw.encargos_rescisao,
     data_rescisao: raw.data_pagamento || null,
+    multa: raw.multa_rescisoria != null ? raw.multa_rescisoria : null,
   };
 }
 

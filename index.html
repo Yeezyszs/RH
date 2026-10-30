@@ -660,14 +660,20 @@
         <div class="stat stat-danger">
           <div class="stat-label">Total pago em rescisões</div>
           <div class="stat-value" id="resc-stat-total" style="font-size:1.25rem; line-height:1.8;">—</div>
+          <div class="stat-sub" id="resc-stat-total-sub"></div>
         </div>
         <div class="stat">
           <div class="stat-label">Rescisões lançadas</div>
           <div class="stat-value" id="resc-stat-qtd">—</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Valor médio</div>
+          <div class="stat-label">Valor médio do acerto</div>
           <div class="stat-value" id="resc-stat-media" style="font-size:1.25rem; line-height:1.8;">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Multas por justa causa</div>
+          <div class="stat-value" id="resc-stat-multa" style="font-size:1.25rem; line-height:1.8;">—</div>
+          <div class="stat-sub" id="resc-stat-multa-sub"></div>
         </div>
         <div class="stat stat-warn">
           <div class="stat-label">Sem valor lançado</div>
@@ -696,6 +702,7 @@
                 <th>Data da rescisão</th>
                 <th>Motivo</th>
                 <th>Valor da rescisão</th>
+                <th>Multa</th>
                 <th style="width:80px; text-align:right">Ações</th>
               </tr>
             </thead>
@@ -3769,8 +3776,13 @@
           <label>Valor da rescisão (R$)</label>
           <input type="number" name="valor" step="0.01" min="0" placeholder="0,00">
         </div>
+        <div class="form-group" id="resc-grupo-multa">
+          <label>Multa rescisória (R$)</label>
+          <input type="number" name="multa" step="0.01" min="0" placeholder="0,00">
+        </div>
         <div class="form-group full">
-          <div class="cell-person-sub">Deixe o valor em branco para marcar a rescisão como pendente de lançamento.</div>
+          <div class="cell-person-sub" id="resc-multa-aviso"></div>
+          <div class="cell-person-sub" style="margin-top:4px;">Deixe o valor em branco para marcar a rescisão como pendente de lançamento.</div>
         </div>
       </form>
     </div>

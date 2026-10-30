@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS desligamentos (
   tipo VARCHAR(50), -- demissão_sem_causa, demissão_com_causa, pedido, aposentadoria
   dias_aviso_previo INT,
   encargos_rescisao DECIMAL(10, 2),
+  multa_rescisoria DECIMAL(10, 2) CHECK (multa_rescisoria IS NULL OR multa_rescisoria >= 0),
   data_pagamento DATE,
   observacoes TEXT,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP

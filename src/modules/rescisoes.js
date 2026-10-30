@@ -10,6 +10,21 @@
 // lista TODOS os desligamentos, inclusive os sem valor: um desligamento sem
 // rescisão lançada é trabalho pendente do RH, não uma linha a esconder.
 
+/**
+ * Motivos de desligamento que admitem multa rescisória.
+ *
+ * Regra de negócio da empresa, definida aqui e em nenhum outro lugar: a tela,
+ * o formulário e a gravação consultam esta lista. Fora dela o campo de multa
+ * não aparece e, se vier preenchido de qualquer forma, é descartado na
+ * gravação — travar só na interface deixaria passar valor por um formulário
+ * já aberto quando o motivo mudasse.
+ */
+export const MOTIVOS_COM_MULTA = ['Justa causa'];
+
+export function admiteMulta(motivo) {
+  return MOTIVOS_COM_MULTA.includes(motivo);
+}
+
 export class RescisoesModule {
   constructor(deps) {
     this.$        = deps.$;
@@ -56,6 +71,21 @@ export class RescisoesModule {
   _valor(d) {
     const v = d.valor != null ? d.valor : d.encargos_rescisao;
     return v == null || v === '' ? null : parseFloat(v);
+  }
+
+  /** Multa vinculada, já respeitando o motivo: fora da regra, não existe. */
+  _multa(d) {
+    if (!admiteMulta(d?.motivo)) return null;
+    const v = d.multa != null ? d.multa : d.multa_rescisoria;
+    return v == null || v === '' ? null : parseFloat(v);
+  }
+
+  /** O que de fato saiu do caixa naquela rescisão: acerto + multa. */
+  _totalPago(d) {
+    const valor = this._valor(d);
+    const multa = this._multa(d);
+    if (valor == null && multa == null) return null;
+    return (valor || 0) + (multa || 0);
   }
 
   /** Anos presentes nos registros, do mais recente para o mais antigo. */
@@ -113,7 +143,7 @@ export class RescisoesModule {
 
     tb.innerHTML = lista.length
       ? this._renderLinhas(lista)
-      : '<tr><td colspan="5" class="empty">Nenhuma rescisão encontrada</td></tr>';
+      : '<tr><td colspan="6" class="empty">Nenhuma rescisão encontrada</td></tr>';
 
     this._updateStats(lista);
     this._renderGrafico(lista, fAno);
@@ -122,10 +152,19 @@ export class RescisoesModule {
   _renderLinhas(lista) {
     return lista.map(d => {
       const valor = this._valor(d);
+      const multa = this._multa(d);
       const acerto = d.data_rescisao || d.data_pagamento;
       const celulaValor = valor == null
         ? '<span class="badge warn">Não lançada</span>'
-        : `<strong>${this.fmtBRL(valor)}</strong>`;
+        : `<strong>${this.fmtBRL(valor)}</strong>`
+          + (multa ? `<div class="cell-person-sub">com multa: ${this.fmtBRL(this._totalPago(d))}</div>` : '');
+      // Quem não admite multa não mostra campo vazio: mostra que a regra não
+      // se aplica, senão o branco parece lançamento esquecido.
+      const celulaMulta = !admiteMulta(d.motivo)
+        ? '<span class="cell-person-sub">não se aplica</span>'
+        : multa == null
+          ? '<span class="badge warn">A lançar</span>'
+          : `<strong>${this.fmtBRL(multa)}</strong>`;
       return `
         <tr onclick="abrirModalRescisao(${d.id})">
           <td>
@@ -143,6 +182,7 @@ export class RescisoesModule {
           </td>
           <td>${this.h(d.motivo || '—')}</td>
           <td class="cell-mono">${celulaValor}</td>
+          <td class="cell-mono">${celulaMulta}</td>
           <td class="actions" onclick="event.stopPropagation()">
             <button class="btn btn-ghost btn-sm btn-icon" title="Lançar / editar rescisão" onclick="abrirModalRescisao(${d.id})">✎</button>
           </td>
@@ -153,14 +193,33 @@ export class RescisoesModule {
 
   _updateStats(lista) {
     const lancadas = lista.map(d => this._valor(d)).filter(v => v != null);
-    const total    = lancadas.reduce((a, v) => a + v, 0);
-    const media    = lancadas.length ? total / lancadas.length : 0;
+    const acertos  = lancadas.reduce((a, v) => a + v, 0);
+    const multas   = lista.map(d => this._multa(d)).filter(v => v != null);
+    const somaMulta = multas.reduce((a, v) => a + v, 0);
+    const total    = acertos + somaMulta;
+    // A média é do acerto, não do total: é o número comparável entre
+    // rescisões, e a multa só existe em parte delas.
+    const media    = lancadas.length ? acertos / lancadas.length : 0;
 
     const def = (id, txt) => { const el = this.$(id); if (el) el.textContent = txt; };
     def('#resc-stat-total',    this.fmtBRL(total));
     def('#resc-stat-qtd',      `${lancadas.length}/${lista.length}`);
     def('#resc-stat-media',    lancadas.length ? this.fmtBRL(media) : '—');
     def('#resc-stat-pendente', String(lista.length - lancadas.length));
+    def('#resc-stat-multa',    this.fmtBRL(somaMulta));
+
+    // O total é a soma de duas coisas diferentes; o card diz quais.
+    const sub = this.$('#resc-stat-total-sub');
+    if (sub) {
+      sub.textContent = somaMulta
+        ? `${this.fmtBRL(acertos)} de acerto + ${this.fmtBRL(somaMulta)} de multa`
+        : 'nenhuma multa lançada no período';
+    }
+    const subMulta = this.$('#resc-stat-multa-sub');
+    if (subMulta) {
+      const elegiveis = lista.filter(d => admiteMulta(d.motivo)).length;
+      subMulta.textContent = `${multas.length} de ${elegiveis} por justa causa`;
+    }
   }
 
   /**
@@ -183,34 +242,48 @@ export class RescisoesModule {
       rotulos = chaves.slice();
     }
 
-    const corte  = fAno ? 7 : 4;                 // 'AAAA-MM' ou 'AAAA'
-    const totais = chaves.map(k => lista.reduce((acc, d) => {
-      const v = this._valor(d);
+    const corte = fAno ? 7 : 4;                  // 'AAAA-MM' ou 'AAAA'
+    // Barra empilhada: acerto embaixo, multa em cima. Somadas num valor só, a
+    // multa desapareceria dentro do total — e saber quanto do gasto foi multa
+    // é metade da razão de existir esta tela.
+    const somar = (k, fn) => lista.reduce((acc, d) => {
+      const v = fn(d);
       if (v == null) return acc;
       return this._dataRescisao(d).slice(0, corte) === k ? acc + v : acc;
-    }, 0));
+    }, 0);
+    const totais = chaves.map(k => somar(k, (d) => this._valor(d)));
+    const multas = chaves.map(k => somar(k, (d) => this._multa(d)));
 
     this._chart?.destroy();
     this._chart = new Chart(canvas.getContext('2d'), {
       type: 'bar',
       data: {
         labels: rotulos,
-        datasets: [{
-          label: 'Gasto com rescisões',
-          data: totais,
-          backgroundColor: this.CHART_COLORS.phthaloLight,
-          borderRadius: 3,
-        }],
+        datasets: [
+          {
+            label: 'Acerto rescisório',
+            data: totais,
+            backgroundColor: this.CHART_COLORS.phthaloLight,
+            stack: 'g', borderRadius: 3,
+          },
+          {
+            label: 'Multa (justa causa)',
+            data: multas,
+            backgroundColor: this.CHART_COLORS.vibrant?.[1] || '#E74C3C',
+            stack: 'g', borderRadius: 3,
+          },
+        ],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: (ctx) => this.fmtBRL(ctx.parsed.y) } },
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${this.fmtBRL(ctx.parsed.y)}` } },
         },
         scales: {
-          x: { grid: { display: false } },
+          x: { stacked: true, grid: { display: false } },
           y: {
+            stacked: true,
             beginAtZero: true,
             grid: { color: this.CHART_COLORS.grid },
             ticks: { callback: (v) => 'R$ ' + v.toLocaleString('pt-BR') },
@@ -237,6 +310,21 @@ export class RescisoesModule {
     // certo na esmagadora maioria dos casos e poupa digitação.
     form.elements['data'].value = d.data_rescisao || d.data_pagamento || d.data || '';
 
+    // Multa: o campo só existe quando o motivo admite. Desabilitado também,
+    // não só escondido — campo oculto mas habilitado volta no FormData.
+    const podeMulta = admiteMulta(d.motivo);
+    const multa     = this._multa(d);
+    const grupo     = this.$('#resc-grupo-multa');
+    const aviso     = this.$('#resc-multa-aviso');
+    if (grupo) grupo.style.display = podeMulta ? '' : 'none';
+    form.elements['multa'].disabled = !podeMulta;
+    form.elements['multa'].value = podeMulta && multa != null ? multa.toFixed(2) : '';
+    if (aviso) {
+      aviso.textContent = podeMulta
+        ? 'Multa vinculada a este desligamento. Soma-se ao valor do acerto no total do período.'
+        : `Multa não se aplica: a empresa vincula multa rescisória somente em ${MOTIVOS_COM_MULTA.join(', ').toLowerCase()}.`;
+    }
+
     this.$('#modal-rescisao').classList.add('active');
   }
 
@@ -252,15 +340,26 @@ export class RescisoesModule {
     const d  = this.DESLIGAMENTOS.find(x => x.id === id);
     if (!d) return;
 
-    const valor = dados.valor === '' ? null : parseFloat(dados.valor);
+    const valor = dados.valor === '' || dados.valor == null ? null : parseFloat(dados.valor);
     if (valor != null && !(valor >= 0)) {
       this.showToast?.('Informe um valor válido para a rescisão', 'err');
       return;
     }
 
+    // A regra do motivo manda, não o que chegou do formulário: multa em
+    // desligamento que não a admite é descartada aqui, antes de virar dado.
+    const podeMulta = admiteMulta(d.motivo);
+    const multaBruta = dados.multa === '' || dados.multa == null ? null : parseFloat(dados.multa);
+    if (podeMulta && multaBruta != null && !(multaBruta >= 0)) {
+      this.showToast?.('Informe um valor válido para a multa', 'err');
+      return;
+    }
+    const multa = podeMulta ? multaBruta : null;
+
     const payload = {
       encargos_rescisao: valor,
       data_pagamento:    dados.data || null,
+      multa_rescisoria:  multa,
     };
 
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
@@ -280,6 +379,8 @@ export class RescisoesModule {
     d.encargos_rescisao = valor;
     d.data_rescisao     = payload.data_pagamento;
     d.data_pagamento    = payload.data_pagamento;
+    d.multa             = multa;
+    d.multa_rescisoria  = multa;
 
     this.fecharModal();
     this.render();
