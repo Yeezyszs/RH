@@ -18,9 +18,22 @@ beforeAll(() => {
 });
 
 describe('_descontos — regime de sócio', () => {
-  it('soma INSS, Unimed e adiantamento', () => {
-    expect(mod._descontos({ tipo: 'socio', inss: 100, unimed: 250.5, adiantamento: 400 }))
-      .toBe(750.5);
+  it('soma INSS, IRRF, Unimed e adiantamento', () => {
+    expect(mod._descontos({ tipo: 'socio', inss: 100, irrf: 325.25, unimed: 250.5, adiantamento: 400 }))
+      .toBe(1075.75);
+  });
+
+  // O pró-labore é tributável: sem o IRRF na conta, o líquido sai maior do que
+  // o sócio recebe de fato, e o erro é silencioso.
+  it('o IRRF entra no desconto', () => {
+    expect(mod._descontos({ tipo: 'socio', inss: 932.31, irrf: 1200 })).toBe(2132.31);
+    expect(mod._liquido({ tipo: 'socio', valor_base: 10000, inss: 932.31, irrf: 1200 }))
+      .toBeCloseTo(7867.69, 2);
+  });
+
+  it('IRRF ausente conta como zero — lançamento antigo não muda de valor', () => {
+    expect(mod._descontos({ tipo: 'socio', inss: 932.31, unimed: 0, adiantamento: 0 }))
+      .toBe(932.31);
   });
 
   it('campo ausente conta como zero', () => {
@@ -41,10 +54,10 @@ describe('_descontos — regime de sócio', () => {
 });
 
 describe('_descontos — regime de cooperado', () => {
-  it('soma os itens da lista, ignorando INSS/Unimed', () => {
+  it('soma os itens da lista, ignorando INSS/IRRF/Unimed', () => {
     const r = {
       tipo: 'cooper',
-      inss: 999, unimed: 999,          // não entram neste regime
+      inss: 999, irrf: 999, unimed: 999,   // não entram neste regime
       itens: [{ valor: 120 }, { valor: 80.25 }],
     };
     expect(mod._descontos(r)).toBe(200.25);

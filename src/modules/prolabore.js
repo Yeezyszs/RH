@@ -54,7 +54,8 @@ export class ProlaboreModule {
     if (r.tipo === 'cooper') {
       return this._itensDe(r).reduce((s, it) => s + (parseFloat(it.valor) || 0), 0);
     }
-    return (parseFloat(r.inss) || 0) + (parseFloat(r.unimed) || 0) + (parseFloat(r.adiantamento) || 0);
+    return (parseFloat(r.inss) || 0) + (parseFloat(r.irrf) || 0)
+      + (parseFloat(r.unimed) || 0) + (parseFloat(r.adiantamento) || 0);
   }
 
   _liquido(r) {
@@ -118,7 +119,8 @@ export class ProlaboreModule {
         ? (this._itensDe(r).length
             ? this._itensDe(r).map(it => linha(it.descricao || 'Item', (parseFloat(it.valor) || 0) || null)).join('')
             : linha('Sem descontos', null))
-        : linha('INSS', r.inss || null) + linha('Unimed', r.unimed || null) + linha('Adiantamento', r.adiantamento || null);
+        : linha('INSS', r.inss || null) + linha('IRRF', r.irrf || null)
+          + linha('Unimed', r.unimed || null) + linha('Adiantamento', r.adiantamento || null);
 
       return `
         <div class="widget" style="padding:0; overflow:hidden;">
@@ -180,6 +182,7 @@ export class ProlaboreModule {
     const setDisplay = (id, show) => { const el = this.$('#' + id); if (el) el.style.display = show ? '' : 'none'; };
     // Pró-labore: campos fixos. Cooper: lista dinâmica de itens.
     setDisplay('prolab-grp-inss', !isCooper);
+    setDisplay('prolab-grp-irrf', !isCooper);
     setDisplay('prolab-grp-unimed', !isCooper);
     setDisplay('prolab-grp-adiant', !isCooper);
     setDisplay('prolab-itens-section', isCooper);
@@ -248,6 +251,7 @@ export class ProlaboreModule {
       tipo:         data.tipo || 'prolabore',
       valor_base:   num(data.valor_base),
       inss:         isCooper ? 0 : num(data.inss),
+      irrf:         isCooper ? 0 : num(data.irrf),
       unimed:       isCooper ? 0 : num(data.unimed),
       adiantamento: isCooper ? 0 : num(data.adiantamento),
       telefone:     0,
