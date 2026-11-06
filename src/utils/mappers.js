@@ -29,6 +29,8 @@ function mapColaborador(row) {
     cargo_id:      row.cargo_id,
     salario:       row.salario,
     tipo_contrato: row.tipo_contrato,
+    // Até quando as férias estavam em dia. Null = em dia (ver migration 058).
+    ferias_marco:  row.ferias_marco || null,
   };
 }
 

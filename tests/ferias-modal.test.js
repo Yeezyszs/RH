@@ -33,6 +33,10 @@ function montar({ colaboradores, ferias = [], salarios = {} } = {}) {
 }
 
 const VETERANO = { id: 1, nome: 'Adão', setor: 'Produção', status: 'ativo', admissao: '2018-09-10' };
+// Mesma pessoa, com o marco na própria admissão: é assim que o RH diz "conte
+// tudo desde o começo, nada foi tirado antes do sistema". Sem marco, o sistema
+// assume as férias em dia — ver migration 058.
+const VETERANO_DESDE_SEMPRE = { ...VETERANO, ferias_marco: '2018-09-10' };
 const NOVATO   = { id: 2, nome: 'Novato', setor: 'Produção', status: 'ativo', admissao: '2026-03-01' };
 // Um ano e pouco de casa: exatamente um ciclo, ainda longe do prazo.
 const RECENTE  = { id: 3, nome: 'Recente', setor: 'Produção', status: 'ativo', admissao: '2025-06-01' };
@@ -56,19 +60,20 @@ describe('situação — responde o que fazer, sem jargão', () => {
       id: i + 1, colaborador_id: 1, dias: 30, abono: 0,
       inicio: '2020-01-01', fim: '2020-01-30',
     }));
-    const { mod } = montar({ colaboradores: [VETERANO], ferias: quitados });
-    const s = mod._situacaoFerias(VETERANO);
+    const { mod } = montar({ colaboradores: [VETERANO_DESDE_SEMPRE], ferias: quitados });
+    const s = mod._situacaoFerias(VETERANO_DESDE_SEMPRE);
     expect(s.tipo).toBe('urgente');
     expect(s.titulo).toContain('7 dias');
     expect(s.saldo).toBe(30);
   });
 
-  it('quem nunca tirou férias aparece como vencido, não como em dia', () => {
-    // Antes da correção isto era impossível: a tela olhava sempre o ciclo mais
-    // recente, cujo prazo ainda não chegou. Anos sem férias passavam batidos.
+  it('com marco na admissão, quem nunca tirou aparece como vencido', () => {
+    // A tela olhava sempre o ciclo mais recente, cujo prazo ainda não chegou,
+    // e anos sem férias passavam batidos. Hoje o alerta depende do marco: é o
+    // RH que afirma que nada foi tirado desde a admissão.
     vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-02T12:00:00'));
-    const { mod } = montar({ colaboradores: [VETERANO] });
-    const s = mod._situacaoFerias(VETERANO);
+    const { mod } = montar({ colaboradores: [VETERANO_DESDE_SEMPRE] });
+    const s = mod._situacaoFerias(VETERANO_DESDE_SEMPRE);
     expect(s.tipo).toBe('vencido');
     expect(s.detalhe).toContain('dobro');
     expect(s.detalhe).toContain('períodos acumulados');
@@ -81,8 +86,8 @@ describe('situação — responde o que fazer, sem jargão', () => {
       id: i + 1, colaborador_id: 1, dias: 30, abono: 0,
       inicio: '2020-01-01', fim: '2020-01-30',
     }));
-    const { mod } = montar({ colaboradores: [VETERANO], ferias: quitados });
-    expect(mod._situacaoFerias(VETERANO).tipo).toBe('em_dia');
+    const { mod } = montar({ colaboradores: [VETERANO_DESDE_SEMPRE], ferias: quitados });
+    expect(mod._situacaoFerias(VETERANO_DESDE_SEMPRE).tipo).toBe('em_dia');
   });
 
   it('com todos os ciclos usados, aparece como em dia', () => {
@@ -91,8 +96,8 @@ describe('situação — responde o que fazer, sem jargão', () => {
       id: i + 1, colaborador_id: 1, dias: 30, abono: 0,
       inicio: '2020-01-01', fim: '2020-01-30',
     }));
-    const { mod } = montar({ colaboradores: [VETERANO], ferias });
-    const s = mod._situacaoFerias(VETERANO);
+    const { mod } = montar({ colaboradores: [VETERANO_DESDE_SEMPRE], ferias });
+    const s = mod._situacaoFerias(VETERANO_DESDE_SEMPRE);
     expect(s.tipo).toBe('quitado');
     expect(s.saldo).toBe(0);
   });
@@ -179,7 +184,7 @@ describe('regras da CLT avisadas antes de salvar', () => {
 
   it('avisa quando o período começa depois do prazo legal', () => {
     emSetembro();
-    const { mod } = montar({ colaboradores: [VETERANO] });
+    const { mod } = montar({ colaboradores: [VETERANO_DESDE_SEMPRE] });
     const avisos = mod._avisosDoPeriodo({ colabId: 1, inicio: '2026-12-01', dias: 30, vender: 0 });
     expect(avisos.some(a => a.texto.includes('dobro'))).toBe(true);
   });
@@ -188,10 +193,10 @@ describe('regras da CLT avisadas antes de salvar', () => {
 describe('o modal renderizado', () => {
   it('mostra o título da situação e o saldo em destaque', () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date('2026-09-02T12:00:00'));
-    const { mod, doc } = montar({ colaboradores: [VETERANO] });
+    const { mod, doc } = montar({ colaboradores: [VETERANO_DESDE_SEMPRE] });
     doc.querySelector('#fer-select-colab').innerHTML = '<option value="1">Adão</option>';
     mod.renderFeriasModal();
-    // Quem nunca tirou férias: o banner precisa gritar, não informar.
+    // Atraso registrado pelo RH: o banner precisa gritar, não informar.
     expect(doc.querySelector('.fer-banner-titulo').textContent).toContain('Prazo vencido');
     expect(doc.querySelector('.fer-banner').className).toContain('fer-critico');
     expect(doc.querySelector('.fer-saldo').textContent).toContain('30');

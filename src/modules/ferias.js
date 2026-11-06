@@ -31,6 +31,7 @@ export class FeriasModule {
 
     document.addEventListener('change', (e) => {
       if (['fer-filter-setor', 'fer-filter-status'].includes(e.target.id)) this.render();
+      if (e.target.id === 'fer-marco-data') this.previewMarco();
     });
 
     // Atalhos de duração (30/20/15/10). Delegação interna: só preenchem o
@@ -71,9 +72,9 @@ export class FeriasModule {
       const diasUsados = periodos.reduce((s, p) => s + (p.dias + (p.abono || 0)), 0);
       // Ciclo mais antigo ainda em aberto — é dele que sai o prazo real.
       // Usar o ciclo corrente aqui tornava o status "Vencido" inalcançável.
-      const aq = this._cicloEmAberto(c.admissao, diasUsados)
-              || this._periodoAquisitivoAtual(c.admissao);
-      const saldo = this._cicloEmAberto(c.admissao, diasUsados)?.saldo ?? 0;
+      const aberto = this._cicloEmAberto(c.admissao, diasUsados, this._marcoDe(c));
+      const aq = aberto || this._periodoAquisitivoAtual(c.admissao);
+      const saldo = aberto?.saldo ?? 0;
 
       const proximos = periodos
         .filter(p => p.fim >= hoje)
@@ -278,6 +279,8 @@ export class FeriasModule {
         </div>
         <div class="fer-banner-detalhe">${this.h(sit.detalhe)}</div>
       </div>`;
+
+    this._renderMarco(c);
 
     // Contexto: o detalhe legal e o financeiro, discretos. O bloco de dinheiro
     // só aparece quando há salário — antes eram quatro campos com "—".
@@ -604,19 +607,40 @@ export class FeriasModule {
   // funções respondem.
 
   /**
+   * Primeiro ciclo aquisitivo pelo qual ESTE sistema responde.
+   *
+   * O controle de férias era feito fora do sistema, então o que foi tirado
+   * antes não está em lugar nenhum aqui. Contar desde a admissão produzia
+   * números inventados pela falta de histórico: quem tinha 10 anos de casa
+   * aparecia com oito períodos acumulados e prazo vencido há milhares de dias.
+   *
+   * Sem marco (o padrão), o sistema parte do princípio de que as férias estão
+   * em dia: só o último ciclo completo fica em aberto. Com marco, conta a
+   * partir dele — é assim que o RH registra quem de fato está atrasado.
+   *
+   * @returns {number} índice do primeiro ciclo em aberto, 0 = o primeiro ano
+   */
+  _primeiroCicloContado(admissao, ciclosCompletos, marco) {
+    if (!marco) return Math.max(0, ciclosCompletos - 1);
+    // Ciclos inteiros vencidos entre a admissão e o marco: ficam quitados.
+    // Conta direto nas datas (e não pelo helper `_diasEntre`, que é inclusivo)
+    // para que um marco exatamente sobre o aniversário dê o número redondo.
+    const ms = new Date(marco + 'T00:00:00') - new Date(admissao + 'T00:00:00');
+    const quitados = Math.floor(ms / (1000 * 60 * 60 * 24 * 365.25));
+    return Math.min(Math.max(0, quitados), ciclosCompletos);
+  }
+
+  /**
    * Ciclo aquisitivo mais ANTIGO que ainda tem dias a tirar — é dele que sai o
    * prazo real e o risco de pagar em dobro.
-   *
-   * `_periodoAquisitivoAtual` devolve sempre o ciclo mais recente, cujo prazo
-   * está sempre a até 12 meses no futuro. Com ela, quem passou anos sem tirar
-   * férias nunca aparecia como vencido — o alerta mais importante da tela era
-   * inalcançável.
    *
    * Como os períodos gravados não dizem a que ciclo pertencem, os dias são
    * alocados do ciclo mais antigo para o mais novo, que é a ordem em que a lei
    * manda conceder.
+   *
+   * @param {string|null} marco data até a qual as férias estavam em dia
    */
-  _cicloEmAberto(admissao, diasUsados = 0) {
+  _cicloEmAberto(admissao, diasUsados = 0, marco = null) {
     if (!admissao) return null;
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -624,19 +648,119 @@ export class FeriasModule {
     const ciclosCompletos = Math.floor((hoje - adm) / (1000 * 60 * 60 * 24 * 365.25));
     if (ciclosCompletos < 1) return null;
 
+    const primeiro = this._primeiroCicloContado(admissao, ciclosCompletos, marco);
     // Cada ciclo dá 30 dias; quantos já foram inteiramente consumidos.
     const consumidos = Math.floor(diasUsados / 30);
-    if (consumidos >= ciclosCompletos) return null;   // tudo quitado
+    const k = primeiro + consumidos;                   // índice do ciclo aberto
+    if (k >= ciclosCompletos) return null;             // tudo quitado
 
-    const k = consumidos;                              // índice do ciclo aberto
     const inicio = this._addYears(admissao, k);
     const fim    = this._addDays(this._addYears(admissao, k + 1), -1);
     return {
       inicio, fim,
       concessivoLimite: this._addYears(fim, 1),
       saldo: 30 - (diasUsados % 30),
-      ciclosVencidos: ciclosCompletos - consumidos,
+      ciclosVencidos: ciclosCompletos - k,
     };
+  }
+
+  /** Marco de férias do colaborador, quando o RH registrou um. */
+  _marcoDe(colab) {
+    return colab?.ferias_marco || null;
+  }
+
+  // ─── Marco de férias: a correção que só o RH pode fazer ───────────────────
+  // O sistema não tem o histórico anterior a ele, então assume todo mundo em
+  // dia. Quem sabe quem está atrasado é o RH, e é aqui que ele diz.
+
+  _renderMarco(c) {
+    const el = this.$('#fer-marco');
+    if (!el) return;
+    const marco = this._marcoDe(c);
+    el.innerHTML = `
+      <div class="fer-marco">
+        <div>${marco
+          ? `Contagem a partir de <strong>${this.fmtDate(marco)}</strong> — o RH registrou que até essa data as férias estavam em dia.`
+          : `Contagem assumindo as férias <strong>em dia</strong>. O controle anterior ao sistema não está aqui; `
+            + `se este colaborador tem períodos vencidos, informe até quando as férias estavam em dia.`}</div>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="alternarMarcoFerias">${
+          marco ? 'Alterar' : 'Registrar atraso'}</button>
+      </div>
+      <div class="fer-marco-form" id="fer-marco-form" hidden>
+        <div class="fer-marco-linha">
+          <label for="fer-marco-data">Férias em dia até</label>
+          <input type="date" id="fer-marco-data" value="${marco || ''}" max="${this._isoNow()}">
+          <button type="button" class="btn btn-sm" data-action="salvarMarcoFerias">Salvar</button>
+          ${marco ? `<button type="button" class="btn btn-ghost btn-sm" data-action="limparMarcoFerias">Voltar para “em dia”</button>` : ''}
+        </div>
+        <div class="fer-dica" id="fer-marco-previa"></div>
+      </div>`;
+    this.previewMarco();
+  }
+
+  alternarMarco() {
+    const form = this.$('#fer-marco-form');
+    if (!form) return;
+    form.hidden = !form.hidden;
+    if (!form.hidden) this.previewMarco();
+  }
+
+  /** Mostra o efeito da data digitada antes de salvar. */
+  previewMarco() {
+    const prev = this.$('#fer-marco-previa');
+    const campo = this.$('#fer-marco-data');
+    if (!prev || !campo) return;
+    const c = this._colabDoModal();
+    if (!c) { prev.textContent = ''; return; }
+
+    const sit = this._situacaoFerias({ ...c, ferias_marco: campo.value || null });
+    const vencidos = sit.aquisitivo?.ciclosVencidos || 0;
+    const resumo = vencidos > 1 ? `${vencidos} períodos em aberto` : 'um período em aberto';
+    prev.textContent = campo.value
+      ? `Com essa data: ${resumo}. ${sit.titulo}.`
+      : 'Sem data, o sistema considera as férias em dia.';
+  }
+
+  _colabDoModal() {
+    const id = parseInt(this.$('#fer-select-colab')?.value, 10);
+    return this.COLABORADORES.find(x => x.id === id) || null;
+  }
+
+  async salvarMarco() {
+    const c = this._colabDoModal();
+    const campo = this.$('#fer-marco-data');
+    if (!c || !campo) return;
+    const valor = campo.value || null;
+    if (valor && c.admissao && valor < c.admissao) {
+      window.showToast?.('A data não pode ser anterior à admissão', 'err');
+      return;
+    }
+    await this._gravarMarco(c.id, valor);
+  }
+
+  async limparMarco() {
+    const c = this._colabDoModal();
+    if (c) await this._gravarMarco(c.id, null);
+  }
+
+  async _gravarMarco(colabId, valor) {
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao && this.Colaboradores) {
+      try {
+        await this.Colaboradores.atualizar(colabId, { ferias_marco: valor });
+      } catch (err) {
+        window.showToast?.('Erro ao salvar: ' + err.message, 'err');
+        return;
+      }
+    }
+    // Mutação no próprio objeto: o array de colaboradores é compartilhado por
+    // referência. Rebuscado depois do await — o realtime pode ter trocado a
+    // linha enquanto a gravação acontecia.
+    const c = this.COLABORADORES.find(x => x.id === colabId);
+    if (c) c.ferias_marco = valor;
+    this.renderFeriasModal();
+    this.render();
+    window.showToast?.(valor ? 'Marco de férias registrado' : 'Colaborador voltou para “em dia”', 'ok');
   }
 
   /**
@@ -646,7 +770,7 @@ export class FeriasModule {
   _situacaoFerias(colab) {
     const periodos = this.FERIAS.filter(f => f.colaborador_id === colab?.id);
     const diasUsados = periodos.reduce((s, p) => s + (p.dias + (p.abono || 0)), 0);
-    const aq = this._cicloEmAberto(colab?.admissao, diasUsados);
+    const aq = this._cicloEmAberto(colab?.admissao, diasUsados, this._marcoDe(colab));
     const temCiclo = !!this._periodoAquisitivoAtual(colab?.admissao);
     const saldo = aq ? aq.saldo : 0;
     const base = { saldo, diasUsados, aquisitivo: aq, prazo: aq?.concessivoLimite || null };

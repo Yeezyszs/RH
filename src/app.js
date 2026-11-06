@@ -315,6 +315,10 @@ function bootstrap() {
   window.salvarFeriasPeriodo      = (ev)   => ferias.salvarFeriasPeriodo(ev);
   window.excluirFerias            = (id)   => ferias.excluirFerias(id);
   window.editarValorFerias        = (id)   => ferias.editarValorFerias(id);
+  // Marco de férias: o RH diz quem está atrasado de verdade.
+  window.alternarMarcoFerias      = ()     => ferias.alternarMarco();
+  window.salvarMarcoFerias        = ()     => ferias.salvarMarco();
+  window.limparMarcoFerias        = ()     => ferias.limparMarco();
 
   // Desligamentos
   window.abrirDrawerDesl               = (id)  => desligamentos.abrirDrawer(id);

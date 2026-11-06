@@ -991,6 +991,43 @@ table.data td.actions {
 .fer-ok        { background: #ECFDF5; border-color: #A7F3D0; border-left-color: var(--success); color: #065F46; }
 .fer-neutro    { background: var(--bluish-bg); border-color: var(--border); border-left-color: var(--text-soft); color: var(--text-muted); }
 
+/* Marco de férias: o aviso de que a contagem assume tudo em dia, e o
+   controle para o RH corrigir quem está atrasado de verdade. */
+.fer-marco {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: .8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+.fer-marco > div { flex: 1 1 320px; }
+.fer-marco strong { color: var(--text); font-weight: 600; }
+.fer-marco-form {
+  background: var(--bluish-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.fer-marco-form[hidden] { display: none; }
+.fer-marco-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fer-marco-linha label {
+  font-size: .78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.fer-marco-linha input { width: auto; }
+.fer-marco-form .fer-dica { margin-top: 6px; }
+
 .fer-contexto {
   font-size: .82rem;
   color: var(--text-muted);
