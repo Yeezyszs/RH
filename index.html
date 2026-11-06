@@ -557,7 +557,7 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Desligamentos</h1>
-          <div class="page-subtitle">Registro + entrevista de saída</div>
+          <div class="page-subtitle">Registro de desligamentos e motivos de saída</div>
         </div>
       </div>
 
@@ -575,11 +575,6 @@
           <option>Aposentadoria</option>
           <option>Acordo mútuo</option>
         </select>
-        <select id="desl-filter-entrevista">
-          <option value="">Entrevista (qualquer)</option>
-          <option value="realizada">Realizada</option>
-          <option value="pendente">Pendente</option>
-        </select>
         <button class="btn" type="button" data-action="abrirModalDesligamento">+ Registrar desligamento</button>
       </div>
 
@@ -592,10 +587,6 @@
         <div class="stat">
           <div class="stat-label">Voluntários</div>
           <div class="stat-value" id="desl-stat-volunt">—</div>
-        </div>
-        <div class="stat stat-warn">
-          <div class="stat-label">Entrevistas pendentes</div>
-          <div class="stat-value" id="desl-stat-pend">—</div>
         </div>
         <div class="stat">
           <div class="stat-label">Tempo médio de casa</div>
@@ -614,7 +605,6 @@
                 <th>Data</th>
                 <th>Motivo</th>
                 <th>Tempo de casa</th>
-                <th>Entrevista</th>
                 <th style="width:120px; text-align:right">Ações</th>
               </tr>
             </thead>
@@ -2516,23 +2506,14 @@
     <button class="drawer-close" data-action="fecharDrawerDesl">×</button>
   </div>
 
-  <div class="drawer-tabs">
-    <div class="drawer-tab active" data-dtab-desl="detalhes">Detalhes</div>
-    <div class="drawer-tab" data-dtab-desl="entrevista">Entrevista de saída</div>
-  </div>
-
   <div class="drawer-body">
-    <div class="drawer-section active" data-dsec-desl="detalhes">
+    <div class="drawer-section active">
       <div class="info-grid" id="ddesl-detalhes"></div>
-    </div>
-    <div class="drawer-section" data-dsec-desl="entrevista">
-      <div id="ddesl-entrevista"></div>
     </div>
   </div>
 
   <div class="drawer-footer">
     <button class="btn btn-secondary btn-sm" data-action="fecharDrawerDesl">Fechar</button>
-    <button class="btn btn-sm" id="btn-drawer-entrevista" data-action="abrirModalEntrevistaDoDrawer">Registrar entrevista</button>
   </div>
 </aside>
 
@@ -2592,81 +2573,6 @@
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalDesligamento">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-desligamento">Registrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ════════════ MODAL — ENTREVISTA DE SAÍDA ════════════ -->
-<div id="modal-entrevista" class="modal">
-  <div class="modal-box">
-    <div class="modal-header">
-      <div class="modal-title">Entrevista de saída</div>
-      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalEntrevista">×</button>
-    </div>
-    <div class="modal-body">
-      <form id="form-entrevista" onsubmit="salvarEntrevista(event)" style="display:flex; flex-direction:column; gap:16px;">
-        <input type="hidden" name="desligamento_id">
-
-        <div class="rating-group">
-          <div class="label">Satisfação geral (1 = baixa · 5 = alta)</div>
-          <div class="rating-input" data-rating-field="satisfacao">
-            <button type="button" data-rating-val="1">1</button>
-            <button type="button" data-rating-val="2">2</button>
-            <button type="button" data-rating-val="3">3</button>
-            <button type="button" data-rating-val="4">4</button>
-            <button type="button" data-rating-val="5">5</button>
-          </div>
-          <input type="hidden" name="satisfacao" required>
-        </div>
-
-        <div class="rating-group">
-          <div class="label">Clima organizacional</div>
-          <div class="rating-input" data-rating-field="clima">
-            <button type="button" data-rating-val="1">1</button>
-            <button type="button" data-rating-val="2">2</button>
-            <button type="button" data-rating-val="3">3</button>
-            <button type="button" data-rating-val="4">4</button>
-            <button type="button" data-rating-val="5">5</button>
-          </div>
-          <input type="hidden" name="clima">
-        </div>
-
-        <div class="rating-group">
-          <div class="label">Relação com liderança</div>
-          <div class="rating-input" data-rating-field="lideranca">
-            <button type="button" data-rating-val="1">1</button>
-            <button type="button" data-rating-val="2">2</button>
-            <button type="button" data-rating-val="3">3</button>
-            <button type="button" data-rating-val="4">4</button>
-            <button type="button" data-rating-val="5">5</button>
-          </div>
-          <input type="hidden" name="lideranca">
-        </div>
-
-        <div class="toggle-row">
-          <input type="checkbox" name="recomendaria" id="ent-rec">
-          <label for="ent-rec">Recomendaria a empresa a outros profissionais</label>
-        </div>
-
-        <div class="form-group">
-          <label>Motivo principal (livre)</label>
-          <textarea name="motivo_livre" placeholder="O que mais pesou na decisão?"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Feedback para a empresa</label>
-          <textarea name="feedback" placeholder="Sugestões, pontos positivos e negativos…"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Responsável pela entrevista</label>
-          <input type="text" name="responsavel" placeholder="Nome do entrevistador">
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalEntrevista">Cancelar</button>
-      <button class="btn btn-sm" type="submit" form="form-entrevista">Salvar entrevista</button>
     </div>
   </div>
 </div>

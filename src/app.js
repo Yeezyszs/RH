@@ -323,10 +323,6 @@ function bootstrap() {
   window.fecharModalDesligamento       = ()     => desligamentos.fecharModalDesligamento();
   window.salvarDesligamento            = (ev)   => desligamentos.salvarDesligamento(ev);
   window.excluirDesligamento           = (id)   => desligamentos.excluirDesligamento(id);
-  window.abrirModalEntrevista          = (id)   => desligamentos.abrirModalEntrevista(id);
-  window.fecharModalEntrevista         = ()     => desligamentos.fecharModalEntrevista();
-  window.salvarEntrevista              = (ev)   => desligamentos.salvarEntrevista(ev);
-  window.abrirModalEntrevistaDoDrawer  = ()     => desligamentos.abrirModalEntrevistaDoDrawer();
   window.renderDesligamentos           = ()     => { desligamentos.render(); rescisoes.render(); };
 
   // Rescisões — mesma fonte de dados dos desligamentos, outra tela.

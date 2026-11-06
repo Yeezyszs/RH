@@ -86,7 +86,6 @@ function mapDesligamento(row) {
     tipo:        row.tipo,
     aviso:       row.aviso        || null,
     observacoes: row.observacoes  || '',
-    entrevista:  row.entrevista   || { realizada: false },
     valor:       row.encargos_rescisao,
     // Acerto rescisório: a tela de Rescisões lê estes três campos.
     data_rescisao: row.data_pagamento || null,
