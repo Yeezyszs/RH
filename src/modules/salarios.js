@@ -91,6 +91,9 @@ export class SalariosModule {
           data_alteracao: null,
           observacoes:    '',
           liquido:        h.liquido != null ? parseFloat(h.liquido) : null,
+          vencimentos:    h.vencimentos != null ? parseFloat(h.vencimentos) : null,
+          descontos:      h.descontos   != null ? parseFloat(h.descontos)   : null,
+          verbas:         Array.isArray(h.verbas) ? h.verbas : [],
           temSalario:     true,
           historico:      true,
           temVerbas:      Array.isArray(h.verbas) && h.verbas.length > 0,
@@ -103,6 +106,9 @@ export class SalariosModule {
         data_alteracao: s?.data_alteracao || null,
         observacoes:    s?.observacoes || '',
         liquido:        null,
+        vencimentos:    null,
+        descontos:      null,
+        verbas:         [],
         temSalario:     !!s,
         historico:      false,
         // Fora do histórico a tela mostra o cadastro, não um mês — e verba é
@@ -146,14 +152,22 @@ export class SalariosModule {
     if (comp) this.$('#sal-stat-sem').textContent = linhas.length;
     const thUlt = this.$('#sal-th-ultima');
     if (thUlt) thUlt.textContent = comp ? 'Líquido do mês' : 'Última alteração';
+    // Olhando uma folha, a faixa salarial importa menos do que saber por que
+    // o líquido veio daquele tamanho. A coluna troca de assunto junto.
+    const thFx = this.$('#sal-th-faixa');
+    if (thFx) thFx.textContent = comp ? 'Descontos do mês' : 'Faixa';
     const aviso = this.$('#sal-aviso-historico');
     if (aviso) {
       aviso.style.display = comp ? '' : 'none';
       if (comp) {
-        const liq = linhas.reduce((s2, r) => s2 + (r.liquido || 0), 0);
+        const liq  = linhas.reduce((s2, r) => s2 + (r.liquido || 0), 0);
+        const venc = linhas.reduce((s2, r) => s2 + (r.vencimentos || 0), 0);
+        const desc = linhas.reduce((s2, r) => s2 + (r.descontos || 0), 0);
         aviso.innerHTML = `Você está vendo a <strong>folha de ${this.h(this.mesLabel(comp))}</strong>, `
           + `como ela foi importada — não dá para editar o passado. `
-          + `Líquido pago no mês: <strong>${this.fmtBRL(liq)}</strong>.`;
+          + `Proventos <strong>${this.fmtBRL(venc)}</strong> `
+          + `− descontos <strong>${this.fmtBRL(desc)}</strong> `
+          + `= líquido <strong>${this.fmtBRL(liq)}</strong>.`;
       }
     }
 
@@ -167,6 +181,13 @@ export class SalariosModule {
           const faixaDisp = r.temSalario
             ? `<span class="badge info">${faixa}</span>`
             : `<span class="badge neutral">—</span>`;
+          // Na folha, a coluna responde "por que o líquido veio assim": o
+          // total descontado e os maiores descontos pelo nome. Sem isso o RH
+          // tem de abrir o holerite de cada um para descobrir.
+          const descDisp = r.descontos == null
+            ? '<span style="color:var(--text-soft)">—</span>'
+            : `<span class="cell-mono" style="font-weight:600; color:var(--danger)">${this.fmtBRL(r.descontos)}</span>`
+              + this._resumoDescontos(r.verbas);
           return `
             <tr${r.historico ? '' : ` onclick="abrirModalSalario(${c.id})"`}>
               <td>
@@ -183,9 +204,13 @@ export class SalariosModule {
                 ${c.area ? `<div class="cell-person-sub">${this.h(c.area)}</div>` : ''}
               </td>
               <td style="text-align:right">${salDisp}</td>
-              <td>${faixaDisp}</td>
+              <td>${r.historico ? descDisp : faixaDisp}</td>
               <td class="cell-mono">${r.historico
-                ? (r.liquido != null ? this.fmtBRL(r.liquido) : '—')
+                ? (r.liquido != null
+                    ? `<span style="font-weight:600">${this.fmtBRL(r.liquido)}</span>`
+                      + (r.vencimentos != null
+                          ? `<div class="cell-person-sub">de ${this.fmtBRL(r.vencimentos)} em proventos</div>` : '')
+                    : '—')
                 : (r.data_alteracao ? this.fmtDate(r.data_alteracao) : '—')}</td>
               <td class="actions" onclick="event.stopPropagation()">
                 ${r.temVerbas ? `<button class="btn btn-ghost btn-sm btn-icon" title="Ver o holerite do mês" onclick="abrirHolerite(${c.id})">🧾</button>` : ''}
@@ -350,6 +375,41 @@ export class SalariosModule {
     }
     this.fecharModal();
     this.render();
+  }
+
+  /**
+   * Os maiores descontos do mês, pelo nome.
+   *
+   * Três bastam: é o que cabe na linha e é onde mora a resposta na prática —
+   * adiantamento, INSS, pensão. O resto vira "e mais N", que o holerite
+   * detalha. Folha importada antes de o sistema guardar as verbas não tem o
+   * que mostrar, e aí a célula fica só com o total.
+   */
+  _resumoDescontos(verbas, limite = 3) {
+    const lista = (verbas || [])
+      .filter(v => parseFloat(v.desconto) > 0)
+      .sort((a, b) => parseFloat(b.desconto) - parseFloat(a.desconto));
+    if (!lista.length) return '';
+
+    const principais = lista.slice(0, limite)
+      .map(v => `${this.h(this._nomeCurto(v.descricao))} ${this.fmtBRL(v.desconto)}`);
+    const resto = lista.length - principais.length;
+    return `<div class="cell-person-sub">${principais.join(' · ')}`
+      + (resto > 0 ? ` · e mais ${resto}` : '') + '</div>';
+  }
+
+  /** Encurta o nome da verba para caber na linha, sem virar sigla. */
+  _nomeCurto(descricao) {
+    const texto = String(descricao || '').trim();
+    const ABREVIA = [
+      [/^Desconto Adiantamento Salarial$/i, 'Adiantamento'],
+      [/^Antecipa[çc][ãa]o Salarial$/i,     'Antecipação'],
+      [/^Pens[ãa]o Judicial\b.*/i,          'Pensão'],
+      [/^Empr[ée]stimo.*/i,                 'Empréstimo'],
+      [/^Taxa Assistencial$/i,              'Taxa assist.'],
+    ];
+    for (const [re, curto] of ABREVIA) if (re.test(texto)) return curto;
+    return texto.length > 22 ? texto.slice(0, 21).trimEnd() + '…' : texto;
   }
 
   // ─── Holerite do mês: as verbas como vieram da folha ─────────────────────

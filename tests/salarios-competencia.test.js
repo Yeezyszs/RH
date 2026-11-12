@@ -185,3 +185,101 @@ describe('vendo uma competência passada', () => {
     expect(nomes(doc)).toEqual(['Beatriz Nunes']);
   });
 });
+
+// ── Por que o líquido veio assim ──────────────────────────────────────────
+// Olhando uma folha, a pergunta do RH não é a faixa salarial: é por que o
+// líquido daquela pessoa veio daquele tamanho. A resposta está nos descontos,
+// e ela tem de caber na linha — abrir o holerite de cada um não é resposta.
+
+const desconto = (codigo, descricao, valor) => ({
+  codigo, descricao, referencia: null, provento: null, desconto: valor, tipo: 'desconto',
+});
+
+const FOLHA_COM_VERBAS = [{
+  colaborador_id: 1, competencia: '2026-01',
+  salario_base: 3674.64, vencimentos: 3998.84, descontos: 1768.88, liquido: 2229.96,
+  verbas: [
+    desconto('89', 'P.A.T', 1),
+    desconto('318', 'Antecipação Salarial', 300),
+    desconto('820', 'Desconto Adiantamento Salarial', 1099.43),
+    desconto('1950', 'INSS', 368.45),
+  ],
+}];
+
+describe('descontos na lista da folha', () => {
+  const abrir = async (hist) => {
+    const { mod, doc } = await criar({ hist });
+    mod.render();
+    doc.querySelector('#sal-competencia').value = '2026-01';
+    mod.render();
+    return { mod, doc };
+  };
+
+  it('a coluna da faixa vira a dos descontos quando há um mês à vista', async () => {
+    const { mod, doc } = await abrir(FOLHA_COM_VERBAS);
+    expect(doc.querySelector('#sal-th-faixa').textContent).toBe('Descontos do mês');
+
+    doc.querySelector('#sal-competencia').value = '';
+    mod.render();
+    expect(doc.querySelector('#sal-th-faixa').textContent).toBe('Faixa');
+  });
+
+  it('mostra o total descontado e os maiores descontos pelo nome', async () => {
+    const { doc } = await abrir(FOLHA_COM_VERBAS);
+    const celula = doc.querySelectorAll('#tb-salarios tr td')[3].textContent;
+    expect(celula).toContain('1768.88');
+    expect(celula).toContain('Adiantamento');
+    expect(celula).toContain('INSS');
+    expect(celula).toContain('Antecipação');
+  });
+
+  it('só os três maiores, e diz quantos ficaram de fora', async () => {
+    // A linha não comporta seis descontos; o holerite detalha o resto.
+    const { doc } = await abrir(FOLHA_COM_VERBAS);
+    const celula = doc.querySelectorAll('#tb-salarios tr td')[3].textContent;
+    expect(celula).toContain('e mais 1');
+    expect(celula).not.toContain('P.A.T');     // o menor de todos
+  });
+
+  it('a conta fecha na tela: proventos menos descontos dá o líquido', async () => {
+    const { doc } = await abrir(FOLHA_COM_VERBAS);
+    const liquido = doc.querySelectorAll('#tb-salarios tr td')[4].textContent;
+    expect(liquido).toContain('2229.96');
+    // Sem os proventos ao lado, a subtração não fecha: o salário base
+    // (3.674,64) não é o que entrou no mês (3.998,84, com insalubridade).
+    expect(liquido).toContain('3998.84');
+  });
+
+  it('o resumo do mês mostra a conta inteira da folha', async () => {
+    const { doc } = await abrir(FOLHA_COM_VERBAS);
+    const aviso = doc.querySelector('#sal-aviso-historico').textContent;
+    expect(aviso).toContain('3998.84');
+    expect(aviso).toContain('1768.88');
+    expect(aviso).toContain('2229.96');
+  });
+
+  it('folha importada sem verbas mostra o total, sem inventar detalhe', async () => {
+    const { doc } = await abrir([{
+      colaborador_id: 1, competencia: '2026-01',
+      salario_base: 2000, vencimentos: 2000, descontos: 300, liquido: 1700, verbas: [],
+    }]);
+    const celula = doc.querySelectorAll('#tb-salarios tr td')[3].textContent;
+    expect(celula).toContain('300.00');
+    expect(celula).not.toContain('·');
+  });
+
+  it('sem desconto nenhum, a célula não fica com lista vazia', async () => {
+    const { mod } = await abrir(FOLHA_COM_VERBAS);
+    expect(mod._resumoDescontos([])).toBe('');
+    expect(mod._resumoDescontos(null)).toBe('');
+    expect(mod._resumoDescontos([desconto('1', 'Nada', 0)])).toBe('');
+  });
+
+  it('encurta nomes compridos sem transformá-los em sigla', async () => {
+    const { mod } = await abrir(FOLHA_COM_VERBAS);
+    expect(mod._nomeCurto('Desconto Adiantamento Salarial')).toBe('Adiantamento');
+    expect(mod._nomeCurto('Pensão Judicial - GAEL CARVALHAES DA SILVA')).toBe('Pensão');
+    expect(mod._nomeCurto('INSS')).toBe('INSS');
+    expect(mod._nomeCurto('Contribuição Sindical Patronal Anual')).toHaveLength(22);
+  });
+});
