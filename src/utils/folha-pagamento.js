@@ -43,28 +43,62 @@ const MESES = [
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
 ];
 
-const MARCA_IDENT  = 'Código Nome do Funcionário';
+// A contabilidade exporta o mesmo relatório em mais de um layout, e eles
+// mudam sem aviso. A folha de janeiro/2026 chegou com cinco diferenças em
+// relação à de setembro/2026 — coluna "Cadastro" no lugar de "Código", duas
+// colunas a mais na linha de identificação, "Data Admissão" no lugar de
+// "Admissão", os totais na mesma linha do rótulo e "Total Líquido" no lugar
+// de "Valor Líquido". Qualquer uma delas sozinha derrubava a importação
+// inteira com "não encontrei nenhum holerite".
+//
+// Por isso os marcadores são expressões, não texto fixo: o leitor reconhece
+// as duas gerações do relatório, e o arquivo antigo continua importável.
+const RE_CAB_IDENT = /^(?:C[óo]digo|Cadastro)\s+Nome do Funcion[áa]rio/;
 const MARCA_BASES  = 'Salário Base';
-const MARCA_TOTAIS = 'Total de Vencimentos';
-const MARCA_LIQUIDO = 'Valor Líquido';
+const RE_CAB_TOTAIS = /^Total\s+de\s+Vencimentos/;
+const RE_TOTAIS_NA_LINHA = /^Total\b(?!\s*L[íi]quido)/;
+const RE_LIQUIDO   = /(?:Valor|Total)\s+L[íi]quido/;
 
-const RE_IDENT     = /^(\d+)\s+(.+?)\s+(\d{4,8})\s+(\d+)\s+(\d+)$/;
-const RE_ADMISSAO  = /^(.*?)\s*Admiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/;
+// Identificação: código, nome, CBO e pelo menos duas colunas numéricas. O
+// layout novo acrescenta departamento e filial no fim ("01.007 01"), então o
+// que vier depois é aceito e descartado — prender a regra ao fim da linha era
+// o que fazia o holerite inteiro ser ignorado.
+const RE_IDENT     = /^(\d+)\s+(.+?)\s+(\d{4,8})\s+(\d+)\s+(\d+)(?:\s+[\d.]+)*\s*$/;
+const RE_ADMISSAO  = /^(.*?)\s*(?:Data\s+)?Admiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/;
 const RE_COMPET    = /\b(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})/i;
+// "01/2026" solto. Exige espaço (ou início de linha) antes e depois para não
+// casar com o fim de uma data completa: em "Admissão: 10/09/2018" o trecho
+// "09/2018" viraria a competência da folha inteira.
+const RE_COMPET_NUM = /(?:^|\s)(0[1-9]|1[0-2])\/(\d{4})(?=\s|$)/;
 
-/** "Setembro de 2026" → "2026-09". */
+/** Reconhece a competência nos dois formatos: "Setembro de 2026" e "09/2026". */
 export function competenciaDaFolha(texto) {
-  const m = RE_COMPET.exec(normalizarTexto(texto));
-  if (!m) return '';
-  const mes = MESES.findIndex(x => normalizarNome(x) === normalizarNome(m[1]));
-  if (mes < 0) return '';
-  return `${m[2]}-${String(mes + 1).padStart(2, '0')}`;
+  const linha = normalizarTexto(texto);
+
+  const porExtenso = RE_COMPET.exec(linha);
+  if (porExtenso) {
+    const mes = MESES.findIndex(x => normalizarNome(x) === normalizarNome(porExtenso[1]));
+    if (mes >= 0) return `${porExtenso[2]}-${String(mes + 1).padStart(2, '0')}`;
+  }
+
+  const numerico = RE_COMPET_NUM.exec(linha);
+  if (numerico) return `${numerico[2]}-${numerico[1]}`;
+
+  return '';
+}
+
+/** Uma linha anuncia a competência da folha? */
+function temCompetencia(linha) {
+  // O formato numérico só vale no cabeçalho do holerite, que diz o regime
+  // ("Mensal"). Sem essa âncora, qualquer data solta do relatório viraria
+  // candidata — e o arquivo da contabilidade vem com outros relatórios junto.
+  return RE_COMPET.test(linha) || (RE_COMPET_NUM.test(linha) && /\bMensal/i.test(linha));
 }
 
 /** Quebra o texto nos blocos de holerite, um por via impressa. */
 function blocos(linhas) {
   const inicios = [];
-  linhas.forEach((l, i) => { if (l.startsWith(MARCA_IDENT)) inicios.push(i); });
+  linhas.forEach((l, i) => { if (RE_CAB_IDENT.test(l)) inicios.push(i); });
   return inicios.map((ini, k) => linhas.slice(ini, inicios[k + 1] ?? linhas.length));
 }
 
@@ -99,15 +133,22 @@ function lerBloco(bloco) {
       const vals = valoresBR(bloco[i + 1] || '');
       if (vals.length >= 5) h.salarioBase = vals[0];
     }
-    // Totais: "3.998,84 1.878,21 Data". Numa via que continua na página
-    // seguinte vem "A TRANSPORTAR ********* *********" — sem número nenhum.
-    if (linha.startsWith(MARCA_TOTAIS)) {
+    // Totais, em dois layouts: o antigo põe o rótulo numa linha
+    // ("Total de Vencimentos Total de Descontos") e os valores na seguinte; o
+    // novo põe rótulo e valores juntos ("Total 3.998,84 1.768,88"). Numa via
+    // que continua na página seguinte vem "A TRANSPORTAR ********* *********",
+    // sem número nenhum — e aí os totais ficam nulos, como devem ficar.
+    if (RE_CAB_TOTAIS.test(linha)) {
       const vals = valoresBR(bloco[i + 1] || '');
       if (vals.length >= 2) { h.vencimentos = vals[0]; h.descontos = vals[1]; }
+    } else if (RE_TOTAIS_NA_LINHA.test(linha)) {
+      const vals = valoresBR(linha);
+      if (vals.length >= 2) { h.vencimentos = vals[0]; h.descontos = vals[1]; }
     }
-    if (linha.includes(MARCA_LIQUIDO)) {
-      const depois = linha.slice(linha.indexOf(MARCA_LIQUIDO) + MARCA_LIQUIDO.length);
-      const v = numeroBR(depois);
+
+    const liq = RE_LIQUIDO.exec(linha);
+    if (liq) {
+      const v = numeroBR(linha.slice(liq.index + liq[0].length));
       if (v != null) h.liquido = v;
     }
   });
@@ -149,10 +190,11 @@ export function lerFolhaPagamento(linhasBrutas) {
   }
   const holerites = [...porCodigo.values()].map(juntar);
 
-  const competencia = competenciaDaFolha(linhas.find(l => RE_COMPET.test(l)) || '');
+  const competencia = competenciaDaFolha(linhas.find(temCompetencia) || '');
   const empresa = linhas[0] || '';
-  const cnpjLinha = linhas.find(l => l.includes('CNPJ:')) || '';
-  const cnpj = (/CNPJ:\s*([\d./-]+)/.exec(cnpjLinha) || [])[1] || '';
+  // O layout novo escreve "CNPJ 24.939.311/0001-89", sem os dois-pontos.
+  const cnpjLinha = linhas.find(l => /\bCNPJ\b/.test(l)) || '';
+  const cnpj = (/CNPJ:?\s*([\d./-]+)/.exec(cnpjLinha) || [])[1] || '';
 
   const problemas = [];
   if (!competencia) {
@@ -231,6 +273,24 @@ export function conciliarFolha(folha, colaboradores = [], salarios = {}, opcoes 
       }
     }
 
+    // Nome cortado pela largura da coluna do holerite: "GUILHERME VINICIUS
+    // MAEL LOURENCO DE" é o mesmo "GUILHERME VINICIUS MAEL LOURENCO DE
+    // MACEDO" do cadastro. Sem isto, quem tem nome comprido cai em "sem
+    // cadastro" todo mês e o RH religa à mão sempre.
+    //
+    // A ligação só vale se o nome da folha for começo de UM cadastro só, e
+    // com no mínimo 12 caracteres — prefixo curto encontra gente demais, e
+    // aqui o que se grava é salário. Mesmo assim vai com aviso: a tela mostra
+    // a linha antes de o RH confirmar.
+    if (!colab) {
+      const alvo = normalizarNome(h.nome);
+      if (alvo.length >= 12) {
+        const porPrefixo = colaboradores.filter(c =>
+          normalizarNome(c.nome).startsWith(alvo) && normalizarNome(c.nome) !== alvo);
+        if (porPrefixo.length === 1) { colab = porPrefixo[0]; via = 'nome-cortado'; }
+      }
+    }
+
     if (!colab) { semCadastro.push({ holerite: h, motivo: 'Sem cadastro correspondente' }); continue; }
     if (usados.has(colab.id)) {
       semCadastro.push({ holerite: h, motivo: `Já ligado a ${colab.nome} nesta importação` });
@@ -271,6 +331,9 @@ function avisosDoHolerite(h, colab) {
   if (h.cargo && colab.cargo && colab.cargo !== '—'
       && normalizarNome(h.cargo) !== normalizarNome(colab.cargo)) {
     avisos.push(`cargo na folha é "${h.cargo}"`);
+  }
+  if (normalizarNome(h.nome) !== normalizarNome(colab.nome)) {
+    avisos.push(`o nome vem cortado na folha ("${h.nome}")`);
   }
   if (colab.status === 'inativo') avisos.push('está como desligado no sistema');
   return avisos;

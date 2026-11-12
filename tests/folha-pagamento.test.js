@@ -228,3 +228,154 @@ describe('avisos que a folha revela sobre o cadastro', () => {
     expect(c.mudancas[0].avisos).toEqual([]);
   });
 });
+
+// ── O segundo layout da contabilidade ────────────────────────────────────
+// A folha de janeiro/2026 chegou com cinco diferenças em relação à de
+// setembro, e qualquer uma delas sozinha derrubava a importação inteira com
+// "não encontrei nenhum holerite". O leitor passou a reconhecer as duas
+// gerações do relatório; estes testes são o que impede uma de voltar a
+// quebrar quando a outra for ajustada.
+
+const viaNova = ({ codigo = '23', nome = 'ADAO RIBEIRO', cargo = 'OPERADOR DE FORNO',
+  admissao = '10/09/2018', base = '3.674,64', venc = '3.998,84', desc = '1.768,88',
+  liq = '2.229,96' } = {}) => [
+  '0009-MATARUCO COMÉRCIO ATACADISTA DE FARINHAS Demonstrativo de Pagamento de Salário',
+  'MATARUCO COMÉRCIO ATACADISTA DE FARINHAS LTDA Paranavaí - PR 01/2026 Mensal',
+  'CNPJ 24.939.311/0001-89 CPF: 572.032.379-15',
+  // "Cadastro" no lugar de "Código", e duas colunas a mais no fim.
+  'Cadastro Nome do Funcionário CBO Empresa Local Departamento FL',
+  `${codigo} ${nome} 821205 9 1 01.007 01`,
+  `${cargo} Data Admissão: ${admissao}`,
+  'Ev Descrição Referência Proventos Descontos',
+  '1 Horas Normais Diurnas 220:00 hs 3.674,64',
+  '1950 INSS 12,00 % 368,45',
+  'Banco: 748 Sicredi - Agência: 718-8 Conta: 46576-7',
+  `Total ${venc} ${desc}`,          // rótulo e valores na MESMA linha
+  `Total Líquido ${liq}`,           // "Total Líquido", não "Valor Líquido"
+  'Salário Base Sal Cont INSS Bas Cálc FGTS FGTS Mês Base IRRF C/Ded Simp Faixa Dep',
+  `${base} 3.998,84 3.998,84 319,90 2.292,21 0,00 00`,
+  'Recebi em: ____/____/____ Assinatura:_________________________',
+];
+
+const folhaNova = (...pessoas) => pessoas.flatMap(p => [...viaNova(p), ...viaNova(p)]);
+
+describe('layout novo (janeiro/2026)', () => {
+  it('lê o holerite inteiro', () => {
+    const f = lerFolhaPagamento(folhaNova({}));
+    expect(f.holerites).toHaveLength(1);
+    expect(f.holerites[0]).toMatchObject({
+      codigo: '23', nome: 'ADAO RIBEIRO', cbo: '821205',
+      cargo: 'OPERADOR DE FORNO', admissao: '2018-09-10',
+      salarioBase: 3674.64, vencimentos: 3998.84, descontos: 1768.88, liquido: 2229.96,
+    });
+    expect(f.problemas).toEqual([]);
+  });
+
+  it('a competência vem do cabeçalho em MM/AAAA', () => {
+    expect(lerFolhaPagamento(folhaNova({})).competencia).toBe('2026-01');
+  });
+
+  it('as colunas extras de departamento e filial não atrapalham o nome', () => {
+    const f = lerFolhaPagamento(folhaNova({ codigo: '106', nome: 'WALDECIR PAULINO ROSA' }));
+    expect(f.holerites[0].nome).toBe('WALDECIR PAULINO ROSA');
+    expect(f.holerites[0].codigo).toBe('106');
+  });
+
+  it('"Data Admissão" não vira parte do cargo', () => {
+    const f = lerFolhaPagamento(folhaNova({ cargo: 'AUXILIAR DE PRODUÇÃO' }));
+    expect(f.holerites[0].cargo).toBe('AUXILIAR DE PRODUÇÃO');
+  });
+
+  it('quem está afastado entra com líquido zero e salário base cheio', () => {
+    // Auxílio-doença: proventos e descontos se anulam, o líquido é 0,00 e a
+    // pessoa nem aparece na relação de líquidos a pagar. O salário contratual
+    // continua valendo — e é ele que vai para o cadastro.
+    const f = lerFolhaPagamento(folhaNova({
+      codigo: '21', nome: 'ROGERIO RODRIGUES DOMINGUES',
+      base: '3.006,52', venc: '2.710,24', desc: '2.710,24', liq: '0,00',
+    }));
+    expect(f.holerites[0].salarioBase).toBe(3006.52);
+    expect(f.holerites[0].liquido).toBe(0);
+    expect(f.problemas).toEqual([]);
+  });
+
+  it('as duas vias continuam virando um holerite só', () => {
+    const f = lerFolhaPagamento(folhaNova({}, { codigo: '162', nome: 'ALESSANDRO RIBEIRO' }));
+    expect(f.holerites).toHaveLength(2);
+  });
+});
+
+describe('os dois layouts convivem', () => {
+  it('o formato de setembro continua sendo lido', () => {
+    const f = lerFolhaPagamento(folhaDe({}));
+    expect(f.holerites[0].salarioBase).toBe(3674.64);
+    expect(f.competencia).toBe('2026-09');
+  });
+
+  it('a data de admissão não é confundida com a competência', () => {
+    // "Admissão: 10/09/2018" contém "09/2018". Tomar isso como competência
+    // mandaria a folha inteira para o mês errado, em silêncio.
+    expect(competenciaDaFolha('OPERADOR DE FORNO Data Admissão: 10/09/2018')).toBe('');
+    expect(lerFolhaPagamento(folhaNova({ admissao: '10/09/2018' })).competencia).toBe('2026-01');
+  });
+
+  it('MM/AAAA só vale como competência no cabeçalho do holerite', () => {
+    // O arquivo da contabilidade vem com outros relatórios junto, cheios de
+    // datas soltas. Sem a âncora do regime ("Mensal"), qualquer uma viraria
+    // candidata a competência.
+    expect(competenciaDaFolha('Compet 01/2026 Admissão 03/01/2018')).toBe('2026-01');
+    const comRuido = [
+      'Relação de Descontos de GRCS',
+      '8 FABIO RODRIGUES CARREGADOR Trabalhando 07/2025 03/01/2018 0,00 21,75',
+      ...folhaNova({}),
+    ];
+    expect(lerFolhaPagamento(comRuido).competencia).toBe('2026-01');
+  });
+});
+
+describe('nome cortado pela largura da coluna', () => {
+  // O holerite corta nomes compridos. Sem tratar isso, quem tem nome grande
+  // cai em "sem cadastro" todo mês e o RH religa à mão sempre.
+  const cadastro = [
+    { id: 1, nome: 'GUILHERME VINICIUS MAEL LOURENCO DE MACEDO', status: 'ativo' },
+    { id: 2, nome: 'ADAO RIBEIRO', status: 'ativo' },
+  ];
+
+  it('liga o nome cortado ao cadastro completo', () => {
+    const f = lerFolhaPagamento(folhaNova({ codigo: '121', nome: 'GUILHERME VINICIUS MAEL LOURENCO DE' }));
+    const c = conciliarFolha(f, cadastro, {});
+    expect(c.semCadastro).toHaveLength(0);
+    expect(c.mudancas[0].colab.id).toBe(1);
+    expect(c.mudancas[0].via).toBe('nome-cortado');
+  });
+
+  it('avisa que o nome veio cortado, para o RH conferir a linha', () => {
+    const f = lerFolhaPagamento(folhaNova({ codigo: '121', nome: 'GUILHERME VINICIUS MAEL LOURENCO DE' }));
+    const c = conciliarFolha(f, cadastro, {});
+    expect(c.mudancas[0].avisos.join(' ')).toContain('cortado');
+  });
+
+  it('não liga quando o começo serve a mais de um cadastro', () => {
+    const dois = [
+      { id: 1, nome: 'MARCOS ANTONIO TOMAZ FERREIRA', status: 'ativo' },
+      { id: 2, nome: 'MARCOS ANTONIO TOMAZ SILVA', status: 'ativo' },
+    ];
+    const f = lerFolhaPagamento(folhaNova({ nome: 'MARCOS ANTONIO TOMAZ' }));
+    const c = conciliarFolha(f, dois, {});
+    expect(c.semCadastro).toHaveLength(1);
+  });
+
+  it('não liga por um começo curto — aqui o que se grava é salário', () => {
+    const f = lerFolhaPagamento(folhaNova({ nome: 'ADAO' }));
+    const c = conciliarFolha(f, cadastro, {});
+    expect(c.semCadastro).toHaveLength(1);
+    expect(c.mudancas).toHaveLength(0);
+  });
+
+  it('nome exato continua tendo prioridade sobre o começo', () => {
+    const f = lerFolhaPagamento(folhaNova({ nome: 'ADAO RIBEIRO' }));
+    const c = conciliarFolha(f, cadastro, {});
+    expect(c.mudancas[0].colab.id).toBe(2);
+    expect(c.mudancas[0].via).toBe('nome');
+  });
+});
