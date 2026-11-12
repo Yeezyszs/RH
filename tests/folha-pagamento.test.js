@@ -379,3 +379,67 @@ describe('nome cortado pela largura da coluna', () => {
     expect(c.mudancas[0].via).toBe('nome');
   });
 });
+
+describe('recados impressos junto dos totais', () => {
+  // A folha imprime mensagens na linha dos totais. "Parabens ! Feliz
+  // Aniversario 05/02   Total   3.979,84   1.232,35" fazia os totais do mês
+  // daquela pessoa sumirem — sem erro, sem aviso, só campos vazios no
+  // histórico. E cai num aniversariante diferente a cada mês.
+  const comRecado = (recado) => viaNova({}).map(l =>
+    l.startsWith('Total ') && !l.includes('Líquido') ? `${recado} ${l}` : l);
+
+  it('o aniversário à esquerda não engole os totais', () => {
+    const f = lerFolhaPagamento([
+      ...comRecado('Parabens ! Feliz Aniversario 05/02'),
+      ...comRecado('Parabens ! Feliz Aniversario 05/02'),
+    ]);
+    expect(f.holerites[0].vencimentos).toBe(3998.84);
+    expect(f.holerites[0].descontos).toBe(1768.88);
+    expect(f.problemas).toEqual([]);
+  });
+
+  it('números do recado não são confundidos com os totais', () => {
+    // "05/02" e "1.234,00" do recado vêm ANTES dos totais na linha; ler os
+    // dois primeiros números da linha pegaria o recado.
+    const f = lerFolhaPagamento([
+      ...comRecado('Aviso: vale de 1.234,00 em 05/02'),
+      ...comRecado('Aviso: vale de 1.234,00 em 05/02'),
+    ]);
+    expect(f.holerites[0].vencimentos).toBe(3998.84);
+    expect(f.holerites[0].descontos).toBe(1768.88);
+  });
+
+  it('"Total Líquido" continua sendo só o líquido', () => {
+    const f = lerFolhaPagamento(folhaNova({}));
+    expect(f.holerites[0].liquido).toBe(2229.96);
+    expect(f.holerites[0].vencimentos).toBe(3998.84);
+  });
+});
+
+describe('adiantamento não mexe no salário do cadastro', () => {
+  // O que vai para a ficha é o salário contratual. Adiantamento, antecipação
+  // e desconto do mês entram no líquido, não no salário — confundir os dois
+  // rebaixaria o salário de quem pediu adiantamento.
+  it('o salário base ignora as verbas de adiantamento', () => {
+    const f = lerFolhaPagamento([
+      ...viaNova({ base: '3.674,64', venc: '3.998,84', desc: '1.768,88', liq: '2.229,96' }),
+      ...viaNova({ base: '3.674,64', venc: '3.998,84', desc: '1.768,88', liq: '2.229,96' }),
+    ]);
+    const h = f.holerites[0];
+    expect(h.salarioBase).toBe(3674.64);      // vai para o cadastro
+    expect(h.liquido).toBe(2229.96);          // só histórico do mês
+    expect(h.salarioBase).toBeGreaterThan(h.liquido);
+  });
+
+  it('a conciliação compara o cadastro com o salário base, não com o líquido', () => {
+    const f = lerFolhaPagamento([
+      ...viaNova({ base: '3.674,64', liq: '2.229,96' }),
+      ...viaNova({ base: '3.674,64', liq: '2.229,96' }),
+    ]);
+    const c = conciliarFolha(f, [{ id: 1, nome: 'ADAO RIBEIRO', status: 'ativo' }],
+      { 1: { valor: 3674.64 } });
+    // Mesmo salário contratual: nada a mudar, mesmo com líquido bem menor.
+    expect(c.iguais).toHaveLength(1);
+    expect(c.mudancas).toHaveLength(0);
+  });
+});

@@ -56,7 +56,14 @@ const MESES = [
 const RE_CAB_IDENT = /^(?:C[óo]digo|Cadastro)\s+Nome do Funcion[áa]rio/;
 const MARCA_BASES  = 'Salário Base';
 const RE_CAB_TOTAIS = /^Total\s+de\s+Vencimentos/;
-const RE_TOTAIS_NA_LINHA = /^Total\b(?!\s*L[íi]quido)/;
+// Totais do layout novo: "Total 3.998,84 1.768,88". O rótulo não fica
+// necessariamente no começo da linha — a folha imprime recados ali, e uma
+// mensagem de aniversário à esquerda já bastava para os totais do mês da
+// pessoa sumirem em silêncio ("Parabens ! Feliz Aniversario 05/02   Total
+// 3.979,84   1.232,35"). Por isso o reconhecimento é pelo rótulo seguido de
+// dois valores, onde quer que ele esteja na linha.
+const RE_TOTAIS_NA_LINHA =
+  /\bTotal\b(?!\s*L[íi]quido)\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})/;
 const RE_LIQUIDO   = /(?:Valor|Total)\s+L[íi]quido/;
 
 // Identificação: código, nome, CBO e pelo menos duas colunas numéricas. O
@@ -141,9 +148,15 @@ function lerBloco(bloco) {
     if (RE_CAB_TOTAIS.test(linha)) {
       const vals = valoresBR(bloco[i + 1] || '');
       if (vals.length >= 2) { h.vencimentos = vals[0]; h.descontos = vals[1]; }
-    } else if (RE_TOTAIS_NA_LINHA.test(linha)) {
-      const vals = valoresBR(linha);
-      if (vals.length >= 2) { h.vencimentos = vals[0]; h.descontos = vals[1]; }
+    } else {
+      const naLinha = RE_TOTAIS_NA_LINHA.exec(linha);
+      if (naLinha) {
+        // Os dois valores vêm do próprio casamento, não de `valoresBR(linha)`:
+        // o recado à esquerda pode trazer números (uma data, por exemplo) e
+        // eles entrariam na frente dos totais.
+        h.vencimentos = numeroBR(naLinha[1]);
+        h.descontos   = numeroBR(naLinha[2]);
+      }
     }
 
     const liq = RE_LIQUIDO.exec(linha);
