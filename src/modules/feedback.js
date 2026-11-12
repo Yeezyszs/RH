@@ -2,16 +2,11 @@
 // Manages individual feedback, climate surveys, company policies, and survey responses
 
 import { limparFormulario } from '../utils/ui.js?v=dev';
-
-const CLIMA_DIMS = ['lideranca', 'ambiente', 'reconhecimento', 'carreira', 'comunicacao', 'remuneracao'];
-const CLIMA_DIM_LABEL = {
-  lideranca:      'Liderança',
-  ambiente:       'Ambiente',
-  reconhecimento: 'Reconhecimento',
-  carreira:       'Carreira',
-  comunicacao:    'Comunicação',
-  remuneracao:    'Remuneração',
-};
+import {
+  ESCALA, DIMENSOES, DIM_LABEL, PERGUNTAS,
+  perguntasDe, totalRespostas, notaPergunta, notasPorDimensao,
+  scoreGeral, dimensaoMaisFraca, favorabilidade, pctParticipacao,
+} from '../utils/clima.js?v=dev';
 
 export class FeedbackClimaModule {
   constructor(deps) {
@@ -60,13 +55,14 @@ export class FeedbackClimaModule {
     return (f.nota_entrega + f.nota_comportamento + f.nota_colaboracao) / 3;
   }
 
+  // O score deixou de ser digitado: sai da distribuição de respostas de cada
+  // pergunta (src/utils/clima.js). Entra o dado bruto, sai o resumo.
   _scoreGeral(p) {
-    const vals = CLIMA_DIMS.map(d => p['score_' + d]);
-    return vals.reduce((a, b) => a + b, 0) / vals.length;
+    return scoreGeral(p);
   }
 
   _pctParticipacao(p) {
-    return p.convidados ? (p.responderam / p.convidados) * 100 : 0;
+    return pctParticipacao(p);
   }
 
   renderFeedback() {
@@ -284,13 +280,9 @@ export class FeedbackClimaModule {
       this.$('#cl-stat-ultima').textContent = `${ultima.titulo} · ${this.fmtDate(ultima.fim)}`;
       this.$('#cl-stat-part').textContent   = this._pctParticipacao(ultima).toFixed(0) + '%';
       this.$('#cl-stat-score').textContent  = this._scoreGeral(ultima).toFixed(2).replace('.', ',');
-      let worst = null;
-      CLIMA_DIMS.forEach(d => {
-        const v = ultima['score_' + d];
-        if (!worst || v < worst.v) worst = { d, v };
-      });
-      this.$('#cl-stat-fraca').textContent = worst
-        ? `${CLIMA_DIM_LABEL[worst.d]} · ${worst.v.toFixed(1).replace('.', ',')}`
+      const pior = dimensaoMaisFraca(ultima);
+      this.$('#cl-stat-fraca').textContent = pior
+        ? `${pior.rotulo} · ${pior.nota.toFixed(1).replace('.', ',')}`
         : '—';
     } else {
       this.$('#cl-stat-ultima').textContent = '—';
@@ -298,6 +290,8 @@ export class FeedbackClimaModule {
       this.$('#cl-stat-score').textContent  = '—';
       this.$('#cl-stat-fraca').textContent  = '—';
     }
+
+    this._renderPerguntas(ultima);
 
     this._chartClEvo?.destroy();
     this._chartClEvo = new Chart(this.$('#chart-cl-evolucao'), {
@@ -330,15 +324,19 @@ export class FeedbackClimaModule {
 
     this._chartClDims?.destroy();
     if (ultima) {
+      // Só as dimensões com resposta entram no gráfico — dimensão sem resposta
+      // apareceria como barra zerada, que é nota péssima, não ausência.
+      const notas = notasPorDimensao(ultima);
+      const dims  = DIMENSOES.map(d => d.chave).filter(d => notas[d] != null);
       this._chartClDims = new Chart(this.$('#chart-cl-dimensoes'), {
         type: 'bar',
         data: {
-          labels: CLIMA_DIMS.map(d => CLIMA_DIM_LABEL[d]),
+          labels: dims.map(d => DIM_LABEL[d]),
           datasets: [{
             label: 'Score',
-            data: CLIMA_DIMS.map(d => ultima['score_' + d]),
-            backgroundColor: CLIMA_DIMS.map(d => {
-              const v = ultima['score_' + d];
+            data: dims.map(d => notas[d]),
+            backgroundColor: dims.map(d => {
+              const v = notas[d];
               return v >= 7.5 ? '#10B981' : v >= 6.0 ? '#F59E0B' : '#EF4444';
             }),
             borderRadius: 4,
@@ -357,6 +355,138 @@ export class FeedbackClimaModule {
     }
   }
 
+  /**
+   * Pergunta a pergunta: a distribuição crua, a favorabilidade e a nota.
+   *
+   * A barra empilhada mostra onde as respostas se concentram. Sem ela, duas
+   * perguntas com a mesma média parecem iguais — e uma pode ser "todo mundo
+   * neutro" e a outra "metade adora, metade detesta", que pedem reações
+   * opostas do RH.
+   */
+  _renderPerguntas(pesquisa) {
+    const tb = this.$('#tb-clima-perguntas');
+    if (!tb) return;
+
+    if (!pesquisa) {
+      tb.innerHTML = '<tr><td colspan="5" class="empty">Nenhuma pesquisa cadastrada</td></tr>';
+      return;
+    }
+
+    const perguntas = perguntasDe(pesquisa);
+    const badge = this.$('#cl-perguntas-badge');
+    if (badge) {
+      badge.textContent = `${perguntas.length} perguntas · ${pesquisa.responderam || 0} respostas`;
+    }
+
+    tb.innerHTML = perguntas.map(p => {
+      const total = totalRespostas(p);
+      const nota  = notaPergunta(p);
+      const fav   = favorabilidade(p);
+      const barras = ESCALA.map((e, i) => {
+        const n = Number(p.respostas?.[i]) || 0;
+        if (!n || !total) return '';
+        const pct = (n / total) * 100;
+        return `<span style="width:${pct}%; background:${e.cor}" title="${e.rotulo}: ${n}"></span>`;
+      }).join('');
+      const corNota = nota == null ? 'var(--text-soft)'
+        : nota >= 7.5 ? 'var(--success)' : nota >= 6 ? 'var(--warning)' : 'var(--danger)';
+      return `
+        <tr>
+          <td>${this.h(p.texto)}</td>
+          <td><span class="badge neutral">${this.h(DIM_LABEL[p.dimensao] || p.dimensao || '—')}</span></td>
+          <td><div class="cl-barra">${barras}</div></td>
+          <td class="cell-mono" style="text-align:right">${fav == null ? '—' : fav.toFixed(0) + '%'}</td>
+          <td class="cell-mono" style="text-align:right; font-weight:700; color:${corNota}">
+            ${nota == null ? '—' : nota.toFixed(1).replace('.', ',')}
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  /** Campos de distribuição no modal: cinco números por pergunta. */
+  _renderFormPerguntas(pesquisa) {
+    const legenda = this.$('#cl-escala-legenda');
+    if (legenda) {
+      legenda.innerHTML = ESCALA.map(e =>
+        `<span><i style="background:${e.cor}"></i>${this.h(e.curto)}</span>`).join('');
+    }
+
+    const alvoForm = this.$('#cl-form-perguntas');
+    if (!alvoForm) return;
+
+    const gravadas = perguntasDe(pesquisa);
+    // O questionário padrão manda na ordem; uma pesquisa antiga com outras
+    // perguntas continua editável porque casamos pela chave.
+    const base = gravadas.length ? gravadas : PERGUNTAS;
+    alvoForm.innerHTML = base.map((p, i) => {
+      const resp = p.respostas || [0, 0, 0, 0, 0];
+      return `
+        <div class="cl-pergunta">
+          <div class="cl-pergunta-texto">${i + 1}. ${this.h(p.texto)}</div>
+          <div class="cl-pergunta-campos">
+            ${ESCALA.map((e, j) => `
+              <input type="number" min="0" step="1" name="resp_${i}_${j}"
+                     value="${Number(resp[j]) || 0}" title="${this.h(e.rotulo)}"
+                     aria-label="${this.h(p.texto)} — ${this.h(e.rotulo)}">`).join('')}
+            <span class="cl-pergunta-total" id="cl-total-${i}"></span>
+          </div>
+        </div>`;
+    }).join('');
+    this._perguntasDoModal = base;
+    this.atualizarPreviaClima();
+  }
+
+  /** Lê o formulário e devolve as perguntas no formato que vai para o banco. */
+  _perguntasDoForm() {
+    const form = this.$('#form-clima');
+    const base = this._perguntasDoModal || PERGUNTAS;
+    if (!form) return [];
+    return base.map((p, i) => ({
+      chave: p.chave,
+      texto: p.texto,
+      dimensao: p.dimensao,
+      respostas: ESCALA.map((_, j) =>
+        Math.max(0, parseInt(form.elements[`resp_${i}_${j}`]?.value, 10) || 0)),
+    }));
+  }
+
+  /**
+   * Confere o preenchimento enquanto o RH digita.
+   *
+   * O erro clássico ao transcrever uma pesquisa é a linha que não fecha com o
+   * total de respondentes — some ou sobra gente numa pergunta e ninguém nota.
+   * Aqui cada linha mostra o seu total e destaca quem destoa.
+   */
+  atualizarPreviaClima() {
+    const form = this.$('#form-clima');
+    const alvoPrevia = this.$('#cl-form-previa');
+    if (!form || !alvoPrevia) return;
+
+    const perguntas = this._perguntasDoForm();
+    const esperado = parseInt(form.elements['responderam']?.value, 10) || 0;
+    let divergentes = 0;
+
+    perguntas.forEach((p, i) => {
+      const total = totalRespostas(p);
+      const el = this.$(`#cl-total-${i}`);
+      const fora = esperado > 0 && total !== esperado;
+      if (fora) divergentes++;
+      if (el) {
+        el.textContent = String(total);
+        el.classList.toggle('fora', fora);
+      }
+    });
+
+    const pesquisa = { perguntas, responderam: esperado };
+    const score = scoreGeral(pesquisa);
+    alvoPrevia.innerHTML = `Score geral: <strong>${score.toFixed(2).replace('.', ',')}</strong>/10`
+      + (esperado
+        ? divergentes
+          ? ` · <span style="color:var(--danger)">${divergentes} pergunta${divergentes === 1 ? '' : 's'} não fecha${divergentes === 1 ? '' : 'm'} com ${esperado} respostas</span>`
+          : ` · todas as perguntas fecham com ${esperado} respostas`
+        : '');
+  }
+
   abrirModalClima(id = null) {
     const form = this.$('#form-clima');
     limparFormulario(form);
@@ -365,12 +495,17 @@ export class FeedbackClimaModule {
       if (p) {
         this.$('#cl-modal-title').textContent = 'Editar pesquisa';
         for (const [k, v] of Object.entries(p)) {
+          // `perguntas` é um array e vira os campos de distribuição logo
+          // abaixo; jogá-lo num input viraria "[object Object]".
+          if (k === 'perguntas') continue;
           const f = form.elements[k];
           if (f) f.value = v ?? '';
         }
+        this._renderFormPerguntas(p);
       }
     } else {
       this.$('#cl-modal-title').textContent = 'Nova pesquisa de clima';
+      this._renderFormPerguntas(null);
     }
     this.$('#modal-clima').classList.add('active');
   }
@@ -391,12 +526,9 @@ export class FeedbackClimaModule {
       fim:                  data.fim,
       convidados:           parseInt(data.convidados, 10)  || 0,
       responderam:          parseInt(data.responderam, 10) || 0,
-      score_lideranca:      parseFloat(data.score_lideranca)      || 0,
-      score_ambiente:       parseFloat(data.score_ambiente)       || 0,
-      score_reconhecimento: parseFloat(data.score_reconhecimento) || 0,
-      score_carreira:       parseFloat(data.score_carreira)       || 0,
-      score_comunicacao:    parseFloat(data.score_comunicacao)    || 0,
-      score_remuneracao:    parseFloat(data.score_remuneracao)    || 0,
+      // A distribuição por pergunta é o dado; as notas por dimensão são
+      // calculadas na leitura, não gravadas.
+      perguntas:            this._perguntasDoForm(),
     };
 
     const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);

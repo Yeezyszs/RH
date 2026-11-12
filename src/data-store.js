@@ -38,6 +38,9 @@ var POLITICAS        = [];
 var PROCEDIMENTOS    = [];
 var PROLABORE        = [];
 var SAC              = [];
+// Avaliações de engajamento (formulário de 11 itens). Uma linha por avaliador:
+// gestor e RH avaliam separadamente e a média é feita na leitura.
+var ENGAJAMENTO      = [];
 var PRESTADORES      = [];
 var PC_CARGOS        = [];
 var PC_PLANOS        = {};
@@ -82,6 +85,7 @@ window.CLIMA            = CLIMA;
 window.POLITICAS        = POLITICAS;
 window.PROCEDIMENTOS    = PROCEDIMENTOS;
 window.PROLABORE        = PROLABORE;
+window.ENGAJAMENTO      = ENGAJAMENTO;
 window.SAC              = SAC;
 window.PRESTADORES      = PRESTADORES;
 window.PC_CARGOS        = PC_CARGOS;

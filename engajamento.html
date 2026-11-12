@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Avaliação de Engajamento — Bepi Mataruco</title>
+<style>
+  :root {
+    --phthalo: #123e6b; --phthalo-dark: #0d2d4f; --phthalo-light: #2e7ab8;
+    --bg: #eef3f8; --white: #ffffff; --border: #d7e0ea;
+    --text: #1a2430; --text-muted: #5b6b7d; --text-soft: #8a98a8;
+    --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(160deg, #dbeafe 0%, var(--bg) 45%);
+    color: var(--text); min-height: 100vh; padding: 20px;
+  }
+  .card {
+    background: var(--white); width: 100%; max-width: 760px; margin: 0 auto;
+    border-radius: 16px; box-shadow: 0 12px 40px rgba(18,62,107,.15);
+    overflow: hidden; border: 1px solid var(--border);
+  }
+  .head {
+    background: linear-gradient(135deg, var(--phthalo), var(--phthalo-dark));
+    color: #fff; padding: 26px 28px;
+  }
+  .head h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em; }
+  .head p { font-size: .86rem; opacity: .85; margin-top: 6px; line-height: 1.5; }
+  .body { padding: 24px 28px 28px; }
+  label { display: block; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+          color: var(--text-muted); font-weight: 600; margin-bottom: 7px; }
+  .field { margin-bottom: 18px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  select, input[type="text"], input[type="date"], textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 10px;
+    padding: 11px 13px; font-size: .95rem; font-family: inherit; color: var(--text);
+    background: #f8fafc; transition: border-color .15s, box-shadow .15s;
+  }
+  select:focus, input:focus, textarea:focus {
+    outline: none; border-color: var(--phthalo-light);
+    box-shadow: 0 0 0 3px rgba(46,122,184,.15); background: #fff;
+  }
+  textarea { min-height: 72px; resize: vertical; line-height: 1.5; }
+
+  .legenda {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    background: #f1f5f9; border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; font-size: .78rem; color: var(--text-muted); margin-bottom: 16px;
+  }
+  .legenda b { color: var(--phthalo-dark); font-family: ui-monospace, monospace; }
+
+  .item { padding: 12px 0; border-bottom: 1px solid #eef2f6; }
+  .item:last-of-type { border-bottom: none; }
+  .item-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+  .item-texto { font-size: .92rem; line-height: 1.45; flex: 1; }
+  .item-texto span { color: var(--text-soft); font-family: ui-monospace, monospace; margin-right: 6px; }
+  .notas { display: flex; gap: 5px; flex-shrink: 0; }
+  .notas input { position: absolute; opacity: 0; pointer-events: none; }
+  .notas span {
+    display: grid; place-items: center; width: 38px; height: 38px;
+    border: 1px solid var(--border); border-radius: 9px; background: #f8fafc;
+    font-family: ui-monospace, monospace; font-size: .95rem; font-weight: 700;
+    color: var(--text-muted); cursor: pointer; transition: all .12s;
+  }
+  .notas input:checked + span { background: var(--phthalo); border-color: var(--phthalo); color: #fff; }
+  .notas input:focus-visible + span { box-shadow: 0 0 0 3px rgba(46,122,184,.25); }
+  .apont {
+    width: 100%; margin-top: 8px; border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 11px; font-size: .84rem; font-family: inherit; background: #f8fafc; color: var(--text);
+  }
+
+  .resumo {
+    position: sticky; bottom: 0;
+    background: #f1f5f9; border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 16px; margin-top: 16px; font-size: .9rem; color: var(--text-muted);
+  }
+  .resumo b { font-family: ui-monospace, monospace; color: var(--phthalo-dark); font-size: 1.05rem; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: .78rem; font-weight: 700; }
+  .chip.ok { background: #ecfdf5; color: #065f46; }
+  .chip.warn { background: #fffbeb; color: #92400e; }
+  .chip.danger { background: #fef2f2; color: #991b1b; }
+
+  button.enviar {
+    width: 100%; margin-top: 18px; border: none; border-radius: 10px;
+    background: var(--phthalo); color: #fff; font-size: .98rem; font-weight: 700;
+    padding: 14px; cursor: pointer; transition: background .15s;
+  }
+  button.enviar:hover { background: var(--phthalo-dark); }
+  button.enviar:disabled { opacity: .6; cursor: default; }
+  .msg { margin-top: 12px; font-size: .86rem; min-height: 1.2em; }
+  .msg.err { color: var(--danger); }
+  .sucesso { text-align: center; padding: 20px 0; }
+  .sucesso .tick { font-size: 2.6rem; }
+  .sucesso h2 { font-size: 1.15rem; margin: 10px 0 6px; color: var(--phthalo-dark); }
+  .sucesso p { font-size: .9rem; color: var(--text-muted); line-height: 1.5; }
+  .btn-novo {
+    margin-top: 16px; border: 1px solid var(--border); background: #f8fafc;
+    border-radius: 9px; padding: 10px 18px; font-size: .88rem; font-weight: 600;
+    color: var(--phthalo-dark); cursor: pointer;
+  }
+  .foot { text-align: center; font-size: .75rem; color: var(--text-soft); padding: 14px; }
+  @media (max-width: 560px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .item-topo { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="head">
+      <h1>Avaliação de Engajamento</h1>
+      <p>Formulário de avaliação dos colaboradores. Dê uma nota de 1 a 3 em cada item e,
+         se quiser, registre um apontamento explicando a nota.</p>
+    </div>
+
+    <div class="body">
+      <div id="form-wrap">
+        <div class="field">
+          <label for="colab">Colaborador avaliado</label>
+          <select id="colab"><option value="">Carregando…</option></select>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label for="avaliador">Seu nome</label>
+            <input type="text" id="avaliador" placeholder="Quem está avaliando" maxlength="200">
+          </div>
+          <div class="field">
+            <label for="origem">Você é</label>
+            <select id="origem">
+              <option value="gestor">Gestor da área</option>
+              <option value="rh">Responsável pelo RH</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="periodo">Momento da avaliação</label>
+          <select id="periodo">
+            <option value="anual">Avaliação anual</option>
+            <option value="experiencia">Após o período de experiência</option>
+          </select>
+        </div>
+
+        <div class="legenda">
+          <span><b>1</b> Abaixo do esperado</span>
+          <span><b>2</b> Atende ao esperado</span>
+          <span><b>3</b> Acima do esperado</span>
+        </div>
+
+        <div id="itens"></div>
+
+        <div class="field" style="margin-top:16px">
+          <label for="observacoes">Observações gerais (opcional)</label>
+          <textarea id="observacoes" maxlength="2000"></textarea>
+        </div>
+
+        <div class="resumo" id="resumo">Pontuação: <b>22</b>/33 · 66,7% · <span class="chip warn">Satisfatório</span></div>
+
+        <button class="enviar" id="btn-enviar" type="button" onclick="enviarAvaliacao()">Enviar avaliação</button>
+        <div class="msg" id="msg"></div>
+      </div>
+
+      <div id="sucesso-wrap" style="display:none">
+        <div class="sucesso">
+          <div class="tick">✓</div>
+          <h2>Avaliação enviada</h2>
+          <p>Obrigado. A avaliação já está disponível para o RH. A nota final é a média
+             entre a sua avaliação e a do responsável pelo RH.</p>
+          <button class="btn-novo" type="button" onclick="novaAvaliacao()">Avaliar outro colaborador</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">Recursos Humanos · Bepi Mataruco</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL  = 'https://smfiujgaxaodyfwvoxwy.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtZml1amdheGFvZHlmd3ZveHd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NjczOTQsImV4cCI6MjA5MzA0MzM5NH0.8zj1LtQOMZWOkaoYIxSQHG1xnpQFxtHVRtQ6vXHnrPY';
+
+    // A biblioteca vem de um CDN. Se ela não carregar — rede do celular do
+    // gestor, bloqueio de rede da empresa — criar o cliente aqui lançaria erro
+    // no topo do script e a página inteira ficaria em branco, sem explicação.
+    // Por isso o formulário é desenhado primeiro e a falha vira uma frase.
+    const sb = window.supabase
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
+      : null;
+
+    // Os 11 itens e a regra de pontuação são os mesmos de
+    // src/utils/engajamento.js. Esta página é servida solta, sem o bundle do
+    // sistema, então a lista vive aqui também — e um teste compara as duas
+    // cópias para que não se separem no tempo.
+    const ITENS = [
+      'Adaptação às regras e controles relacionados a qualidade e segurança dos produtos',
+      'Agilidade para a função',
+      'Satisfação com a função / comprometimento',
+      'Assiduidade e pontualidade',
+      'Relacionamento e trabalho em equipe',
+      'Comportamento',
+      'Facilidade de aprender e assimilar informações',
+      'Planejamento e organização',
+      'Qualidade do trabalho',
+      'Cumprimento dos quesitos de Segurança do trabalho',
+      'Cumprimento de metas do setor',
+    ];
+    const PONTUACAO_MAXIMA = ITENS.length * 3;
+
+    function classificar(pct) {
+      if (pct >= 70) return { rotulo: 'Excelente', cls: 'ok' };
+      if (pct >= 50) return { rotulo: 'Satisfatório', cls: 'warn' };
+      return { rotulo: 'Insatisfatório', cls: 'danger' };
+    }
+
+    function montarItens() {
+      document.getElementById('itens').innerHTML = ITENS.map((texto, i) => `
+        <div class="item">
+          <div class="item-topo">
+            <div class="item-texto"><span>${i + 1}.</span>${texto}</div>
+            <div class="notas">
+              ${[1, 2, 3].map(n => `
+                <label>
+                  <input type="radio" name="nota_${i}" value="${n}" ${n === 2 ? 'checked' : ''}>
+                  <span>${n}</span>
+                </label>`).join('')}
+            </div>
+          </div>
+          <input class="apont" type="text" id="apont_${i}" maxlength="1000" placeholder="Apontamentos (opcional)">
+        </div>`).join('');
+      document.getElementById('itens').addEventListener('change', atualizarResumo);
+      atualizarResumo();
+    }
+
+    function notasAtuais() {
+      return ITENS.map((_, i) => {
+        const marcado = document.querySelector(`input[name="nota_${i}"]:checked`);
+        return marcado ? parseInt(marcado.value, 10) : null;
+      });
+    }
+
+    function atualizarResumo() {
+      const notas = notasAtuais();
+      const soma = notas.reduce((s, n) => s + (n || 0), 0);
+      const pct = (soma / PONTUACAO_MAXIMA) * 100;
+      const c = classificar(pct);
+      document.getElementById('resumo').innerHTML =
+        `Pontuação: <b>${soma}</b>/${PONTUACAO_MAXIMA} · `
+        + `${pct.toFixed(1).replace('.', ',')}% · `
+        + `<span class="chip ${c.cls}">${c.rotulo}</span>`;
+    }
+
+    async function carregarColaboradores() {
+      const sel = document.getElementById('colab');
+      if (!sb) {
+        sel.innerHTML = '<option value="">Sem conexão com o sistema</option>';
+        erro('Não foi possível carregar a lista. Verifique a conexão e recarregue a página.');
+        return;
+      }
+      try {
+        const { data, error } = await sb.rpc('engajamento_colaboradores');
+        if (error) throw error;
+        sel.innerHTML = '<option value="">Selecione…</option>'
+          + (data || []).map(c =>
+              `<option value="${c.id}">${c.nome}${c.setor ? ' — ' + c.setor : ''}</option>`).join('');
+      } catch (err) {
+        sel.innerHTML = '<option value="">Não foi possível carregar a lista</option>';
+        console.error(err);
+      }
+    }
+
+    async function enviarAvaliacao() {
+      const msgEl = document.getElementById('msg');
+      msgEl.className = 'msg';
+      msgEl.textContent = '';
+
+      if (!sb) { erro('Sem conexão com o sistema. Recarregue a página.'); return; }
+
+      const colaboradorId = parseInt(document.getElementById('colab').value, 10);
+      const avaliador = document.getElementById('avaliador').value.trim();
+      const notas = notasAtuais();
+
+      if (!colaboradorId) { erro('Escolha o colaborador avaliado.'); return; }
+      if (avaliador.length < 3) { erro('Informe o seu nome.'); return; }
+      if (notas.some(n => !n)) { erro('Dê uma nota a todos os itens.'); return; }
+
+      const itens = ITENS.map((_, i) => ({
+        nota: notas[i],
+        apontamento: document.getElementById('apont_' + i).value.trim(),
+      }));
+
+      const btn = document.getElementById('btn-enviar');
+      btn.disabled = true; btn.textContent = 'Enviando…';
+      try {
+        const { error } = await sb.rpc('engajamento_enviar', {
+          p_colaborador_id: colaboradorId,
+          p_avaliador: avaliador,
+          p_origem: document.getElementById('origem').value,
+          p_periodo: document.getElementById('periodo').value,
+          p_itens: itens,
+          p_observacoes: document.getElementById('observacoes').value.trim() || null,
+        });
+        if (error) throw error;
+        document.getElementById('form-wrap').style.display = 'none';
+        document.getElementById('sucesso-wrap').style.display = 'block';
+      } catch (err) {
+        erro('Não foi possível enviar. Tente novamente.');
+        console.error(err);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Enviar avaliação';
+      }
+    }
+
+    function erro(texto) {
+      const msgEl = document.getElementById('msg');
+      msgEl.textContent = texto;
+      msgEl.classList.add('err');
+    }
+
+    function novaAvaliacao() {
+      document.getElementById('colab').value = '';
+      document.getElementById('observacoes').value = '';
+      ITENS.forEach((_, i) => {
+        document.getElementById('apont_' + i).value = '';
+        const dois = document.querySelector(`input[name="nota_${i}"][value="2"]`);
+        if (dois) dois.checked = true;
+      });
+      atualizarResumo();
+      document.getElementById('msg').textContent = '';
+      document.getElementById('sucesso-wrap').style.display = 'none';
+      document.getElementById('form-wrap').style.display = 'block';
+    }
+
+    // Os itens primeiro: o formulário tem de aparecer mesmo que a lista de
+    // colaboradores demore ou falhe.
+    montarItens();
+    carregarColaboradores();
+  </script>
+</body>
+</html>

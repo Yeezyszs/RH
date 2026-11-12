@@ -95,7 +95,9 @@ const FeedbackClima = {
     if (cached) return cached;
     const { data, error } = await withTimeout(
       sb.from('pesquisas_clima')
-        .select('id, titulo, inicio, fim, convidados, responderam, score_lideranca, score_ambiente, score_reconhecimento, score_carreira, score_comunicacao, score_remuneracao')
+        // `perguntas` traz a distribuição de respostas; as notas por dimensão
+        // saem dela (src/utils/clima.js), não mais de colunas digitadas.
+        .select('id, titulo, inicio, fim, convidados, responderam, perguntas')
         .not('inicio', 'is', null)
         .order('inicio', { ascending: false })
     );
@@ -528,6 +530,48 @@ const PlanoCarreiras = {
       sb.from('plano_carreiras_colaborador')
         .delete()
         .eq('colaborador_id', colabId)
+    );
+    if (error) throw error;
+    Cache.invalidate();
+  },
+};
+
+// Avaliação de engajamento — o formulário de 11 itens que gestor e RH
+// respondem separadamente. O formulário público (engajamento.html) não passa
+// por aqui: ele fala com a RPC `engajamento_enviar`, que é quem valida o que
+// vem de fora. Daqui para baixo é a visão do RH, já autenticada.
+const AvaliacoesEngajamento = {
+  async listar() {
+    const { data, error } = await withTimeout(
+      sb.from('avaliacoes_engajamento')
+        .select('id, colaborador_id, data_avaliacao, avaliador, origem, periodo, itens, observacoes, criado_em')
+        .order('data_avaliacao', { ascending: false })
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('avaliacoes_engajamento').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate();
+    return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('avaliacoes_engajamento').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate();
+    return data;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(
+      sb.from('avaliacoes_engajamento').delete().eq('id', id)
     );
     if (error) throw error;
     Cache.invalidate();

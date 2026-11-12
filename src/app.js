@@ -12,6 +12,7 @@ import { ColaboradoresModule }    from './modules/colaboradores.js?v=dev';
 import { QuadroModule }           from './modules/quadro.js?v=dev';
 import { AdvertenciasModule }     from './modules/advertencias.js?v=dev';
 import { FeriasModule }           from './modules/ferias.js?v=dev';
+import { EngajamentoModule }      from './modules/engajamento.js?v=dev';
 import { DesligamentosModule }    from './modules/desligamentos.js?v=dev';
 import { RescisoesModule }        from './modules/rescisoes.js?v=dev';
 import { CronogramaModule }       from './modules/cronograma.js?v=dev';
@@ -142,6 +143,12 @@ function bootstrap() {
     $, h, iniciais, fmtDate, fmtBRL, mesLabel,
     DESLIGAMENTOS, CHART_COLORS,
     Auth: window.Auth, Desligamentos: window.Desligamentos, showToast,
+  });
+
+  const engajamento = new EngajamentoModule({
+    $, h, iniciais, fmtDate,
+    COLABORADORES, ENGAJAMENTO: window.ENGAJAMENTO, CHART_COLORS,
+    Auth: window.Auth, AvaliacoesEngajamento: window.AvaliacoesEngajamento, showToast,
   });
 
   const cronograma = new CronogramaModule({
@@ -315,6 +322,19 @@ function bootstrap() {
   window.salvarFeriasPeriodo      = (ev)   => ferias.salvarFeriasPeriodo(ev);
   window.excluirFerias            = (id)   => ferias.excluirFerias(id);
   window.editarValorFerias        = (id)   => ferias.editarValorFerias(id);
+
+  // Avaliação de engajamento
+  window.renderEngajamento          = ()     => engajamento.render();
+  window.abrirDrawerEngajamento     = (ch)   => engajamento.abrirDrawer(ch);
+  window.fecharDrawerEngajamento    = ()     => engajamento.fecharDrawer();
+  window.abrirModalEngajamento      = ()     => engajamento.abrirModal();
+  window.fecharModalEngajamento     = ()     => engajamento.fecharModal();
+  window.salvarEngajamento          = (ev)   => engajamento.salvar(ev);
+  window.excluirEngajamento         = (id)   => engajamento.excluir(id);
+  window.atualizarPreviaEngajamento = ()     => engajamento.atualizarPreviaModal();
+  window.abrirModalEngLink          = ()     => engajamento.abrirModalLink();
+  window.fecharModalEngLink         = ()     => engajamento.fecharModalLink();
+  window.copiarLinkEngajamento      = ()     => engajamento.copiarLink();
   // Marco de férias: o RH diz quem está atrasado de verdade.
   window.alternarMarcoFerias      = ()     => ferias.alternarMarco();
   window.salvarMarcoFerias        = ()     => ferias.salvarMarco();
@@ -430,6 +450,7 @@ function bootstrap() {
   window.renderClima                  = ()    => feedbackClima.renderClima();
   window.abrirModalClima              = (id)  => feedbackClima.abrirModalClima(id);
   window.fecharModalClima             = ()    => feedbackClima.fecharModalClima();
+  window.atualizarPreviaClima         = ()    => feedbackClima.atualizarPreviaClima();
   window.salvarClima                  = (ev)  => feedbackClima.salvarClima(ev);
   window.excluirClima                 = (id)  => feedbackClima.excluirClima(id);
   window.abrirModalRespostasPesquisa  = (id)  => feedbackClima.abrirModalRespostasPesquisa(id);

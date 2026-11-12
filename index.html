@@ -171,6 +171,10 @@
         <span class="nav-icon">✎</span>
         <span>Organizacional</span>
       </div>
+      <div class="nav-item" data-page="engajamento">
+        <span class="nav-icon">◎</span>
+        <span>Avaliação de Engajamento</span>
+      </div>
       <div class="nav-item" data-page="cronograma">
         <span class="nav-icon">▦</span>
         <span>Cronograma</span>
@@ -1690,6 +1694,31 @@
           </div>
         </div>
 
+        <!-- Pergunta a pergunta: a distribuição das respostas é o dado que
+             o questionário devolve; a nota da dimensão sai daqui. -->
+        <div class="widget" style="margin-bottom:14px;">
+          <div class="widget-header">
+            <div class="widget-title">Respostas por pergunta — última pesquisa</div>
+            <span class="widget-badge" id="cl-perguntas-badge">escala de 5 pontos</span>
+          </div>
+          <div class="table-card" style="box-shadow:none; border:none;">
+            <div class="table-wrapper">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th style="width:38%">Pergunta</th>
+                    <th>Dimensão</th>
+                    <th style="width:26%">Distribuição</th>
+                    <th style="text-align:right">Favoráveis</th>
+                    <th style="text-align:right">Nota</th>
+                  </tr>
+                </thead>
+                <tbody id="tb-clima-perguntas"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <div class="table-card">
           <div class="table-wrapper">
             <table class="data">
@@ -2006,6 +2035,89 @@
         </div>
       </div>
 
+    </section>
+
+    <!-- ───── AVALIAÇÃO DE ENGAJAMENTO ───── -->
+    <section id="page-engajamento" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Avaliação de Engajamento</h1>
+          <div class="page-subtitle">Formulário de 11 itens · gestor e RH avaliam separadamente, a nota é a média dos dois</div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <input type="text" id="eng-search" placeholder="Buscar por colaborador, setor ou avaliador…">
+        </div>
+        <select id="eng-filter-ano"></select>
+        <select id="eng-filter-periodo">
+          <option value="">Todos os períodos</option>
+          <option value="experiencia">Pós-experiência</option>
+          <option value="anual">Anual</option>
+        </select>
+        <select id="eng-filter-classificacao">
+          <option value="">Todas as classificações</option>
+          <option value="excelente">Excelente</option>
+          <option value="satisfatorio">Satisfatório</option>
+          <option value="insatisfatorio">Insatisfatório</option>
+        </select>
+        <button class="btn btn-secondary" type="button" data-action="abrirModalEngLink">🔗 Link para gestores</button>
+        <button class="btn" type="button" data-action="abrirModalEngajamento">+ Lançar avaliação</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Avaliações no recorte</div>
+          <div class="stat-value" id="eng-stat-total">—</div>
+          <div class="stat-sub" id="eng-stat-pendentes-sub"></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Pontuação média</div>
+          <div class="stat-value" id="eng-stat-media" style="font-size:1.3rem; line-height:1.8;">—</div>
+        </div>
+        <div class="stat stat-success">
+          <div class="stat-label">Excelentes</div>
+          <div class="stat-value" id="eng-stat-exc">—</div>
+        </div>
+        <div class="stat stat-danger">
+          <div class="stat-label">Insatisfatórios</div>
+          <div class="stat-value" id="eng-stat-insat">—</div>
+        </div>
+      </div>
+
+      <!-- Média por item: onde a empresa inteira vai bem ou mal -->
+      <div class="widget" style="margin-bottom:14px;">
+        <div class="widget-header">
+          <div class="widget-title">Média por item avaliado</div>
+          <span class="widget-badge">1 a 3 · passe o mouse para ver o item</span>
+        </div>
+        <div class="chart-container" style="height:200px;">
+          <canvas id="chart-engajamento"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead>
+              <tr>
+                <th style="width:24%">Colaborador</th>
+                <th>Ciclo</th>
+                <th>Data</th>
+                <th>Avaliadores</th>
+                <th style="text-align:right">Pontuação</th>
+                <th style="text-align:right">%</th>
+                <th>Classificação</th>
+              </tr>
+            </thead>
+            <tbody id="tb-engajamento"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ───── SAC — CANAL DO COLABORADOR ───── -->
@@ -2495,6 +2607,36 @@
 </div>
 
 <!-- ════════════ DRAWER — DETALHE DESLIGAMENTO ════════════ -->
+<!-- ════════════ DRAWER — AVALIAÇÃO DE ENGAJAMENTO ════════════ -->
+<div id="drawer-backdrop-eng" class="drawer-backdrop" data-action="fecharDrawerEngajamento"></div>
+<aside id="drawer-eng" class="drawer">
+  <div class="drawer-header">
+    <div class="drawer-avatar" id="deng-avatar">—</div>
+    <div class="drawer-title-block">
+      <div class="drawer-name" id="deng-name">—</div>
+      <div class="drawer-role" id="deng-role">—</div>
+    </div>
+    <button class="drawer-close" data-action="fecharDrawerEngajamento">×</button>
+  </div>
+
+  <div class="drawer-body">
+    <div class="drawer-section active">
+      <div id="deng-resumo"></div>
+      <!-- Uma coluna por avaliador e a média ao lado: é a conta que o
+           formulário manda fazer, e ela fica à vista. -->
+      <div class="fer-secao" style="margin-top:14px;">Itens avaliados</div>
+      <div class="table-card"><div class="table-wrapper" id="deng-itens"></div></div>
+      <div class="fer-secao" style="margin-top:16px;">Observações gerais</div>
+      <div id="deng-observacoes" style="font-size:.86rem; color:var(--text-muted); line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="drawer-footer">
+    <div id="deng-acoes" style="display:flex; gap:6px; flex-wrap:wrap; margin-right:auto;"></div>
+    <button class="btn btn-secondary btn-sm" data-action="fecharDrawerEngajamento">Fechar</button>
+  </div>
+</aside>
+
 <div id="drawer-backdrop-desl" class="drawer-backdrop" data-action="fecharDrawerDesl"></div>
 <aside id="drawer-desl" class="drawer">
   <div class="drawer-header" style="background: linear-gradient(135deg, #991B1B 0%, var(--phthalo) 100%);">
@@ -2516,6 +2658,90 @@
     <button class="btn btn-secondary btn-sm" data-action="fecharDrawerDesl">Fechar</button>
   </div>
 </aside>
+
+<!-- ════════════ MODAL — LANÇAR AVALIAÇÃO DE ENGAJAMENTO ════════════ -->
+<div id="modal-engajamento" class="modal">
+  <div class="modal-box" style="max-width:720px;">
+    <div class="modal-header">
+      <div class="modal-title">Lançar avaliação de engajamento</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalEngajamento">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-engajamento" onsubmit="salvarEngajamento(event)">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Colaborador</label>
+            <select name="colaborador_id" id="eng-form-colab" required></select>
+          </div>
+          <div class="form-group">
+            <label>Quem está avaliando</label>
+            <input type="text" name="avaliador" required placeholder="Nome de quem avalia">
+          </div>
+          <div class="form-group">
+            <label>Data</label>
+            <input type="date" name="data_avaliacao" required>
+          </div>
+          <div class="form-group">
+            <label>Papel do avaliador</label>
+            <select name="origem">
+              <option value="rh">RH</option>
+              <option value="gestor">Gestor</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ciclo</label>
+            <select name="periodo">
+              <option value="anual">Anual</option>
+              <option value="experiencia">Pós-experiência</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="fer-secao" style="margin-top:14px;">Itens · nota 1 (abaixo), 2 (atende) ou 3 (acima do esperado)</div>
+        <div id="eng-form-itens" onchange="atualizarPreviaEngajamento()"></div>
+        <div class="eng-previa" id="eng-form-previa"></div>
+
+        <div class="form-group full" style="margin-top:12px;">
+          <label>Observações gerais</label>
+          <textarea name="observacoes" rows="2"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalEngajamento">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-engajamento">Salvar avaliação</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — LINK DO FORMULÁRIO PARA GESTORES ════════════ -->
+<div id="modal-eng-link" class="modal">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title">Link para os gestores responderem</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalEngLink">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.88rem; color:var(--text-muted); line-height:1.6; margin-bottom:14px;">
+        Envie este link para os gestores. Eles escolhem o colaborador, dão as notas de 1 a 3
+        nos 11 itens e enviam — sem precisar de login no sistema. A avaliação cai direto nesta
+        tela, e a nota final é a média com a avaliação do RH.
+      </p>
+      <div class="form-group full">
+        <label>Endereço do formulário</label>
+        <input type="text" id="eng-link-url" readonly onclick="this.select()">
+      </div>
+      <p style="font-size:.78rem; color:var(--text-soft); line-height:1.5;">
+        Quem tiver o link consegue ver a lista de nomes e setores dos colaboradores ativos,
+        para escolher quem está avaliando. Nenhum outro dado do cadastro fica exposto.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalEngLink">Fechar</button>
+      <button class="btn btn-sm" type="button" data-action="copiarLinkEngajamento">📋 Copiar link</button>
+    </div>
+  </div>
+</div>
 
 <!-- ════════════ MODAL — REGISTRAR DESLIGAMENTO ════════════ -->
 <div id="modal-desligamento" class="modal">
@@ -3258,52 +3484,37 @@
       <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalClima">×</button>
     </div>
     <div class="modal-body">
-      <form id="form-clima" class="form-grid" onsubmit="salvarClima(event)">
+      <form id="form-clima" onsubmit="salvarClima(event)">
         <input type="hidden" name="id">
-        <div class="form-group full">
-          <label>Título da pesquisa</label>
-          <input type="text" name="titulo" required placeholder="Ex.: Pesquisa de clima Q2/2026">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Título da pesquisa</label>
+            <input type="text" name="titulo" required placeholder="Ex.: Pesquisa de Clima 2026">
+          </div>
+          <div class="form-group">
+            <label>Início</label>
+            <input type="date" name="inicio" required>
+          </div>
+          <div class="form-group">
+            <label>Fim</label>
+            <input type="date" name="fim" required>
+          </div>
+          <div class="form-group">
+            <label>Convidados</label>
+            <input type="number" name="convidados" min="1" required>
+          </div>
+          <div class="form-group">
+            <label>Responderam</label>
+            <input type="number" name="responderam" min="0" required>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Início</label>
-          <input type="date" name="inicio" required>
-        </div>
-        <div class="form-group">
-          <label>Fim</label>
-          <input type="date" name="fim" required>
-        </div>
-        <div class="form-group">
-          <label>Convidados</label>
-          <input type="number" name="convidados" min="1" required>
-        </div>
-        <div class="form-group">
-          <label>Responderam</label>
-          <input type="number" name="responderam" min="0" required>
-        </div>
-        <div class="form-group">
-          <label>Score — Liderança (0-10)</label>
-          <input type="number" name="score_lideranca" min="0" max="10" step="0.1" required>
-        </div>
-        <div class="form-group">
-          <label>Score — Ambiente (0-10)</label>
-          <input type="number" name="score_ambiente" min="0" max="10" step="0.1" required>
-        </div>
-        <div class="form-group">
-          <label>Score — Reconhecimento (0-10)</label>
-          <input type="number" name="score_reconhecimento" min="0" max="10" step="0.1" required>
-        </div>
-        <div class="form-group">
-          <label>Score — Carreira (0-10)</label>
-          <input type="number" name="score_carreira" min="0" max="10" step="0.1" required>
-        </div>
-        <div class="form-group">
-          <label>Score — Comunicação (0-10)</label>
-          <input type="number" name="score_comunicacao" min="0" max="10" step="0.1" required>
-        </div>
-        <div class="form-group">
-          <label>Score — Remuneração (0-10)</label>
-          <input type="number" name="score_remuneracao" min="0" max="10" step="0.1" required>
-        </div>
+
+        <!-- Uma linha por pergunta, cinco campos: quantas pessoas marcaram cada
+             ponto da escala. A nota da dimensão sai daqui, não é digitada. -->
+        <div class="fer-secao" style="margin-top:16px;">Respostas por pergunta</div>
+        <div class="cl-escala-legenda" id="cl-escala-legenda"></div>
+        <div id="cl-form-perguntas" onchange="atualizarPreviaClima()"></div>
+        <div class="eng-previa" id="cl-form-previa"></div>
       </form>
     </div>
     <div class="modal-footer">

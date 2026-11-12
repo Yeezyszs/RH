@@ -12,7 +12,7 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, afastamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac, valeDesc, config, folhaHist] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac, valeDesc, config, folhaHist, engajamento] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -41,6 +41,7 @@ async function inicializarSupabase() {
         ValeDescontos.listar(),
         Configuracoes.listar(),
         FolhaCompetencia.listar(),
+        AvaliacoesEngajamento.listar(),
       ]);
 
     // Nada acima rejeita (allSettled), então o que falhou precisa ser
@@ -70,6 +71,7 @@ async function inicializarSupabase() {
       'procedimentos':       procedimentos,
       'pró-labore':          prolabore,
       'SAC':                 sac,
+      'avaliações de engajamento': engajamento,
       'descontos do vale':   valeDesc,
       'configurações':       config,
       'histórico da folha':  folhaHist,
@@ -213,6 +215,14 @@ async function inicializarSupabase() {
       if (lista.length > 0) {
         _preencherArray(SAC, lista);
         console.info(`[RH] ${SAC.length} mensagens de SAC carregadas.`);
+      }
+    }
+
+    if (engajamento.status === 'fulfilled') {
+      const lista = engajamento.value ?? [];
+      if (lista.length > 0) {
+        _preencherArray(ENGAJAMENTO, lista);
+        console.info(`[RH] ${ENGAJAMENTO.length} avaliações de engajamento carregadas.`);
       }
     }
 
@@ -361,6 +371,7 @@ async function inicializarSupabase() {
     if (typeof renderProcedimentos  === 'function') renderProcedimentos();
     if (typeof renderProlabore      === 'function') renderProlabore();
     if (typeof renderSac            === 'function') renderSac();
+    if (typeof renderEngajamento    === 'function') renderEngajamento();
     if (typeof renderSacTratativas  === 'function') renderSacTratativas();
     if (typeof renderPrestadores    === 'function') renderPrestadores();
     if (typeof renderBeneficios     === 'function') renderBeneficios();
@@ -417,6 +428,7 @@ window.PoliticasEmpresa       = PoliticasEmpresa;
 window.ProcedimentosEmpresa   = ProcedimentosEmpresa;
 window.ProlaboreSocios        = ProlaboreSocios;
 window.SacMensagens           = SacMensagens;
+window.AvaliacoesEngajamento  = AvaliacoesEngajamento;
 window.StorageDocs            = StorageDocs;
 window.PrestadoresServico     = PrestadoresServico;
 window.RespostasPesquisa      = RespostasPesquisa;

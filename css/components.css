@@ -1180,3 +1180,127 @@ table.data td.actions {
   color: var(--text);
   line-height: 1.5;
 }
+
+/* ── Avaliação de engajamento ────────────────────────────────────────────
+   O formulário impresso é uma tabela de 11 linhas com três notas por linha.
+   Na tela vira uma linha por item: texto, as três notas em botões de rádio e
+   o campo de apontamento, que é onde o gestor justifica a nota. */
+.eng-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.eng-item:last-child { border-bottom: none; }
+.eng-item-texto { font-size: .86rem; line-height: 1.4; }
+.eng-item-notas { display: flex; gap: 4px; }
+.eng-item-notas label { cursor: pointer; }
+.eng-item-notas input { position: absolute; opacity: 0; pointer-events: none; }
+.eng-item-notas span {
+  display: grid;
+  place-items: center;
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bluish-bg);
+  font-family: var(--mono);
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all .12s;
+}
+.eng-item-notas input:checked + span {
+  background: var(--phthalo);
+  border-color: var(--phthalo);
+  color: #fff;
+}
+.eng-item-notas input:focus-visible + span {
+  box-shadow: 0 0 0 3px rgba(46, 122, 184, .25);
+}
+.eng-item-apont {
+  grid-column: 1 / -1;
+  font-size: .82rem;
+  padding: 6px 10px;
+}
+.eng-previa {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--bluish-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .86rem;
+  color: var(--text-muted);
+}
+.eng-previa strong { color: var(--phthalo-dark); font-family: var(--mono); }
+.eng-resumo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bluish-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.eng-resumo-nota {
+  font-family: var(--mono);
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--phthalo-dark);
+  line-height: 1.1;
+}
+.eng-resumo-nota span { font-size: .8rem; font-weight: 500; color: var(--text-soft); }
+
+@media (max-width: 640px) {
+  .eng-item { grid-template-columns: 1fr; }
+  .eng-item-notas { justify-content: flex-start; }
+}
+
+/* ── Pesquisa de clima: distribuição por pergunta ────────────────────────
+   A média sozinha engana: "todo mundo neutro" e "metade adora, metade
+   detesta" dão o mesmo número e pedem reações opostas. A barra empilhada
+   mostra a forma da resposta, não só o centro dela. */
+.cl-barra {
+  display: flex;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--border-soft);
+  min-width: 120px;
+}
+.cl-barra span { display: block; height: 100%; }
+.cl-escala-legenda {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: .74rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.cl-escala-legenda span { display: inline-flex; align-items: center; gap: 5px; }
+.cl-escala-legenda i {
+  width: 10px; height: 10px; border-radius: 3px; display: inline-block;
+}
+.cl-pergunta {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.cl-pergunta:last-child { border-bottom: none; }
+.cl-pergunta-texto { font-size: .84rem; line-height: 1.4; margin-bottom: 5px; }
+.cl-pergunta-campos { display: flex; gap: 5px; align-items: center; }
+.cl-pergunta-campos input {
+  width: 54px;
+  padding: 5px 7px;
+  font-family: var(--mono);
+  font-size: .82rem;
+  text-align: center;
+}
+.cl-pergunta-total {
+  font-family: var(--mono);
+  font-size: .78rem;
+  color: var(--text-soft);
+  margin-left: 6px;
+}
+.cl-pergunta-total.fora { color: var(--danger); font-weight: 700; }
