@@ -38,6 +38,11 @@ import {
   normalizarTexto, normalizarNome, numeroBR, valoresBR, arredondar, moedaBR,
 } from './texto-pdf.js?v=dev';
 
+// Quão longe do título da coluna um valor ainda pertence a ela, em pontos.
+// As duas colunas de dinheiro do holerite ficam a mais de 100 pt uma da
+// outra; 60 separa com folga e ainda descarta a coluna de referência.
+const TOLERANCIA_COLUNA = 60;
+
 const MESES = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
@@ -65,6 +70,26 @@ const RE_CAB_TOTAIS = /^Total\s+de\s+Vencimentos/;
 const RE_TOTAIS_NA_LINHA =
   /\bTotal\b(?!\s*L[íi]quido)\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})/;
 const RE_LIQUIDO   = /(?:Valor|Total)\s+L[íi]quido/;
+
+// Cabeçalho do quadro de verbas. É ele que diz onde começam as colunas de
+// provento e de desconto — e sem saber a coluna não dá para dizer se "1,00"
+// numa linha de verba foi pago ou descontado.
+const RE_CAB_VERBAS = /^(?:Ev|C[óo]digo)\s+Descri[çc][ãa]o/;
+const RE_COL_PROVENTO = /^(?:Proventos|Vencimentos)$/i;
+const RE_COL_DESCONTO = /^Descontos$/i;
+const RE_COL_REFERENCIA = /^Refer[êe]ncia$/i;
+
+// Linha de verba: código do evento, descrição, e um ou dois valores.
+//
+// O código pode ter sublinha: a pensão judicial sai como "1830 Pensão
+// Judicial" sem valor e "1830.1 - GAEL CARVALHAES DA SILVA ... 791,65" com o
+// valor na linha de baixo. Exigir código inteiro perdia a pensão inteira, e
+// o desconto sumia da conta sem nenhum aviso.
+const RE_VERBA = /^(\d{1,4}(?:\.\d+)?)\s+(.+)$/;
+const RE_VALOR = /^[\d.]+,\d{2}$/;
+
+// Onde o quadro de verbas termina.
+const RE_FIM_VERBAS = /^(?:Banco:|Total\b|A TRANSPORTAR|Continua\.\.\.|Sal[áa]rio Base|Recebi em)/;
 
 // Identificação: código, nome, CBO e pelo menos duas colunas numéricas. O
 // layout novo acrescenta departamento e filial no fim ("01.007 01"), então o
@@ -102,16 +127,131 @@ function temCompetencia(linha) {
   return RE_COMPET.test(linha) || (RE_COMPET_NUM.test(linha) && /\bMensal/i.test(linha));
 }
 
+/**
+ * Normaliza a entrada: o leitor aceita linhas de texto puro (como nos testes
+ * e em qualquer extrator simples) ou linhas com as células posicionadas, que
+ * é o que `linhasComCelulas` devolve a partir do pdf.js.
+ *
+ * Sem as células o leitor funciona igual, menos numa coisa: não consegue
+ * dizer se uma verba foi provento ou desconto, porque essa informação está na
+ * coluna, não no texto. Nesse caso a verba sai com `tipo: null` em vez de um
+ * palpite — chutar aqui é inventar dinheiro no lugar errado.
+ */
+function normalizarEntrada(linhasBrutas) {
+  return (linhasBrutas || []).map(l => (typeof l === 'string'
+    ? { texto: normalizarTexto(l), celulas: null }
+    : { texto: normalizarTexto(l?.texto), celulas: l?.celulas || null }))
+    .filter(l => l.texto);
+}
+
 /** Quebra o texto nos blocos de holerite, um por via impressa. */
 function blocos(linhas) {
   const inicios = [];
-  linhas.forEach((l, i) => { if (RE_CAB_IDENT.test(l)) inicios.push(i); });
+  linhas.forEach((l, i) => { if (RE_CAB_IDENT.test(l.texto)) inicios.push(i); });
   return inicios.map((ini, k) => linhas.slice(ini, inicios[k + 1] ?? linhas.length));
+}
+
+/**
+ * Verbas do holerite: cada linha do quadro "Ev / Descrição / Referência /
+ * Proventos / Descontos".
+ *
+ * A coluna é que diz o tipo. O cabeçalho do quadro dá o x de "Proventos" e de
+ * "Descontos"; cada valor vai para a coluna cujo título estiver mais perto.
+ * É assim que "89 P.A.T 1,00" vira desconto de R$ 1,00 e não provento.
+ */
+function lerVerbas(bloco) {
+  const iCab = bloco.findIndex(l => RE_CAB_VERBAS.test(l.texto));
+  if (iCab < 0) return [];
+
+  // Onde ficam as colunas, quando o PDF trouxe as posições.
+  let xProvento = null, xDesconto = null, xReferencia = null;
+  for (const c of bloco[iCab].celulas || []) {
+    if (RE_COL_PROVENTO.test(c.s)) xProvento = c.x;
+    if (RE_COL_DESCONTO.test(c.s)) xDesconto = c.x;
+    if (RE_COL_REFERENCIA.test(c.s)) xReferencia = c.x;
+  }
+  const temColunas = xProvento != null && xDesconto != null;
+
+  const verbas = [];
+  // Verba cujo valor vem na sublinha: guarda a descrição-mãe para compor.
+  let mae = null;
+  for (let i = iCab + 1; i < bloco.length; i++) {
+    const linha = bloco[i];
+    if (RE_FIM_VERBAS.test(linha.texto)) break;
+
+    const m = RE_VERBA.exec(linha.texto);
+    if (!m) continue;
+
+    // Descrição. Com as colunas conhecidas é o que estiver impresso à
+    // esquerda da coluna de referência, descontado o código — é o recorte
+    // exato, e não sobra o "20%" da referência grudado no nome de quem
+    // recebe a pensão. Sem elas, recorta no primeiro número da linha.
+    let descricao;
+    if (xReferencia != null && linha.celulas) {
+      descricao = linha.celulas
+        .filter(c => c.x < xReferencia - TOLERANCIA_COLUNA && c.s !== m[1])
+        .map(c => c.s).join(' ').trim();
+    }
+    if (!descricao) {
+      const primeiro = m[2].search(/[\d.]+,\d{2}|\d+[:,]\d+\s*(?:hs|%)/);
+      descricao = (primeiro > 0 ? m[2].slice(0, primeiro) : m[2]).trim();
+    }
+
+    // Linha de código sem valor nenhum: é a mãe de uma sublinha, como
+    // "1830 Pensão Judicial" seguida de "1830.1 - GAEL ... 791,65".
+    if (!valoresBR(m[2]).length) {
+      mae = { codigo: m[1], descricao };
+      continue;
+    }
+    if (mae && m[1].startsWith(mae.codigo + '.')) {
+      descricao = `${mae.descricao} ${descricao}`.replace(/\s*-\s*$/, '').trim();
+    }
+
+    const verba = {
+      codigo: m[1],
+      descricao,
+      referencia: null,
+      provento: null,
+      desconto: null,
+      tipo: null,
+    };
+
+    if (temColunas && linha.celulas) {
+      for (const c of linha.celulas) {
+        if (!RE_VALOR.test(c.s)) continue;
+        const dProv = Math.abs(c.x - xProvento);
+        const dDesc = Math.abs(c.x - xDesconto);
+        if (Math.min(dProv, dDesc) > TOLERANCIA_COLUNA) continue;
+        if (dProv <= dDesc) { verba.provento = numeroBR(c.s); verba.tipo = 'provento'; }
+        else                { verba.desconto = numeroBR(c.s); verba.tipo = 'desconto'; }
+      }
+      // Referência: o que estiver impresso na coluna de referência, seja hora
+      // ("220:00 hs") ou percentual ("20,00 %"). Ler pela posição evita o
+      // erro de tomar o próprio valor como referência quando não há nenhuma:
+      // em "89 P.A.T 1,00" o 1,00 é dinheiro, não "1,00 hora".
+      if (xReferencia != null) {
+        const refs = linha.celulas
+          .filter(c => Math.abs(c.x - xReferencia) <= TOLERANCIA_COLUNA)
+          .map(c => c.s);
+        if (refs.length) verba.referencia = refs.join(' ');
+      }
+    } else {
+      // Sem colunas: guarda o valor sem afirmar de que lado ele está.
+      const valores = valoresBR(m[2]);
+      verba.valor = valores[valores.length - 1];
+    }
+
+    if (verba.provento != null || verba.desconto != null || verba.valor != null) {
+      verbas.push(verba);
+      mae = null;
+    }
+  }
+  return verbas;
 }
 
 /** Lê uma via. Devolve null quando o bloco não tem sequer identificação. */
 function lerBloco(bloco) {
-  const ident = RE_IDENT.exec(bloco[1] || '');
+  const ident = RE_IDENT.exec(bloco[1]?.texto || '');
   if (!ident) return null;
 
   const h = {
@@ -124,20 +264,21 @@ function lerBloco(bloco) {
     vencimentos: null,
     descontos:   null,
     liquido:     null,
+    verbas:      lerVerbas(bloco),
   };
 
-  const adm = RE_ADMISSAO.exec(bloco[2] || '');
+  const adm = RE_ADMISSAO.exec(bloco[2]?.texto || '');
   if (adm) {
     h.cargo = adm[1].trim() || null;
     const [d, m, a] = adm[2].split('/');
     h.admissao = `${a}-${m}-${d}`;
   }
 
-  bloco.forEach((linha, i) => {
+  bloco.forEach(({ texto: linha }, i) => {
     // Bases: a linha seguinte traz os valores na ordem do cabeçalho, e o
     // primeiro deles é o salário base.
     if (linha.startsWith(MARCA_BASES)) {
-      const vals = valoresBR(bloco[i + 1] || '');
+      const vals = valoresBR(bloco[i + 1]?.texto || '');
       if (vals.length >= 5) h.salarioBase = vals[0];
     }
     // Totais, em dois layouts: o antigo põe o rótulo numa linha
@@ -146,7 +287,7 @@ function lerBloco(bloco) {
     // que continua na página seguinte vem "A TRANSPORTAR ********* *********",
     // sem número nenhum — e aí os totais ficam nulos, como devem ficar.
     if (RE_CAB_TOTAIS.test(linha)) {
-      const vals = valoresBR(bloco[i + 1] || '');
+      const vals = valoresBR(bloco[i + 1]?.texto || '');
       if (vals.length >= 2) { h.vencimentos = vals[0]; h.descontos = vals[1]; }
     } else {
       const naLinha = RE_TOTAIS_NA_LINHA.exec(linha);
@@ -171,22 +312,45 @@ function lerBloco(bloco) {
 
 /** Junta as vias e as continuações: fica o primeiro valor não nulo de cada campo. */
 function juntar(partes) {
-  return partes.reduce((acc, p) => {
-    for (const [k, v] of Object.entries(p)) if (acc[k] == null || acc[k] === '') acc[k] = v;
+  const junto = partes.reduce((acc, p) => {
+    for (const [k, v] of Object.entries(p)) {
+      if (k === 'verbas') continue;
+      if (acc[k] == null || acc[k] === '') acc[k] = v;
+    }
     return acc;
   }, {});
+
+  // Verbas não seguem a regra do "primeiro não nulo": uma via vazia é lista
+  // vazia, não ausência, e quem continua na página seguinte traz a outra
+  // metade das verbas. Junta tudo e tira as repetidas — as duas vias da mesma
+  // página são cópias uma da outra.
+  const vistas = new Set();
+  junto.verbas = [];
+  for (const parte of partes) {
+    for (const v of parte.verbas || []) {
+      const chave = `${v.codigo}|${v.descricao}|${v.provento}|${v.desconto}|${v.valor ?? ''}`;
+      if (vistas.has(chave)) continue;
+      vistas.add(chave);
+      junto.verbas.push(v);
+    }
+  }
+  return junto;
 }
 
 /**
- * Lê a folha a partir das linhas de texto do PDF.
+ * Lê a folha a partir das linhas do PDF.
  *
- * @param {string[]} linhasBrutas
+ * Aceita linhas de texto puro ou linhas com as células posicionadas
+ * (`linhasComCelulas`). Só com as posições é possível dizer de que coluna
+ * veio cada valor das verbas — ver `lerVerbas`.
+ *
+ * @param {(string|{texto: string, celulas: {x: number, s: string}[]})[]} linhasBrutas
  * @returns {{competencia: string, empresa: string, cnpj: string,
  *            holerites: object[], totalBase: number, problemas: string[]}}
  * @throws {Error} quando o arquivo não tem cara de folha de pagamento
  */
 export function lerFolhaPagamento(linhasBrutas) {
-  const linhas = (linhasBrutas || []).map(normalizarTexto).filter(Boolean);
+  const linhas = normalizarEntrada(linhasBrutas);
 
   const vias = blocos(linhas).map(lerBloco).filter(Boolean);
   if (!vias.length) {
@@ -203,10 +367,11 @@ export function lerFolhaPagamento(linhasBrutas) {
   }
   const holerites = [...porCodigo.values()].map(juntar);
 
-  const competencia = competenciaDaFolha(linhas.find(temCompetencia) || '');
-  const empresa = linhas[0] || '';
+  const textos = linhas.map(l => l.texto);
+  const competencia = competenciaDaFolha(textos.find(temCompetencia) || '');
+  const empresa = textos[0] || '';
   // O layout novo escreve "CNPJ 24.939.311/0001-89", sem os dois-pontos.
-  const cnpjLinha = linhas.find(l => /\bCNPJ\b/.test(l)) || '';
+  const cnpjLinha = textos.find(l => /\bCNPJ\b/.test(l)) || '';
   const cnpj = (/CNPJ:?\s*([\d./-]+)/.exec(cnpjLinha) || [])[1] || '';
 
   const problemas = [];

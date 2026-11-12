@@ -1304,3 +1304,20 @@ table.data td.actions {
   margin-left: 6px;
 }
 .cl-pergunta-total.fora { color: var(--danger); font-weight: 700; }
+
+/* ── Holerite do mês ─────────────────────────────────────────────────────
+   Os totais embaixo do quadro de verbas, como no papel. */
+.hol-totais {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: .85rem;
+}
+.hol-totais > div { display: flex; flex-direction: column; gap: 2px; }
+.hol-totais span { color: var(--text-muted); font-size: .76rem; }
+.hol-totais strong { font-family: var(--mono); color: var(--text); }
+.hol-totais .hol-liquido { margin-left: auto; text-align: right; }
+.hol-totais .hol-liquido strong { color: var(--phthalo-dark); font-size: 1.05rem; }

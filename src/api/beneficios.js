@@ -97,7 +97,7 @@ const FolhaCompetencia = {
     if (cached) return cached;
     const { data, error } = await withTimeout(
       sb.from('folha_competencia')
-        .select('id, colaborador_id, competencia, salario_base, vencimentos, descontos, liquido, cargo, codigo_folha')
+        .select('id, colaborador_id, competencia, salario_base, vencimentos, descontos, liquido, cargo, codigo_folha, verbas')
         .order('competencia', { ascending: false })
         .order('colaborador_id')
     );

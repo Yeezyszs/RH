@@ -93,6 +93,7 @@ export class SalariosModule {
           liquido:        h.liquido != null ? parseFloat(h.liquido) : null,
           temSalario:     true,
           historico:      true,
+          temVerbas:      Array.isArray(h.verbas) && h.verbas.length > 0,
         };
       }
       const s = this.SALARIOS[c.id];
@@ -104,6 +105,9 @@ export class SalariosModule {
         liquido:        null,
         temSalario:     !!s,
         historico:      false,
+        // Fora do histórico a tela mostra o cadastro, não um mês — e verba é
+        // coisa de mês. O botão do holerite só aparece com uma folha à vista.
+        temVerbas:      false,
       };
     });
 
@@ -184,6 +188,7 @@ export class SalariosModule {
                 ? (r.liquido != null ? this.fmtBRL(r.liquido) : '—')
                 : (r.data_alteracao ? this.fmtDate(r.data_alteracao) : '—')}</td>
               <td class="actions" onclick="event.stopPropagation()">
+                ${r.temVerbas ? `<button class="btn btn-ghost btn-sm btn-icon" title="Ver o holerite do mês" onclick="abrirHolerite(${c.id})">🧾</button>` : ''}
                 ${r.historico ? '' : `<button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalSalario(${c.id})">✎</button>`}
               </td>
             </tr>
@@ -345,6 +350,82 @@ export class SalariosModule {
     }
     this.fecharModal();
     this.render();
+  }
+
+  // ─── Holerite do mês: as verbas como vieram da folha ─────────────────────
+
+  /**
+   * Mostra o quadro de verbas daquele colaborador naquela competência.
+   *
+   * O que a lista responde é "quanto"; o que falta é "do que foi feito" —
+   * quanto saiu de adiantamento, de insalubridade, de pensão, de consignado.
+   * Essas linhas já vêm na folha importada; aqui elas aparecem como no papel,
+   * com proventos de um lado e descontos do outro.
+   */
+  abrirHolerite(colabId) {
+    const comp = this.$('#sal-competencia')?.value || '';
+    const h = this.FOLHA_HIST.find(x => x.colaborador_id === colabId && x.competencia === comp);
+    const c = this.COLABORADORES.find(x => x.id === colabId);
+    if (!h || !c) return;
+
+    const verbas = Array.isArray(h.verbas) ? h.verbas : [];
+    this.$('#hol-title').textContent = `${c.nome} — ${this.mesLabel(comp)}`;
+
+    const linha = (v) => `
+      <tr>
+        <td class="cell-mono" style="color:var(--text-soft)">${this.h(v.codigo || '')}</td>
+        <td>${this.h(v.descricao || '—')}</td>
+        <td class="cell-mono" style="color:var(--text-muted)">${this.h(v.referencia || '')}</td>
+        <td class="cell-mono" style="text-align:right">${v.provento != null ? this.fmtBRL(v.provento) : ''}</td>
+        <td class="cell-mono" style="text-align:right; color:var(--danger)">${v.desconto != null ? this.fmtBRL(v.desconto) : ''}</td>
+      </tr>`;
+
+    const somaProv = verbas.reduce((t, v) => t + (parseFloat(v.provento) || 0), 0);
+    const somaDesc = verbas.reduce((t, v) => t + (parseFloat(v.desconto) || 0), 0);
+    const venc = h.vencimentos != null ? parseFloat(h.vencimentos) : null;
+    const desc = h.descontos   != null ? parseFloat(h.descontos)   : null;
+
+    // Quando a soma das verbas não bate com o total impresso, a tela diz. Há
+    // caso legítimo — auxílio-doença sai listado mas quem paga é o INSS, e o
+    // total da empresa não o inclui —, mas quem olha precisa saber que as
+    // duas contas diferem em vez de escolher uma sem saber.
+    const difere = (venc != null && Math.abs(somaProv - venc) > 0.01)
+                || (desc != null && Math.abs(somaDesc - desc) > 0.01);
+
+    this.$('#hol-body').innerHTML = `
+      <div class="table-card" style="box-shadow:none; border:none;">
+        <div class="table-wrapper">
+          <table class="data">
+            <thead><tr>
+              <th style="width:60px">Ev</th>
+              <th>Descrição</th>
+              <th style="width:90px">Referência</th>
+              <th style="width:120px; text-align:right">Proventos</th>
+              <th style="width:120px; text-align:right">Descontos</th>
+            </tr></thead>
+            <tbody>
+              ${verbas.length ? verbas.map(linha).join('')
+                : '<tr><td colspan="5" class="empty">Esta folha foi importada antes de o sistema guardar as verbas.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="hol-totais">
+        <div><span>Salário base</span><strong>${this.fmtBRL(parseFloat(h.salario_base) || 0)}</strong></div>
+        <div><span>Total de proventos</span><strong>${venc != null ? this.fmtBRL(venc) : '—'}</strong></div>
+        <div><span>Total de descontos</span><strong>${desc != null ? this.fmtBRL(desc) : '—'}</strong></div>
+        <div class="hol-liquido"><span>Líquido</span><strong>${h.liquido != null ? this.fmtBRL(parseFloat(h.liquido)) : '—'}</strong></div>
+      </div>
+      ${difere ? `<div class="fer-dica" style="margin-top:8px; color:var(--warning)">
+        As verbas listadas somam ${this.fmtBRL(somaProv)} de proventos e ${this.fmtBRL(somaDesc)} de descontos,
+        diferente dos totais impressos. Acontece quando uma verba aparece no holerite sem entrar no total —
+        auxílio-doença, por exemplo, que é pago pelo INSS.</div>` : ''}`;
+
+    this.$('#modal-holerite').classList.add('active');
+  }
+
+  fecharHolerite() {
+    this.$('#modal-holerite')?.classList.remove('active');
   }
 
   exportSalarios() {

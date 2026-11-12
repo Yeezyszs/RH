@@ -13,7 +13,7 @@
 // cadastro: variam todo mês com horas extras, faltas e adiantamentos.
 
 import { lerFolhaPagamento, conciliarFolha } from '../utils/folha-pagamento.js?v=dev';
-import { linhasDeItens } from '../utils/texto-pdf.js?v=dev';
+import { linhasComCelulas } from '../utils/texto-pdf.js?v=dev';
 
 // Mesmo CDN do Chart.js e do supabase-js; carregado só quando o modal abre.
 const PDFJS_VERSAO = '4.10.38';
@@ -109,7 +109,9 @@ export class FolhaImportacaoModule {
     const doc = await pdfjs.getDocument({ data: new Uint8Array(await arquivo.arrayBuffer()) }).promise;
     const linhas = [];
     for (let p = 1; p <= doc.numPages; p++) {
-      linhas.push(...linhasDeItens((await (await doc.getPage(p)).getTextContent()).items));
+      // Com as células posicionadas, e não só o texto: é a posição que diz
+      // se um valor do quadro de verbas é provento ou desconto.
+      linhas.push(...linhasComCelulas((await (await doc.getPage(p)).getTextContent()).items));
     }
     return linhas;
   }
@@ -308,6 +310,10 @@ export class FolhaImportacaoModule {
       liquido:        holerite.liquido,
       cargo:          holerite.cargo,
       codigo_folha:   holerite.codigo,
+      // As verbas do mês, uma a uma: adiantamento, insalubridade, pensão,
+      // adicional noturno. Não entram no salário — ficam no histórico, que é
+      // onde a pergunta "quanto foi de adiantamento?" se responde.
+      verbas:         holerite.verbas || [],
     }));
     if (!linhas.length) return;
 

@@ -398,6 +398,8 @@ function bootstrap() {
   window.abrirModalSalario        = (id)  => salarios.abrirModal(id);
   window.fecharModalSalario       = ()    => salarios.fecharModal();
   window.salvarSalario            = (ev)  => salarios.salvar(ev);
+  window.abrirHolerite            = (id)   => salarios.abrirHolerite(id);
+  window.fecharHolerite           = ()     => salarios.fecharHolerite();
   window.exportSalarios           = ()    => salarios.exportSalarios();
   window.renderSalarios           = ()    => salarios.render();
 

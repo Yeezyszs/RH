@@ -443,3 +443,113 @@ describe('adiantamento não mexe no salário do cadastro', () => {
     expect(c.mudancas).toHaveLength(0);
   });
 });
+
+// ── Verbas do holerite ────────────────────────────────────────────────────
+// A coluna é a informação: o texto "89 P.A.T 1,00" não diz se o real foi pago
+// ou descontado. Por isso o leitor aceita linhas com as células posicionadas,
+// e estes testes montam as posições como o pdf.js as entrega.
+
+const X = { ev: 20, desc: 36, ref: 354, prov: 448, descontos: 547 };
+
+/** Monta uma linha de verba já posicionada nas colunas do holerite. */
+const verba = (codigo, descricao, { ref = null, provento = null, desconto = null } = {}) => {
+  const celulas = [{ x: X.ev, s: codigo }, { x: X.desc, s: descricao }];
+  if (ref != null)      celulas.push({ x: X.ref, s: ref });
+  if (provento != null) celulas.push({ x: X.prov + 5, s: provento });
+  if (desconto != null) celulas.push({ x: X.descontos + 14, s: desconto });
+  return { texto: celulas.map(c => c.s).join(' '), celulas };
+};
+
+const comVerbas = (linhasVerba, extra = {}) => {
+  const base = viaNova(extra);
+  const iCab = base.findIndex(l => l.startsWith('Ev '));
+  const cabecalho = {
+    texto: 'Ev Descrição Referência Proventos Descontos',
+    celulas: [
+      { x: X.ev, s: 'Ev' }, { x: X.desc, s: 'Descrição' }, { x: X.ref, s: 'Referência' },
+      { x: X.prov, s: 'Proventos' }, { x: X.descontos, s: 'Descontos' },
+    ],
+  };
+  return [
+    ...base.slice(0, iCab),
+    cabecalho,
+    ...linhasVerba,
+    ...base.slice(iCab + 3),   // pula o cabeçalho antigo e as duas verbas de exemplo
+  ];
+};
+
+describe('verbas do holerite', () => {
+  const PADRAO = [
+    verba('1', 'Horas Normais Diurnas', { ref: '220:00 hs', provento: '3.674,64' }),
+    verba('62', 'Insalubridade S/Salário Mínimo', { ref: '20,00 %', provento: '324,20' }),
+    verba('89', 'P.A.T', { desconto: '1,00' }),
+    verba('318', 'Antecipação Salarial', { desconto: '300,00' }),
+    verba('820', 'Desconto Adiantamento Salarial', { desconto: '1.099,43' }),
+    verba('1950', 'INSS', { ref: '12,00 %', desconto: '368,45' }),
+  ];
+
+  const ler = (linhas) => lerFolhaPagamento([...comVerbas(linhas), ...comVerbas(linhas)]);
+
+  it('separa provento de desconto pela coluna em que o valor foi impresso', () => {
+    const h = ler(PADRAO).holerites[0];
+    expect(h.verbas).toHaveLength(6);
+    expect(h.verbas[0]).toMatchObject({ codigo: '1', provento: 3674.64, desconto: null, tipo: 'provento' });
+    // O caso que o texto sozinho não resolve: "89 P.A.T 1,00" é desconto.
+    expect(h.verbas[2]).toMatchObject({ codigo: '89', descricao: 'P.A.T', desconto: 1, tipo: 'desconto' });
+    expect(h.verbas[4]).toMatchObject({ descricao: 'Desconto Adiantamento Salarial', desconto: 1099.43 });
+  });
+
+  it('a referência sai da coluna de referência, não do valor', () => {
+    const h = ler(PADRAO).holerites[0];
+    expect(h.verbas[0].referencia).toBe('220:00 hs');
+    expect(h.verbas[1].referencia).toBe('20,00 %');
+    // P.A.T não tem referência — tomar o 1,00 como "1,00 hora" seria inventar.
+    expect(h.verbas[2].referencia).toBeNull();
+  });
+
+  it('as verbas somam os totais impressos', () => {
+    const h = ler(PADRAO).holerites[0];
+    const prov = h.verbas.reduce((s, v) => s + (v.provento || 0), 0);
+    const desc = h.verbas.reduce((s, v) => s + (v.desconto || 0), 0);
+    expect(prov).toBeCloseTo(h.vencimentos, 2);
+    expect(desc).toBeCloseTo(h.descontos, 2);
+  });
+
+  it('a pensão judicial vem da sublinha e junta a descrição da mãe', () => {
+    // "1830 Pensão Judicial" não tem valor; o valor está em "1830.1".
+    // Exigir código inteiro fazia a pensão sumir da conta, sem aviso.
+    const h = ler([
+      verba('1', 'Horas Normais Diurnas', { ref: '220:00 hs', provento: '3.674,64' }),
+      verba('1830', 'Pensão Judicial'),
+      verba('1830.1', '- GAEL CARVALHAES DA SILVA', { ref: '20%', desconto: '791,65' }),
+    ]).holerites[0];
+
+    const pensao = h.verbas.find(v => v.codigo === '1830.1');
+    expect(pensao.desconto).toBe(791.65);
+    expect(pensao.descricao).toContain('Pensão Judicial');
+    expect(pensao.descricao).toContain('GAEL CARVALHAES DA SILVA');
+    expect(pensao.referencia).toBe('20%');
+    // A linha-mãe, sem valor, não vira uma verba vazia.
+    expect(h.verbas.some(v => v.codigo === '1830')).toBe(false);
+  });
+
+  it('as duas vias não duplicam as verbas', () => {
+    const h = ler(PADRAO).holerites[0];
+    expect(h.verbas.filter(v => v.codigo === '89')).toHaveLength(1);
+  });
+
+  it('sem as posições, o leitor não chuta de que lado está o valor', () => {
+    // Texto puro: o valor é guardado, mas sem afirmar provento ou desconto.
+    const f = lerFolhaPagamento(folhaNova({}));
+    const v = f.holerites[0].verbas.find(x => x.codigo === '1950');
+    expect(v.valor).toBe(368.45);
+    expect(v.tipo).toBeNull();
+    expect(v.provento).toBeNull();
+    expect(v.desconto).toBeNull();
+  });
+
+  it('holerite sem quadro de verbas devolve lista vazia, não quebra', () => {
+    const semQuadro = folhaNova({}).filter(l => !/^(Ev |1 Horas|1950 INSS)/.test(l));
+    expect(lerFolhaPagamento(semQuadro).holerites[0].verbas).toEqual([]);
+  });
+});

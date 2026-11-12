@@ -101,6 +101,21 @@ const TOLERANCIA_LINHA = 4;
  * @param {{str: string, transform: number[]}[]} itens
  */
 export function linhasDeItens(itens) {
+  return linhasComCelulas(itens).map(l => l.texto);
+}
+
+/**
+ * Como `linhasDeItens`, mas preserva a posição horizontal de cada pedaço.
+ *
+ * Há relatório em que a coluna é a informação. No holerite, "1,00" numa linha
+ * de verba é provento ou desconto conforme a coluna em que foi impresso — e
+ * juntar os pedaços num texto só apaga justamente isso. Quem precisa saber a
+ * coluna usa esta função; quem só precisa do texto continua com a outra.
+ *
+ * @param {{str: string, transform: number[]}[]} itens
+ * @returns {{texto: string, celulas: {x: number, s: string}[]}[]}
+ */
+export function linhasComCelulas(itens) {
   const celulas = (itens || [])
     .filter(it => it?.str && it.str.trim())
     .map(it => ({ y: it.transform[5], x: it.transform[4], s: it.str }))
@@ -110,7 +125,11 @@ export function linhasDeItens(itens) {
   let grupo = [], topo = null;
   const fechar = () => {
     if (!grupo.length) return;
-    linhas.push(normalizarTexto(grupo.sort((a, b) => a.x - b.x).map(c => c.s).join(' ')));
+    const ordenado = grupo.sort((a, b) => a.x - b.x);
+    linhas.push({
+      texto: normalizarTexto(ordenado.map(c => c.s).join(' ')),
+      celulas: ordenado.map(c => ({ x: c.x, s: normalizarTexto(c.s) })).filter(c => c.s),
+    });
     grupo = [];
   };
   for (const c of celulas) {
@@ -118,5 +137,5 @@ export function linhasDeItens(itens) {
     grupo.push(c);
   }
   fechar();
-  return linhas;
+  return linhas.filter(l => l.texto);
 }
