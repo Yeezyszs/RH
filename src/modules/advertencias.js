@@ -238,37 +238,43 @@ export class AdvertenciasModule {
 
     this._chartAdvTop?.destroy();
     const ctxTop = this.$('#chart-adv-top');
-    if (ctxTop && typeof Chart !== 'undefined') {
-      if (top.length === 0) {
-        const parent = ctxTop.parentElement;
-        parent.innerHTML = `<div class="empty">Nenhum colaborador com 2+ advertências nos últimos 12 meses 🎉</div>`;
-      } else {
-        const labels = top.map(([id]) => {
-          const c = this.COLABORADORES.find(x => x.id === parseInt(id, 10));
-          return c ? c.nome : '—';
-        });
-        this._chartAdvTop = new Chart(ctxTop, {
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [
-              { label: 'Verbal',    data: top.map(([, c]) => c.verbal),    backgroundColor: this.ADV_COLOR.verbal,    stack: 's', borderRadius: 3 },
-              { label: 'Escrita',   data: top.map(([, c]) => c.escrita),   backgroundColor: this.ADV_COLOR.escrita,   stack: 's', borderRadius: 3 },
-              { label: 'Suspensão', data: top.map(([, c]) => c.suspensao), backgroundColor: this.ADV_COLOR.suspensao, stack: 's', borderRadius: 3 },
-            ],
+    const vazioTop = this.$('#adv-top-vazio');
+
+    // Sem reincidentes, esconde o gráfico e mostra o recado — sem destruir o
+    // canvas. A versão anterior trocava o innerHTML do container, e aí o
+    // canvas sumia do DOM de vez: a primeira renderização acontece antes de
+    // os dados chegarem, então o painel ficava preso no "nenhum colaborador"
+    // mesmo com quatro reincidentes na tela logo abaixo.
+    const temTop = top.length > 0;
+    if (vazioTop) vazioTop.style.display = temTop ? 'none' : '';
+    if (ctxTop) ctxTop.style.display = temTop ? '' : 'none';
+
+    if (temTop && ctxTop && typeof Chart !== 'undefined') {
+      const labels = top.map(([id]) => {
+        const c = this.COLABORADORES.find(x => x.id === parseInt(id, 10));
+        return c ? c.nome : '—';
+      });
+      this._chartAdvTop = new Chart(ctxTop, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Verbal',    data: top.map(([, c]) => c.verbal),    backgroundColor: this.ADV_COLOR.verbal,    stack: 's', borderRadius: 3 },
+            { label: 'Escrita',   data: top.map(([, c]) => c.escrita),   backgroundColor: this.ADV_COLOR.escrita,   stack: 's', borderRadius: 3 },
+            { label: 'Suspensão', data: top.map(([, c]) => c.suspensao), backgroundColor: this.ADV_COLOR.suspensao, stack: 's', borderRadius: 3 },
+          ],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } } },
+          scales: {
+            x: { stacked: true, beginAtZero: true, grid: { color: this.CHART_COLORS.grid }, ticks: { stepSize: 1 } },
+            y: { stacked: true, grid: { display: false } },
           },
-          options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } } },
-            scales: {
-              x: { stacked: true, beginAtZero: true, grid: { color: this.CHART_COLORS.grid }, ticks: { stepSize: 1 } },
-              y: { stacked: true, grid: { display: false } },
-            },
-          },
-        });
-      }
+        },
+      });
     }
   }
 

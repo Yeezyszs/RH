@@ -1551,6 +1551,10 @@
         </div>
         <div class="chart-container" style="height:220px;">
           <canvas id="chart-adv-top"></canvas>
+          <!-- Mensagem de vazio como IRMÃ do canvas, nunca no lugar dele:
+               trocar o innerHTML do container apagava o canvas e o gráfico
+               nunca mais voltava, nem quando havia reincidentes. -->
+          <div id="adv-top-vazio" class="empty" style="display:none;">Nenhum colaborador com 2+ advertências nos últimos 12 meses 🎉</div>
         </div>
       </div>
 
