@@ -12,6 +12,12 @@ const PAGINA = (() => {
   return html.slice(ini, html.indexOf('</section>', ini));
 })();
 
+// O painel do holerite mora fora da seção, junto dos outros modais.
+const MODAL_HOLERITE = (() => {
+  const ini = html.indexOf('<div id="modal-holerite"');
+  return html.slice(ini, html.indexOf('<!-- ════════════', ini));
+})();
+
 const PESSOAS = [
   { id: 1, nome: 'Adão Ribeiro',   matricula: '23', setor: 'Produção', status: 'ativo' },
   { id: 2, nome: 'Beatriz Nunes',  matricula: '24', setor: 'Produção', status: 'ativo' },
@@ -23,7 +29,7 @@ const FAIXAS = [
 ];
 
 async function criar({ salarios = {}, hist = [] } = {}) {
-  const dom = new JSDOM(`<body><div id="page-salarios">${PAGINA}</div></body>`);
+  const dom = new JSDOM(`<body><div id="page-salarios">${PAGINA}</div>${MODAL_HOLERITE}</body>`);
   global.window = dom.window;
   global.document = dom.window.document;
   const doc = dom.window.document;
@@ -145,12 +151,18 @@ describe('vendo uma competência passada', () => {
     expect(doc.querySelector('#tb-salarios').textContent).toContain('2120.63');
   });
 
-  it('não dá para editar o passado', async () => {
+  it('não dá para editar o passado — o clique só abre o holerite', async () => {
     const { mod, doc } = await criar({ hist: HIST });
     escolher(mod, doc, '2026-09');
     const linhas = [...doc.querySelectorAll('#tb-salarios tr')];
-    expect(linhas.every(l => !l.getAttribute('onclick'))).toBe(true);
-    expect(doc.querySelector('#tb-salarios button')).toBeNull();
+    // A linha é clicável, mas para LER a folha daquele mês. Nenhuma porta
+    // leva ao formulário de salário: o que já foi pago não se edita aqui.
+    linhas.forEach(l => {
+      const acao = l.getAttribute('onclick') || '';
+      expect(acao).not.toContain('abrirModalSalario');
+      if (acao) expect(acao).toContain('abrirHolerite');
+    });
+    expect(doc.querySelector('#tb-salarios button[onclick*="abrirModalSalario"]')).toBeNull();
   });
 
   it('avisa, em texto, que a tela está no passado e soma o líquido pago', async () => {
@@ -281,5 +293,134 @@ describe('descontos na lista da folha', () => {
     expect(mod._nomeCurto('Pensão Judicial - GAEL CARVALHAES DA SILVA')).toBe('Pensão');
     expect(mod._nomeCurto('INSS')).toBe('INSS');
     expect(mod._nomeCurto('Contribuição Sindical Patronal Anual')).toHaveLength(22);
+  });
+});
+
+// ── O painel do holerite ──────────────────────────────────────────────────
+// Clicar na pessoa abre a folha dela como ela saiu no papel: identificação,
+// verbas, líquido e bases de cálculo. É o que o RH confere com o PDF ao lado.
+
+const HOLERITE_COMPLETO = [{
+  colaborador_id: 1, competencia: '2026-01',
+  salario_base: 3674.64, vencimentos: 3998.84, descontos: 1768.88, liquido: 2229.96,
+  cargo: 'OPERADOR DE FORNO', codigo_folha: '23', cbo: '821205', departamento: '01.007',
+  verbas: [
+    { codigo: '1', descricao: 'Horas Normais Diurnas', referencia: '220:00 hs', provento: 3674.64, desconto: null, tipo: 'provento' },
+    { codigo: '62', descricao: 'Insalubridade S/Salário Mínimo', referencia: '20,00 %', provento: 324.20, desconto: null, tipo: 'provento' },
+    { codigo: '820', descricao: 'Desconto Adiantamento Salarial', referencia: null, provento: null, desconto: 1099.43, tipo: 'desconto' },
+    { codigo: '89', descricao: 'P.A.T', referencia: null, provento: null, desconto: 1, tipo: 'desconto' },
+    { codigo: '318', descricao: 'Antecipação Salarial', referencia: null, provento: null, desconto: 300, tipo: 'desconto' },
+    { codigo: '1950', descricao: 'INSS', referencia: '12,00 %', provento: null, desconto: 368.45, tipo: 'desconto' },
+  ],
+  bases: [
+    { rotulo: 'Salário Base', texto: '3.674,64', valor: 3674.64 },
+    { rotulo: 'Sal Cont INSS', texto: '3.998,84', valor: 3998.84 },
+    { rotulo: 'Bas Cálc FGTS', texto: '3.998,84', valor: 3998.84 },
+    { rotulo: 'FGTS Mês', texto: '319,90', valor: 319.90 },
+    { rotulo: 'Base IRRF C/Ded Simp', texto: '2.292,21', valor: 2292.21 },
+    { rotulo: 'Faixa', texto: '0,00', valor: 0 },
+    { rotulo: 'Dep', texto: '00', valor: null },
+  ],
+}];
+
+describe('painel do holerite', () => {
+  const abrirPainel = async (hist = HOLERITE_COMPLETO) => {
+    const { mod, doc } = await criar({ hist });
+    mod.render();
+    doc.querySelector('#sal-competencia').value = '2026-01';
+    mod.render();
+    mod.abrirHolerite(1);
+    return { mod, doc, corpo: doc.querySelector('#hol-body').textContent.replace(/\s+/g, ' ') };
+  };
+
+  it('clicar na linha abre o painel daquela pessoa', async () => {
+    const { mod, doc } = await criar({ hist: HOLERITE_COMPLETO });
+    mod.render();
+    doc.querySelector('#sal-competencia').value = '2026-01';
+    mod.render();
+    const linha = doc.querySelector('#tb-salarios tr');
+    expect(linha.getAttribute('onclick')).toContain('abrirHolerite(1)');
+
+    mod.abrirHolerite(1);
+    expect(doc.querySelector('#modal-holerite').classList.contains('active')).toBe(true);
+  });
+
+  it('traz a identificação como no papel', async () => {
+    const { corpo } = await abrirPainel();
+    expect(corpo).toContain('Adão Ribeiro');
+    expect(corpo).toContain('OPERADOR DE FORNO');
+    expect(corpo).toContain('821205');       // CBO
+    expect(corpo).toContain('01.007');       // centro de custo
+    expect(corpo).toContain('23');           // código na folha
+  });
+
+  it('lista todas as verbas, com referência e de que lado estão', async () => {
+    const { doc } = await abrirPainel();
+    const linhas = doc.querySelectorAll('#hol-body tbody tr');
+    expect(linhas).toHaveLength(6);
+
+    const insalubridade = [...linhas].find(l => l.textContent.includes('Insalubridade'));
+    const celulas = [...insalubridade.querySelectorAll('td')].map(t => t.textContent.trim());
+    expect(celulas[2]).toBe('20,00 %');      // referência
+    expect(celulas[3]).toBe('324.20');       // provento
+    expect(celulas[4]).toBe('');             // nada na coluna de desconto
+  });
+
+  it('fecha os totais no rodapé da tabela e destaca o líquido', async () => {
+    const { doc, corpo } = await abrirPainel();
+    const rodape = doc.querySelector('#hol-body tfoot').textContent.replace(/\s+/g, ' ');
+    expect(rodape).toContain('3998.84');
+    expect(rodape).toContain('1768.88');
+    expect(corpo).toContain('Líquido a receber');
+    expect(doc.querySelector('.hol-liquido-faixa strong').textContent).toBe('2229.96');
+  });
+
+  it('mostra as bases de cálculo do rodapé do papel', async () => {
+    const { doc, corpo } = await abrirPainel();
+    expect(doc.querySelectorAll('.hol-bases > div')).toHaveLength(7);
+    expect(corpo).toContain('Sal Cont INSS');
+    expect(corpo).toContain('FGTS Mês');
+    expect(corpo).toContain('Base IRRF C/Ded Simp');
+    // "00" de dependentes não é dinheiro — sai como está impresso.
+    const dep = [...doc.querySelectorAll('.hol-bases > div')]
+      .find(d => d.querySelector('span').textContent === 'Dep');
+    expect(dep.querySelector('strong').textContent).toBe('00');
+  });
+
+  it('avisa quando as verbas não somam os totais impressos', async () => {
+    // Auxílio-doença aparece no holerite mas fica fora do total da empresa.
+    const { corpo } = await abrirPainel([{
+      ...HOLERITE_COMPLETO[0],
+      vencimentos: 2710.24,
+      verbas: [
+        { codigo: '163', descricao: 'Estouro do Mês', referencia: null, provento: 2710.24, desconto: null, tipo: 'provento' },
+        { codigo: '200', descricao: 'Horas Auxílio Doença Diurnas', referencia: '220:00 hs', provento: 3006.52, desconto: null, tipo: 'provento' },
+      ],
+      descontos: 2710.24, liquido: 0,
+    }]);
+    expect(corpo).toContain('diferente dos totais impressos');
+    expect(corpo).toContain('auxílio-doença');
+  });
+
+  it('folha antiga abre mesmo assim, dizendo o que falta', async () => {
+    const { corpo } = await abrirPainel([{
+      colaborador_id: 1, competencia: '2026-01',
+      salario_base: 2000, vencimentos: 2000, descontos: 300, liquido: 1700,
+      verbas: [], bases: [],
+    }]);
+    expect(corpo).toContain('importada antes de o sistema guardar as verbas');
+    expect(corpo).toContain('Reimporte o PDF');
+    expect(corpo).toContain('2000.00');          // o salário base que existe
+  });
+
+  it('não abre painel de quem não está naquela folha', async () => {
+    const { mod, doc } = await criar({ hist: HOLERITE_COMPLETO });
+    mod.render();
+    doc.querySelector('#sal-competencia').value = '2026-01';
+    mod.render();
+    doc.querySelector('#hol-body').innerHTML = 'intacto';
+    mod.abrirHolerite(2);                        // Beatriz não está na folha
+    expect(doc.querySelector('#modal-holerite').classList.contains('active')).toBe(false);
+    expect(doc.querySelector('#hol-body').textContent).toBe('intacto');
   });
 });

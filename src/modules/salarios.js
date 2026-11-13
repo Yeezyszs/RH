@@ -189,7 +189,9 @@ export class SalariosModule {
             : `<span class="cell-mono" style="font-weight:600; color:var(--danger)">${this.fmtBRL(r.descontos)}</span>`
               + this._resumoDescontos(r.verbas);
           return `
-            <tr${r.historico ? '' : ` onclick="abrirModalSalario(${c.id})"`}>
+            <tr${r.historico
+              ? (r.temVerbas || r.liquido != null ? ` onclick="abrirHolerite(${c.id})" style="cursor:pointer"` : '')
+              : ` onclick="abrirModalSalario(${c.id})"`}>
               <td>
                 <div class="cell-person">
                   <div class="cell-avatar">${this.h(this.iniciais(c.nome))}</div>
@@ -213,7 +215,8 @@ export class SalariosModule {
                     : '—')
                 : (r.data_alteracao ? this.fmtDate(r.data_alteracao) : '—')}</td>
               <td class="actions" onclick="event.stopPropagation()">
-                ${r.temVerbas ? `<button class="btn btn-ghost btn-sm btn-icon" title="Ver o holerite do mês" onclick="abrirHolerite(${c.id})">🧾</button>` : ''}
+                ${r.historico && (r.temVerbas || r.liquido != null)
+                  ? `<button class="btn btn-ghost btn-sm btn-icon" title="Ver o holerite do mês" onclick="abrirHolerite(${c.id})">🧾</button>` : ''}
                 ${r.historico ? '' : `<button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalSalario(${c.id})">✎</button>`}
               </td>
             </tr>
@@ -429,21 +432,14 @@ export class SalariosModule {
     if (!h || !c) return;
 
     const verbas = Array.isArray(h.verbas) ? h.verbas : [];
-    this.$('#hol-title').textContent = `${c.nome} — ${this.mesLabel(comp)}`;
+    const bases  = Array.isArray(h.bases)  ? h.bases  : [];
+    this.$('#hol-title').textContent = `Demonstrativo de pagamento — ${this.mesLabel(comp)}`;
 
-    const linha = (v) => `
-      <tr>
-        <td class="cell-mono" style="color:var(--text-soft)">${this.h(v.codigo || '')}</td>
-        <td>${this.h(v.descricao || '—')}</td>
-        <td class="cell-mono" style="color:var(--text-muted)">${this.h(v.referencia || '')}</td>
-        <td class="cell-mono" style="text-align:right">${v.provento != null ? this.fmtBRL(v.provento) : ''}</td>
-        <td class="cell-mono" style="text-align:right; color:var(--danger)">${v.desconto != null ? this.fmtBRL(v.desconto) : ''}</td>
-      </tr>`;
-
-    const somaProv = verbas.reduce((t, v) => t + (parseFloat(v.provento) || 0), 0);
-    const somaDesc = verbas.reduce((t, v) => t + (parseFloat(v.desconto) || 0), 0);
     const venc = h.vencimentos != null ? parseFloat(h.vencimentos) : null;
     const desc = h.descontos   != null ? parseFloat(h.descontos)   : null;
+    const liq  = h.liquido     != null ? parseFloat(h.liquido)     : null;
+    const somaProv = verbas.reduce((t, v) => t + (parseFloat(v.provento) || 0), 0);
+    const somaDesc = verbas.reduce((t, v) => t + (parseFloat(v.desconto) || 0), 0);
 
     // Quando a soma das verbas não bate com o total impresso, a tela diz. Há
     // caso legítimo — auxílio-doença sai listado mas quem paga é o INSS, e o
@@ -452,34 +448,73 @@ export class SalariosModule {
     const difere = (venc != null && Math.abs(somaProv - venc) > 0.01)
                 || (desc != null && Math.abs(somaDesc - desc) > 0.01);
 
+    const campo = (rotulo, valor) => `
+      <div class="hol-campo"><span>${this.h(rotulo)}</span><strong>${valor}</strong></div>`;
+
+    const linhaVerba = (v) => `
+      <tr>
+        <td class="cell-mono" style="color:var(--text-soft)">${this.h(v.codigo || '')}</td>
+        <td>${this.h(v.descricao || '—')}</td>
+        <td class="cell-mono" style="color:var(--text-muted)">${this.h(v.referencia || '')}</td>
+        <td class="cell-mono" style="text-align:right">${v.provento != null ? this.fmtBRL(v.provento) : ''}</td>
+        <td class="cell-mono" style="text-align:right; color:var(--danger)">${v.desconto != null ? this.fmtBRL(v.desconto) : ''}</td>
+      </tr>`;
+
     this.$('#hol-body').innerHTML = `
-      <div class="table-card" style="box-shadow:none; border:none;">
+      <!-- Cabeçalho, como no papel: quem, em que cargo, desde quando. -->
+      <div class="hol-cab">
+        <div class="hol-cab-nome">${this.h(c.nome)}</div>
+        <div class="hol-cab-sub">${this.h(h.cargo || c.cargo || '—')}</div>
+      </div>
+      <div class="hol-campos">
+        ${campo('Cadastro', this.h(h.codigo_folha || '—'))}
+        ${campo('CBO', this.h(h.cbo || '—'))}
+        ${campo('Setor', this.h(c.setor || '—'))}
+        ${campo('Centro de custo', this.h(h.departamento || '—'))}
+        ${campo('Admissão', c.admissao ? this.fmtDate(c.admissao) : '—')}
+      </div>
+
+      <div class="fer-secao" style="margin-top:14px;">Verbas do mês</div>
+      <div class="table-card" style="box-shadow:none;">
         <div class="table-wrapper">
           <table class="data">
             <thead><tr>
-              <th style="width:60px">Ev</th>
+              <th style="width:64px">Ev</th>
               <th>Descrição</th>
-              <th style="width:90px">Referência</th>
-              <th style="width:120px; text-align:right">Proventos</th>
-              <th style="width:120px; text-align:right">Descontos</th>
+              <th style="width:96px">Referência</th>
+              <th style="width:118px; text-align:right">Proventos</th>
+              <th style="width:118px; text-align:right">Descontos</th>
             </tr></thead>
             <tbody>
-              ${verbas.length ? verbas.map(linha).join('')
-                : '<tr><td colspan="5" class="empty">Esta folha foi importada antes de o sistema guardar as verbas.</td></tr>'}
+              ${verbas.length ? verbas.map(linhaVerba).join('')
+                : '<tr><td colspan="5" class="empty">Esta folha foi importada antes de o sistema guardar as verbas. Reimporte o PDF do mês para preencher.</td></tr>'}
             </tbody>
+            ${verbas.length ? `<tfoot><tr>
+              <td colspan="3" style="text-align:right; font-weight:600">Total</td>
+              <td class="cell-mono" style="text-align:right; font-weight:700">${venc != null ? this.fmtBRL(venc) : this.fmtBRL(somaProv)}</td>
+              <td class="cell-mono" style="text-align:right; font-weight:700; color:var(--danger)">${desc != null ? this.fmtBRL(desc) : this.fmtBRL(somaDesc)}</td>
+            </tr></tfoot>` : ''}
           </table>
         </div>
       </div>
-      <div class="hol-totais">
-        <div><span>Salário base</span><strong>${this.fmtBRL(parseFloat(h.salario_base) || 0)}</strong></div>
-        <div><span>Total de proventos</span><strong>${venc != null ? this.fmtBRL(venc) : '—'}</strong></div>
-        <div><span>Total de descontos</span><strong>${desc != null ? this.fmtBRL(desc) : '—'}</strong></div>
-        <div class="hol-liquido"><span>Líquido</span><strong>${h.liquido != null ? this.fmtBRL(parseFloat(h.liquido)) : '—'}</strong></div>
+
+      <div class="hol-liquido-faixa">
+        <span>Líquido a receber</span>
+        <strong>${liq != null ? this.fmtBRL(liq) : '—'}</strong>
       </div>
-      ${difere ? `<div class="fer-dica" style="margin-top:8px; color:var(--warning)">
+
+      ${difere ? `<div class="hol-aviso">
         As verbas listadas somam ${this.fmtBRL(somaProv)} de proventos e ${this.fmtBRL(somaDesc)} de descontos,
         diferente dos totais impressos. Acontece quando uma verba aparece no holerite sem entrar no total —
-        auxílio-doença, por exemplo, que é pago pelo INSS.</div>` : ''}`;
+        auxílio-doença, por exemplo, que é pago pelo INSS.</div>` : ''}
+
+      <!-- Rodapé do papel: as bases de cálculo. -->
+      <div class="fer-secao" style="margin-top:16px;">Bases de cálculo</div>
+      ${bases.length
+        ? `<div class="hol-bases">${bases.map(b =>
+            `<div><span>${this.h(b.rotulo)}</span><strong>${this.h(b.texto)}</strong></div>`).join('')}</div>`
+        : `<div class="hol-bases"><div><span>Salário base</span><strong>${this.fmtBRL(parseFloat(h.salario_base) || 0)}</strong></div></div>
+           <div class="fer-dica" style="margin-top:6px;">As demais bases (INSS, FGTS, IRRF) passaram a ser guardadas depois desta importação.</div>`}`;
 
     this.$('#modal-holerite').classList.add('active');
   }

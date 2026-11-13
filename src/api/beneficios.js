@@ -97,7 +97,12 @@ const FolhaCompetencia = {
     if (cached) return cached;
     const { data, error } = await withTimeout(
       sb.from('folha_competencia')
-        .select('id, colaborador_id, competencia, salario_base, vencimentos, descontos, liquido, cargo, codigo_folha, verbas')
+        // A tela do holerite mostra a folha inteira, então a consulta traz a
+        // linha inteira. Enumerar coluna a coluna aqui também faria a
+        // listagem quebrar enquanto uma migração não tivesse sido aplicada —
+        // e aí o histórico de salários sumiria da tela por causa de um campo
+        // novo que ninguém ainda usa.
+        .select('*')
         .order('competencia', { ascending: false })
         .order('colaborador_id')
     );

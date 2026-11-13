@@ -314,6 +314,11 @@ export class FolhaImportacaoModule {
       // adicional noturno. Não entram no salário — ficam no histórico, que é
       // onde a pergunta "quanto foi de adiantamento?" se responde.
       verbas:         holerite.verbas || [],
+      // O rodapé do papel: INSS, FGTS, base de IRRF, faixa, dependentes.
+      bases:          holerite.bases || [],
+      cbo:            holerite.cbo || null,
+      departamento:   holerite.departamento || null,
+      filial:         holerite.filial || null,
     }));
     if (!linhas.length) return;
 

@@ -87,6 +87,8 @@ const RE_COL_REFERENCIA = /^Refer[êe]ncia$/i;
 // o desconto sumia da conta sem nenhum aviso.
 const RE_VERBA = /^(\d{1,4}(?:\.\d+)?)\s+(.+)$/;
 const RE_VALOR = /^[\d.]+,\d{2}$/;
+// Na linha de bases há colunas que não são dinheiro ("Dep" sai como "00").
+const RE_VALOR_BASE = /^[\d.]*\d(?:,\d{2})?$/;
 
 // Onde o quadro de verbas termina.
 const RE_FIM_VERBAS = /^(?:Banco:|Total\b|A TRANSPORTAR|Continua\.\.\.|Sal[áa]rio Base|Recebi em)/;
@@ -95,7 +97,7 @@ const RE_FIM_VERBAS = /^(?:Banco:|Total\b|A TRANSPORTAR|Continua\.\.\.|Sal[áa]r
 // layout novo acrescenta departamento e filial no fim ("01.007 01"), então o
 // que vier depois é aceito e descartado — prender a regra ao fim da linha era
 // o que fazia o holerite inteiro ser ignorado.
-const RE_IDENT     = /^(\d+)\s+(.+?)\s+(\d{4,8})\s+(\d+)\s+(\d+)(?:\s+[\d.]+)*\s*$/;
+const RE_IDENT     = /^(\d+)\s+(.+?)\s+(\d{4,8})\s+(\d+)\s+(\d+)((?:\s+[\d.]+)*)\s*$/;
 const RE_ADMISSAO  = /^(.*?)\s*(?:Data\s+)?Admiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/;
 const RE_COMPET    = /\b(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})/i;
 // "01/2026" solto. Exige espaço (ou início de linha) antes e depois para não
@@ -249,15 +251,63 @@ function lerVerbas(bloco) {
   return verbas;
 }
 
+/**
+ * A faixa de bases do rodapé: salário base, salário de contribuição do INSS,
+ * base de cálculo do FGTS, FGTS do mês, base de IRRF, faixa e dependentes.
+ *
+ * São duas linhas — os rótulos e, embaixo, os valores — e cada rótulo ocupa
+ * várias palavras ("Base IRRF C/Ded Simp"). Para casar um com o outro, cada
+ * palavra do cabeçalho vai para o valor cuja coluna estiver mais perto; o
+ * agrupamento sai sozinho disso, sem depender de onde o layout quebra os
+ * rótulos — e é ele que muda entre as versões do relatório.
+ *
+ * Sem as posições não há como parear rótulo e valor, e aí a função devolve
+ * lista vazia em vez de um pareamento inventado. O salário base continua
+ * sendo lido à parte, que é o número que o cadastro usa.
+ */
+function lerBases(bloco) {
+  const i = bloco.findIndex(l => l.texto.startsWith(MARCA_BASES));
+  if (i < 0) return [];
+  const cab = bloco[i], val = bloco[i + 1];
+  if (!cab?.celulas?.length || !val?.celulas?.length) return [];
+
+  const valores = val.celulas.filter(c => RE_VALOR_BASE.test(c.s));
+  if (!valores.length) return [];
+
+  const rotulos = valores.map(() => []);
+  for (const palavra of cab.celulas) {
+    let melhor = 0;
+    valores.forEach((v, k) => {
+      if (Math.abs(palavra.x - v.x) < Math.abs(palavra.x - valores[melhor].x)) melhor = k;
+    });
+    rotulos[melhor].push(palavra.s);
+  }
+
+  return valores.map((v, k) => ({
+    rotulo: rotulos[k].join(' ') || null,
+    // `texto` é como está impresso; `valor` serve para conta. "00" de
+    // dependentes não é dinheiro, e por isso valor fica nulo.
+    texto: v.s,
+    valor: numeroBR(v.s),
+  })).filter(b => b.rotulo);
+}
+
 /** Lê uma via. Devolve null quando o bloco não tem sequer identificação. */
 function lerBloco(bloco) {
   const ident = RE_IDENT.exec(bloco[1]?.texto || '');
   if (!ident) return null;
 
+  // A cauda da linha de identificação, no layout novo, traz o centro de custo
+  // e a filial ("01.007 01"). No antigo ela não existe.
+  const cauda = (ident[6] || '').trim().split(/\s+/).filter(Boolean);
+
   const h = {
     codigo:      ident[1],
     nome:        ident[2].trim(),
     cbo:         ident[3],
+    departamento: cauda[0] || null,
+    filial:       cauda[1] || null,
+    bases:       lerBases(bloco),
     cargo:       null,
     admissao:    null,
     salarioBase: null,
@@ -315,6 +365,12 @@ function juntar(partes) {
   const junto = partes.reduce((acc, p) => {
     for (const [k, v] of Object.entries(p)) {
       if (k === 'verbas') continue;
+      // Lista vazia é ausência, não resposta: quem continua na página
+      // seguinte traz o rodapé de bases só na segunda parte.
+      if (k === 'bases') {
+        if (!acc.bases?.length) acc.bases = v;
+        continue;
+      }
       if (acc[k] == null || acc[k] === '') acc[k] = v;
     }
     return acc;
