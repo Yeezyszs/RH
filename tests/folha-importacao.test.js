@@ -314,3 +314,29 @@ describe('o histórico da competência', () => {
     expect(gravadas.map(l => l.colaborador_id)).toEqual([1]);
   });
 });
+
+// ── Quando o banco está atrás do sistema ──────────────────────────────────
+// O sistema é publicado na hora; a migração do banco é aplicada à mão. Nessa
+// janela o código grava um campo que a tabela ainda não tem, e o PostgREST
+// responde com um texto correto e inútil para quem só queria importar a
+// folha: "Could not find the 'bases' column of 'folha_competencia' in the
+// schema cache". Aconteceu de verdade, na cara do RH.
+describe('mensagem de erro de gravação', () => {
+  it('explica a coluna que falta e o que fazer', async () => {
+    const { explicarErro } = await import('../src/modules/folha-importacao.js');
+    const texto = explicarErro(new Error(
+      "Could not find the 'bases' column of 'folha_competencia' in the schema cache"));
+
+    expect(texto).toContain('"bases"');
+    expect(texto).toContain('atualização do banco');
+    expect(texto).toContain('Nada foi alterado');
+    // O jargão do PostgREST não chega ao usuário.
+    expect(texto).not.toContain('schema cache');
+  });
+
+  it('erro comum passa como está — não inventa explicação', async () => {
+    const { explicarErro } = await import('../src/modules/folha-importacao.js');
+    expect(explicarErro(new Error('Tempo esgotado'))).toBe('Tempo esgotado');
+    expect(explicarErro(null)).toBe('');
+  });
+});

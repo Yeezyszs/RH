@@ -22,6 +22,26 @@ const PDFJS_BASE   = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSAO}`;
 // Ligações código-da-folha → id do colaborador que o RH fez à mão.
 const CHAVE_VINCULOS = 'folha_vinculos';
 
+/**
+ * Traduz o erro do banco para algo que o RH possa agir.
+ *
+ * O sistema é publicado na hora e as migrações do banco são aplicadas à mão,
+ * então existe uma janela em que o código já grava um campo que a tabela
+ * ainda não tem. O PostgREST responde "Could not find the 'bases' column of
+ * 'folha_competencia' in the schema cache" — texto correto e inútil para quem
+ * só queria importar a folha. Aqui ele vira a frase que diz o que fazer.
+ */
+export function explicarErro(err) {
+  const msg = err?.message || String(err || '');
+  const coluna = /Could not find the '([^']+)' column/.exec(msg);
+  if (coluna) {
+    return `o banco de dados ainda não tem o campo "${coluna[1]}", que esta versão do sistema grava. `
+      + 'Falta aplicar a última atualização do banco — avise o responsável pelo sistema. '
+      + 'Nada foi alterado.';
+  }
+  return msg;
+}
+
 export class FolhaImportacaoModule {
   constructor(deps) {
     this.$        = deps.$;
@@ -383,7 +403,7 @@ export class FolhaImportacaoModule {
         this.CONFIG[CHAVE_VINCULOS] = json;
       }
     } catch (err) {
-      this.showToast(`Erro ao gravar (${gravados} já gravados): ` + err.message, 'err');
+      this.showToast(`Erro ao gravar (${gravados} já gravados): ` + explicarErro(err), 'err');
       this._ocupado = false;
       this._habilitarConfirmar(true);
       return;
