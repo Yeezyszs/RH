@@ -78,6 +78,25 @@
     .func-mini-status.inativo  { background: #fff; }
     .rpt-legenda { font-size: 11px; color: #667; margin: 4px 0 14px; display: flex; gap: 16px; flex-wrap: wrap; }
     .rpt-legenda span { display: inline-flex; align-items: center; gap: 5px; }
+    /* Ficha de feedback impressa: a mesma folha serve preenchida (saiu do
+       sistema) e em branco (para levar à conversa e preencher à mão). */
+    .fb-doc-grid { display: flex; flex-wrap: wrap; gap: 10px 32px; margin-bottom: 18px; }
+    .fb-doc-campo { min-width: 150px; }
+    .fb-doc-campo span { display: block; font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: #667; }
+    .fb-doc-campo strong { display: block; font-size: 12.5px; border-bottom: 1px solid #1a2430; padding: 3px 0 2px; min-height: 18px; font-weight: 600; }
+    .fb-doc-bloco { margin: 0 0 14px; page-break-inside: avoid; }
+    .fb-doc-rotulo { font-size: 11.5px; font-weight: 700; color: #123e6b; margin-bottom: 5px; }
+    .fb-doc-escala { display: flex; gap: 7px; }
+    .fb-doc-escala i {
+      width: 21px; height: 21px; border: 1.4px solid #123e6b; border-radius: 50%;
+      display: inline-grid; place-items: center; font-style: normal; font-size: 11px; color: #123e6b;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .fb-doc-escala i.on { background: #123e6b; color: #fff; font-weight: 700; }
+    .fb-doc-texto { font-size: 11.5px; line-height: 1.5; white-space: pre-wrap; padding: 2px 0; }
+    .fb-doc-linha { border-bottom: 1px solid #cdd6e0; height: 17px; }
+    .fb-doc-assinaturas { display: flex; gap: 48px; margin-top: 34px; page-break-inside: avoid; }
+    .fb-doc-assinaturas div { flex: 1; border-top: 1px solid #1a2430; padding-top: 5px; text-align: center; font-size: 10.5px; color: #667; }
     @media print { body { margin: 12mm; } .widget, table, tr { page-break-inside: avoid; } }
   `;
 
@@ -181,7 +200,25 @@
       else wrapper.appendChild(legenda);
     }
 
+    imprimirDocumento(titulo, wrapper.innerHTML);
+  }
+
+  /**
+   * Abre a janela de impressão com um corpo pronto.
+   *
+   * Existe para que um módulo possa imprimir UM registro — uma ficha de
+   * feedback, por exemplo — e não só a tela inteira. O cabeçalho, o rodapé e
+   * o estilo do papel ficam num lugar só: dois geradores de documento seriam
+   * duas papeladas diferentes saindo da mesma empresa.
+   *
+   * @param {string} titulo    título do documento e da aba
+   * @param {string} corpoHtml conteúdo já montado pelo módulo
+   * @param {{rodape?: string}} [opcoes]
+   */
+  function imprimirDocumento(titulo, corpoHtml, opcoes = {}) {
     const agora = new Date().toLocaleString('pt-BR');
+    const rodape = opcoes.rodape
+      || 'Documento gerado automaticamente pelo Sistema de RH para fins de auditoria.';
     const html =
       '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">' +
       '<title>' + titulo + '</title><style>' + ESTILO_RELATORIO + '</style></head><body>' +
@@ -190,13 +227,13 @@
         '<h1>' + titulo + '</h1>' +
         '<div class="rpt-meta">Gerado em ' + agora + '</div>' +
       '</header>' +
-      '<main>' + wrapper.innerHTML + '</main>' +
-      '<div class="rpt-foot">Documento gerado automaticamente pelo Sistema de RH para fins de auditoria.</div>' +
+      '<main>' + corpoHtml + '</main>' +
+      '<div class="rpt-foot">' + rodape + '</div>' +
       '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.print();},250);};</scr' + 'ipt>' +
       '</body></html>';
 
     const win = window.open('', '_blank');
-    if (!win) { window.showToast?.('Permita pop-ups para gerar o relatório', 'err'); return; }
+    if (!win) { window.showToast?.('Permita pop-ups para gerar o documento', 'err'); return; }
     win.document.open();
     win.document.write(html);
     win.document.close();
@@ -217,7 +254,8 @@
     });
   }
 
-  window.imprimirRelatorio = imprimirRelatorio;
+  window.imprimirRelatorio  = imprimirRelatorio;
+  window.imprimirDocumento  = imprimirDocumento;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', injetarBotoes);

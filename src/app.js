@@ -447,6 +447,8 @@ function bootstrap() {
   window.renderFeedback               = ()    => feedbackClima.renderFeedback();
   window.abrirModalFeedback           = (id)  => feedbackClima.abrirModalFeedback(id);
   window.fecharModalFeedback          = ()    => feedbackClima.fecharModalFeedback();
+  window.imprimirFeedback             = (id)  => feedbackClima.imprimirFeedback(id);
+  window.imprimirFormularioFeedback   = ()    => feedbackClima.imprimirFormularioFeedback();
   window.salvarFeedback               = (ev)  => feedbackClima.salvarFeedback(ev);
   window.excluirFeedback              = (id)  => feedbackClima.excluirFeedback(id);
   window.renderClima                  = ()    => feedbackClima.renderClima();

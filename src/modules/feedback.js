@@ -109,6 +109,7 @@ export class FeedbackClimaModule {
           <td>${dot(f.nota_colaboracao)}</td>
           <td class="cell-mono" style="text-align:right; font-weight:700; color:var(--phthalo-dark)">${f._geral.toFixed(1).replace('.', ',')}</td>
           <td class="actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm btn-icon" title="Imprimir ficha" onclick="imprimirFeedback(${f.id})">🖨</button>
             <button class="btn btn-ghost btn-sm btn-icon" title="Editar" onclick="abrirModalFeedback(${f.id})">✎</button>
             <button class="btn btn-ghost btn-sm btn-icon" title="Excluir" onclick="excluirFeedback(${f.id})">🗑</button>
           </td>
@@ -149,6 +150,112 @@ export class FeedbackClimaModule {
     }
     const input = document.querySelector(`#form-feedback [name="${field}"]`);
     if (input) input.value = value;
+  }
+
+  // ─── Ficha de feedback impressa ──────────────────────────────────────────
+  // A conversa de feedback termina em papel assinado pelos dois lados. A mesma
+  // folha serve preenchida, saindo de um registro salvo, e em branco, para o
+  // gestor levar à conversa e preencher à mão — por isso os campos vazios
+  // viram linhas pautadas em vez de sumirem.
+
+  _escalaImpressa(nota) {
+    return `<div class="fb-doc-escala">${[1, 2, 3, 4, 5]
+      .map(n => `<i class="${Number(nota) === n ? 'on' : ''}">${n}</i>`).join('')}</div>`;
+  }
+
+  _blocoTextoImpresso(rotulo, texto, linhasVazias = 4) {
+    const conteudo = (texto || '').trim();
+    return `
+      <div class="fb-doc-bloco">
+        <div class="fb-doc-rotulo">${this.h(rotulo)}</div>
+        ${conteudo
+          ? `<div class="fb-doc-texto">${this.h(conteudo)}</div>`
+          : Array.from({ length: linhasVazias }, () => '<div class="fb-doc-linha"></div>').join('')}
+      </div>`;
+  }
+
+  /** Monta o corpo do documento. Sem DOM de saída: devolve HTML. */
+  _documentoFeedback(d) {
+    const campo = (rotulo, valor) => `
+      <div class="fb-doc-campo"><span>${this.h(rotulo)}</span><strong>${this.h(valor || '')}</strong></div>`;
+
+    return `
+      <div class="fb-doc-grid">
+        ${campo('Colaborador', d.colaborador)}
+        ${campo('Setor', d.setor)}
+        ${campo('Avaliador', d.avaliador)}
+        ${campo('Data', d.data ? this.fmtDate(d.data) : '')}
+      </div>
+
+      <div class="fb-doc-bloco">
+        <div class="fb-doc-rotulo">Entrega / desempenho (1 a 5)</div>
+        ${this._escalaImpressa(d.nota_entrega)}
+      </div>
+      <div class="fb-doc-bloco">
+        <div class="fb-doc-rotulo">Comportamento / atitude (1 a 5)</div>
+        ${this._escalaImpressa(d.nota_comportamento)}
+      </div>
+      <div class="fb-doc-bloco">
+        <div class="fb-doc-rotulo">Colaboração / trabalho em equipe (1 a 5)</div>
+        ${this._escalaImpressa(d.nota_colaboracao)}
+      </div>
+
+      ${this._blocoTextoImpresso('Pontos fortes', d.pontos_fortes)}
+      ${this._blocoTextoImpresso('Pontos a desenvolver', d.pontos_desenvolver)}
+      ${this._blocoTextoImpresso('Plano de ação — próximos passos combinados', d.plano_acao, 5)}
+
+      <div class="fb-doc-assinaturas">
+        <div>Assinatura do colaborador</div>
+        <div>Assinatura do avaliador</div>
+      </div>`;
+  }
+
+  /** Imprime um feedback já registrado. */
+  imprimirFeedback(id) {
+    const f = this.FEEDBACK.find(x => x.id === id);
+    if (!f) return;
+    const c = this.COLABORADORES.find(x => x.id === f.colaborador_id);
+    const titulo = `Ficha de Feedback — ${c?.nome || 'Colaborador'}`;
+    window.imprimirDocumento?.(titulo, this._documentoFeedback({
+      colaborador: c?.nome || '—',
+      setor: c?.setor || '—',
+      avaliador: f.avaliador,
+      data: f.data,
+      nota_entrega: f.nota_entrega,
+      nota_comportamento: f.nota_comportamento,
+      nota_colaboracao: f.nota_colaboracao,
+      pontos_fortes: f.pontos_fortes,
+      pontos_desenvolver: f.pontos_desenvolver,
+      plano_acao: f.plano_acao,
+    }), { rodape: 'Registro de feedback — uma via para o colaborador, uma para o RH.' });
+  }
+
+  /**
+   * Imprime o que está no formulário agora.
+   *
+   * Serve para os dois usos: a ficha já preenchida na tela e a folha em branco
+   * para levar à conversa. Não exige salvar antes — quem está abrindo o
+   * formulário para imprimir muitas vezes ainda nem fez a conversa.
+   */
+  imprimirFormularioFeedback() {
+    const form = this.$('#form-feedback');
+    if (!form) return;
+    const v = (nome) => form.elements[nome]?.value || '';
+    const c = this.COLABORADORES.find(x => x.id === parseInt(v('colaborador_id'), 10));
+    const titulo = c ? `Ficha de Feedback — ${c.nome}` : 'Ficha de Feedback';
+
+    window.imprimirDocumento?.(titulo, this._documentoFeedback({
+      colaborador: c?.nome || '',
+      setor: c?.setor || '',
+      avaliador: v('avaliador'),
+      data: v('data'),
+      nota_entrega: v('nota_entrega'),
+      nota_comportamento: v('nota_comportamento'),
+      nota_colaboracao: v('nota_colaboracao'),
+      pontos_fortes: v('pontos_fortes'),
+      pontos_desenvolver: v('pontos_desenvolver'),
+      plano_acao: v('plano_acao'),
+    }), { rodape: 'Registro de feedback — uma via para o colaborador, uma para o RH.' });
   }
 
   abrirModalFeedback(id = null) {
