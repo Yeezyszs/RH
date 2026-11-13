@@ -37,7 +37,7 @@ const REINCIDENTES = [
   adv(6, 3, '2026-04-30'), adv(7, 3, '2026-08-03'),
 ];
 
-function montar(advertencias) {
+async function montar(advertencias) {
   const dom = new JSDOM(`<body><div id="page-advertencias">${PAGINA}</div></body>`);
   global.window = dom.window;
   global.document = dom.window.document;
@@ -50,7 +50,7 @@ function montar(advertencias) {
     destroy() {}
   };
 
-  const { AdvertenciasModule } = require('../src/modules/advertencias.js');
+  const { AdvertenciasModule } = await import('../src/modules/advertencias.js');
   const mod = new AdvertenciasModule({
     $: (s) => doc.querySelector(s),
     h: (s) => String(s ?? ''),
@@ -74,9 +74,9 @@ afterEach(() => { vi.useRealTimers(); delete global.Chart; });
 const emNovembro = () => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-13T12:00:00')); };
 
 describe('top reincidentes', () => {
-  it('desenha o gráfico quando há quem tenha 2 ou mais', () => {
+  it('desenha o gráfico quando há quem tenha 2 ou mais', async () => {
     emNovembro();
-    const { mod, doc, desenhados } = montar(REINCIDENTES);
+    const { mod, doc, desenhados } = await montar(REINCIDENTES);
     mod.render();
 
     const g = topDesenhado(desenhados);
@@ -85,9 +85,9 @@ describe('top reincidentes', () => {
     expect(doc.querySelector('#adv-top-vazio').style.display).toBe('none');
   });
 
-  it('ordena do mais reincidente para o menos', () => {
+  it('ordena do mais reincidente para o menos', async () => {
     emNovembro();
-    const { mod, desenhados } = montar(REINCIDENTES);
+    const { mod, desenhados } = await montar(REINCIDENTES);
     mod.render();
 
     const g = topDesenhado(desenhados);
@@ -97,9 +97,9 @@ describe('top reincidentes', () => {
     expect(totais).toEqual([...totais].sort((a, b) => b - a));
   });
 
-  it('separa as advertências por tipo nas barras', () => {
+  it('separa as advertências por tipo nas barras', async () => {
     emNovembro();
-    const { mod, desenhados } = montar(REINCIDENTES);
+    const { mod, desenhados } = await montar(REINCIDENTES);
     mod.render();
 
     const g = topDesenhado(desenhados);
@@ -109,9 +109,9 @@ describe('top reincidentes', () => {
     expect(escrita.data[i]).toBe(1);
   });
 
-  it('sem reincidentes, avisa sem destruir o canvas', () => {
+  it('sem reincidentes, avisa sem destruir o canvas', async () => {
     emNovembro();
-    const { mod, doc } = montar([adv(1, 1, '2026-09-03')]);   // uma só
+    const { mod, doc } = await montar([adv(1, 1, '2026-09-03')]);   // uma só
     mod.render();
 
     expect(doc.querySelector('#adv-top-vazio').style.display).not.toBe('none');
@@ -119,12 +119,12 @@ describe('top reincidentes', () => {
     expect(doc.querySelector('#chart-adv-top')).toBeTruthy();
   });
 
-  it('a tela se recupera: renderiza vazia e depois com os dados', () => {
+  it('a tela se recupera: renderiza vazia e depois com os dados', async () => {
     // É exatamente a sequência da vida real — a primeira renderização
     // acontece antes de os dados chegarem do banco.
     emNovembro();
     const lista = [];
-    const { mod, doc, desenhados } = montar(lista);
+    const { mod, doc, desenhados } = await montar(lista);
 
     mod.render();
     expect(topDesenhado(desenhados)).toBeFalsy();
@@ -139,10 +139,10 @@ describe('top reincidentes', () => {
     expect(doc.querySelector('#adv-top-vazio').style.display).toBe('none');
   });
 
-  it('e volta a avisar quando os reincidentes saem da janela de 12 meses', () => {
+  it('e volta a avisar quando os reincidentes saem da janela de 12 meses', async () => {
     emNovembro();
     const lista = [...REINCIDENTES];
-    const { mod, doc, desenhados } = montar(lista);
+    const { mod, doc, desenhados } = await montar(lista);
     mod.render();
     expect(topDesenhado(desenhados)).toBeTruthy();
 
@@ -152,9 +152,9 @@ describe('top reincidentes', () => {
     expect(doc.querySelector('#chart-adv-top').style.display).toBe('none');
   });
 
-  it('advertência de mais de 12 meses não conta', () => {
+  it('advertência de mais de 12 meses não conta', async () => {
     emNovembro();
-    const { mod, doc } = montar([
+    const { mod, doc } = await montar([
       adv(1, 1, '2025-01-10'), adv(2, 1, '2025-03-15'),   // fora da janela
       adv(3, 1, '2026-09-03'),                            // dentro
     ]);
