@@ -1,4 +1,11 @@
-// Importação do relatório de crédito do vale combustível.
+// Importação do relatório de crédito de um benefício.
+//
+// Serve aos dois vales. O que muda entre eles é o leitor do arquivo — cada
+// operadora emite num layout — e para onde o valor vai. O resto é igual:
+// conferir contra o total do relatório, cruzar com o cadastro, mostrar o que
+// não casou e só gravar depois que o operador confirma. Essa parte está aqui
+// uma vez só; um segundo importador copiado seria a mesma conferência em dois
+// lugares, com as correções chegando a um deles.
 //
 // O RH recebe da operadora, a cada crédito, um PDF "Produto de Carga" com o
 // valor de cada beneficiário. Antes disto a competência era digitada à mão,
@@ -20,8 +27,21 @@ import { competenciaAtual } from '../utils/ui.js?v=dev';
 const PDFJS_VERSAO = '4.10.38';
 const PDFJS_BASE   = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSAO}`;
 
-// Chave em `configuracoes` com os CPFs que o RH mandou nunca importar.
-const CHAVE_IGNORADOS = 'vale_importacao_ignorados';
+/**
+ * O que distingue um benefício do outro nesta tela.
+ *
+ * `prefixo` nomeia os elementos do modal (`<prefixo>-file`, `-drop`,
+ * `-competencia`, `-modo`, `-resultado`, `-forcar`), e daí saem também o id
+ * do modal e o do botão de confirmar.
+ */
+export const BENEFICIO_COMBUSTIVEL = {
+  chave: 'combustivel',
+  prefixo: 'vale-imp',
+  modal: 'modal-vale-import',
+  botao: 'btn-vale-imp-confirmar',
+  rotulo: 'vale combustível',
+  chaveIgnorados: 'vale_importacao_ignorados',
+};
 
 export class ValeImportacaoModule {
   constructor(deps) {
@@ -29,6 +49,13 @@ export class ValeImportacaoModule {
     this.h        = deps.h;
     this.fmtBRL   = deps.fmtBRL;
     this.mesLabel = deps.mesLabel;
+    // O benefício que esta instância importa. Sem ele, combustível — que era
+    // o único quando esta tela nasceu.
+    this.b = deps.beneficio || BENEFICIO_COMBUSTIVEL;
+    this.ler = deps.ler || lerRelatorioVale;
+    // Como o valor conciliado vira linha gravada. Fica fora daqui porque cada
+    // benefício tem a sua tabela e o seu espelho em memória.
+    this.gravar = deps.gravar || ((dados) => this._gravarCombustivel(dados));
     this.COLABORADORES  = deps.COLABORADORES;
     this.VALE_COTAS     = deps.VALE_COTAS;
     this.VALE_COTAS_MES = deps.VALE_COTAS_MES;
@@ -54,8 +81,8 @@ export class ValeImportacaoModule {
 
   _ligarEventos() {
     document.addEventListener('change', (e) => {
-      if (e.target.id === 'vale-imp-file') this.lerArquivo(e.target.files?.[0]);
-      if (e.target.id === 'vale-imp-competencia' || e.target.id === 'vale-imp-modo') this._renderPreview();
+      if (e.target.id === `${this.b.prefixo}-file`) this.lerArquivo(e.target.files?.[0]);
+      if (e.target.id === `${this.b.prefixo}-competencia` || e.target.id === `${this.b.prefixo}-modo`) this._renderPreview();
       if (e.target.dataset?.vinculo) {
         this._vinculos[e.target.dataset.vinculo] = e.target.value ? Number(e.target.value) : undefined;
         if (!e.target.value) delete this._vinculos[e.target.dataset.vinculo];
@@ -64,13 +91,13 @@ export class ValeImportacaoModule {
       if (e.target.dataset?.ignorar) {
         this._marcados[e.target.dataset.ignorar] = e.target.checked;
       }
-      if (e.target.id === 'vale-imp-forcar') {
+      if (e.target.id === `${this.b.prefixo}-forcar`) {
         this._forcar = e.target.checked;
         this._renderPreview();
       }
     });
 
-    const zona = () => this.$('#vale-imp-drop');
+    const zona = () => this.$(`#${this.b.prefixo}-drop`);
     ['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, (e) => {
       if (!zona()?.contains(e.target)) return;
       e.preventDefault();
@@ -91,20 +118,20 @@ export class ValeImportacaoModule {
     this._vinculos  = {};
     this._marcados  = {};
     this._forcar    = false;
-    const file = this.$('#vale-imp-file');
+    const file = this.$(`#${this.b.prefixo}-file`);
     if (file) file.value = '';
-    const res = this.$('#vale-imp-resultado');
+    const res = this.$(`#${this.b.prefixo}-resultado`);
     if (res) res.innerHTML = '';
     this._habilitarConfirmar(false);
-    this.$('#modal-vale-import')?.classList.add('active');
+    this.$(`#${this.b.modal}`)?.classList.add('active');
   }
 
   fecharModal() {
-    this.$('#modal-vale-import')?.classList.remove('active');
+    this.$(`#${this.b.modal}`)?.classList.remove('active');
   }
 
   escolherArquivo() {
-    this.$('#vale-imp-file')?.click();
+    this.$(`#${this.b.prefixo}-file`)?.click();
   }
 
   // ─── Leitura do PDF ─────────────────────────────────────────────────────────
@@ -142,7 +169,7 @@ export class ValeImportacaoModule {
 
     try {
       const linhas = await this._linhasDoPdf(arquivo);
-      this._relatorio = lerRelatorioVale(linhas);
+      this._relatorio = this.ler(linhas);
       this._relatorio.arquivo = arquivo.name;
       this._vinculos = {};
       this._marcados = {};
@@ -156,19 +183,19 @@ export class ValeImportacaoModule {
   }
 
   _estado(html) {
-    const el = this.$('#vale-imp-resultado');
+    const el = this.$(`#${this.b.prefixo}-resultado`);
     if (el) el.innerHTML = html;
   }
 
   _habilitarConfirmar(pode) {
-    const btn = this.$('#btn-vale-imp-confirmar');
+    const btn = this.$(`#${this.b.botao}`);
     if (btn) btn.disabled = !pode;
   }
 
   // A competência vem da emissão do relatório, mas fica editável: nota avulsa
   // emitida no começo do mês seguinte é caso real, e só quem opera sabe.
   _preencherCompetencia(mes) {
-    const el = this.$('#vale-imp-competencia');
+    const el = this.$(`#${this.b.prefixo}-competencia`);
     if (el) el.value = mes || competenciaAtual();
   }
 
@@ -176,7 +203,7 @@ export class ValeImportacaoModule {
 
   _ignoradosSalvos() {
     try {
-      const bruto = JSON.parse(this.CONFIG[CHAVE_IGNORADOS] || '[]');
+      const bruto = JSON.parse(this.CONFIG[this.b.chaveIgnorados] || '[]');
       return Array.isArray(bruto) ? bruto.map(soDigitos).filter(Boolean) : [];
     } catch {
       return [];
@@ -219,8 +246,8 @@ export class ValeImportacaoModule {
     const r = this._relatorio;
     if (!r) return;
     const c = this._conciliacao();
-    const mes  = this.$('#vale-imp-competencia')?.value || r.competencia;
-    const modo = this.$('#vale-imp-modo')?.value || 'substituir';
+    const mes  = this.$(`#${this.b.prefixo}-competencia`)?.value || r.competencia;
+    const modo = this.$(`#${this.b.prefixo}-modo`)?.value || 'substituir';
 
     const linhaConf = (rot, val, cor = '') =>
       `<div class="info-item"><div class="info-label">${rot}</div>
@@ -252,7 +279,7 @@ export class ValeImportacaoModule {
 
     const liberacao = bateComANota ? '' : `
       <label class="alerta-liberar">
-        <input type="checkbox" id="vale-imp-forcar" ${this._forcar ? 'checked' : ''}>
+        <input type="checkbox" id="${this.b.prefixo}-forcar" ${this._forcar ? 'checked' : ''}>
         Conferi o PDF e a diferença é conhecida — importar mesmo assim.
       </label>`;
 
@@ -348,21 +375,20 @@ export class ValeImportacaoModule {
 
   // ─── Gravação ───────────────────────────────────────────────────────────────
 
-  async confirmar() {
-    if (this._ocupado || !this._relatorio) return;
-    const c = this._conciliacao();
-    const mes  = this.$('#vale-imp-competencia')?.value || this._relatorio.competencia;
-    const modo = this.$('#vale-imp-modo')?.value || 'substituir';
-    if (!/^\d{4}-\d{2}$/.test(mes)) { this.showToast('Informe a competência', 'err'); return; }
-    if (!c.casados.length) { this.showToast('Nenhum beneficiário para importar', 'err'); return; }
-
-    const [ano, mesNum] = mes.split('-').map(n => parseInt(n, 10));
+  /**
+   * Gravação do vale combustível — o adaptador padrão desta tela.
+   *
+   * Cada benefício tem a sua tabela e o seu espelho em memória, então esta é
+   * a parte que o segundo benefício troca por outra (via `deps.gravar`). A do
+   * combustível fica aqui porque foi a primeira e é a que os testes da tela
+   * exercitam de ponta a ponta.
+   */
+  async _gravarCombustivel({ casados, mes, mesNum, ano, modo, temSessao }) {
     const hoje = new Date().toISOString().slice(0, 10);
-
     // No modo complementar o valor do relatório SOMA ao que já está gravado —
     // é o caso da nota avulsa emitida depois do crédito principal do mês.
     const atual = (id) => parseFloat(this.VALE_COTAS_MES[`${id}|${mes}`]) || 0;
-    const linhas = c.casados.map(({ registro, colab }) => ({
+    const linhas = casados.map(({ registro, colab }) => ({
       colaborador_id: colab.id,
       mes: mesNum,
       ano,
@@ -373,33 +399,10 @@ export class ValeImportacaoModule {
       status: 'ativo',
     }));
 
-    const novosIgnorados = Object.entries(this._marcados)
-      .filter(([, marcado]) => marcado).map(([cpf]) => cpf);
-
-    this._ocupado = true;
-    this._habilitarConfirmar(false);
-    try {
-      const temSessao = this.ValeCombustivel && this.Auth
-        && await this.Auth.sessaoAtual().catch(() => null);
-      if (temSessao) {
-        if (modo === 'substituir') await this.ValeCombustivel.limparCompetencia(mesNum, ano);
-        await this.ValeCombustivel.upsertCotasEmLote(linhas);
-        if (novosIgnorados.length && this.Configuracoes) {
-          const lista = [...new Set([...this._ignoradosSalvos(), ...novosIgnorados])];
-          await this.Configuracoes.definir(CHAVE_IGNORADOS, JSON.stringify(lista));
-          this.CONFIG[CHAVE_IGNORADOS] = JSON.stringify(lista);
-        }
-      } else if (novosIgnorados.length) {
-        const lista = [...new Set([...this._ignoradosSalvos(), ...novosIgnorados])];
-        this.CONFIG[CHAVE_IGNORADOS] = JSON.stringify(lista);
-      }
-    } catch (err) {
-      this.showToast('Erro ao importar: ' + err.message, 'err');
-      this._ocupado = false;
-      this._habilitarConfirmar(true);
-      return;
+    if (temSessao && this.ValeCombustivel) {
+      if (modo === 'substituir') await this.ValeCombustivel.limparCompetencia(mesNum, ano);
+      await this.ValeCombustivel.upsertCotasEmLote(linhas);
     }
-    this._ocupado = false;
 
     // Espelha no estado local. Substituir apaga a competência inteira também
     // aqui — senão quem saiu do relatório continuaria aparecendo na tela.
@@ -415,10 +418,50 @@ export class ValeImportacaoModule {
       this.VALE_SALDO_INI[`${l.colaborador_id}|${mes}`] = l.saldo_inicial;
       if (this.VALE_COTAS) this.VALE_COTAS[l.colaborador_id] = l.valor_mensal;
     });
+  }
+
+  async confirmar() {
+    if (this._ocupado || !this._relatorio) return;
+    const c = this._conciliacao();
+    const mes  = this.$(`#${this.b.prefixo}-competencia`)?.value || this._relatorio.competencia;
+    const modo = this.$(`#${this.b.prefixo}-modo`)?.value || 'substituir';
+    if (!/^\d{4}-\d{2}$/.test(mes)) { this.showToast('Informe a competência', 'err'); return; }
+    if (!c.casados.length) { this.showToast('Nenhum beneficiário para importar', 'err'); return; }
+
+    const [ano, mesNum] = mes.split('-').map(n => parseInt(n, 10));
+
+    const novosIgnorados = Object.entries(this._marcados)
+      .filter(([, marcado]) => marcado).map(([cpf]) => cpf);
+
+    this._ocupado = true;
+    this._habilitarConfirmar(false);
+    try {
+      const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+
+      // Quem sabe montar a linha e onde gravá-la é o benefício. A tela só
+      // entrega o que foi conferido: casados, competência e modo.
+      await this.gravar({
+        casados: c.casados, mes, mesNum, ano, modo, temSessao,
+      });
+
+      if (novosIgnorados.length) {
+        const lista = [...new Set([...this._ignoradosSalvos(), ...novosIgnorados])];
+        if (temSessao && this.Configuracoes) {
+          await this.Configuracoes.definir(this.b.chaveIgnorados, JSON.stringify(lista));
+        }
+        this.CONFIG[this.b.chaveIgnorados] = JSON.stringify(lista);
+      }
+    } catch (err) {
+      this.showToast('Erro ao importar: ' + err.message, 'err');
+      this._ocupado = false;
+      this._habilitarConfirmar(true);
+      return;
+    }
+    this._ocupado = false;
 
     this.fecharModal();
     this.showToast(
-      `${linhas.length} crédito(s) importados em ${this.mesLabel(mes)} — ${this.fmtBRL(c.somaCasados)}`, 'ok');
+      `${c.casados.length} crédito(s) importados em ${this.mesLabel(mes)} — ${this.fmtBRL(c.somaCasados)}`, 'ok');
     this.aoImportar(mes);
   }
 }

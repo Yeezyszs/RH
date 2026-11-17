@@ -22,6 +22,7 @@ import { RotatividadeModule }     from './modules/rotatividade.js?v=dev';
 import { SalariosModule }         from './modules/salarios.js?v=dev';
 import { ValeCombustivelModule }  from './modules/vale-combustivel.js?v=dev';
 import { ValeImportacaoModule }   from './modules/vale-importacao.js?v=dev';
+import { lerRelatorioTicket }     from './utils/relatorio-ticket.js?v=dev';
 import { FolhaImportacaoModule }  from './modules/folha-importacao.js?v=dev';
 import { ValeAlimentacaoModule }  from './modules/vale-alimentacao.js?v=dev';
 import { FeedbackClimaModule }    from './modules/feedback.js?v=dev';
@@ -191,6 +192,7 @@ function bootstrap() {
     COLABORADORES, VALE_COTAS, VALE_COTAS_MES, VALE_USO_MES, VALE_SALDO_INI, CONFIG,
     Auth: window.Auth, ValeCombustivel: window.ValeCombustivel,
     Configuracoes: window.Configuracoes, showToast,
+
     // Depois de importar, a tela do vale abre já na competência gravada.
     aoImportar: (mes) => {
       const sel = $('#vale-mes');
@@ -199,6 +201,68 @@ function bootstrap() {
       }
       if (sel) sel.value = mes;
       valeCombustivel.render();
+    },
+  });
+
+  // Vale alimentação: mesma tela de importação, outro leitor e outro destino.
+  // A operadora é outra (Ticket/Edenred), então o PDF tem outro layout — o que
+  // não muda é a conferência contra o total do relatório e o cruzamento com o
+  // cadastro, que são os mesmos dos dois benefícios.
+  const valeAlimImportacao = new ValeImportacaoModule({
+    $, h, fmtBRL, mesLabel,
+    COLABORADORES, CONFIG,
+    Auth: window.Auth, Configuracoes: window.Configuracoes, showToast,
+    beneficio: {
+      chave: 'alimentacao',
+      prefixo: 'va-imp',
+      modal: 'modal-va-import',
+      botao: 'btn-va-imp-confirmar',
+      rotulo: 'vale alimentação',
+      chaveIgnorados: 'va_importacao_ignorados',
+    },
+    ler: lerRelatorioTicket,
+    gravar: async ({ casados, mes, mesNum, ano, modo, temSessao }) => {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const atual = (id) => parseFloat(window.VA_POR_MES[`${id}|${mes}`]?.valor) || 0;
+      const linhas = casados.map(({ registro, colab }) => ({
+        colaborador_id: colab.id,
+        mes: mesNum,
+        ano,
+        valor_mensal: modo === 'complementar' ? atual(colab.id) + registro.valor : registro.valor,
+        // O crédito do relatório é valor fechado do mês: quem define quanto é
+        // a operadora, não a conta de dias úteis do cadastro.
+        tipo: 'fixo',
+        dias_uteis: null,
+        data_concessao: hoje,
+        status: 'ativo',
+      }));
+
+      if (temSessao && window.ValeAlimentacao) {
+        if (modo === 'substituir') await window.ValeAlimentacao.limparCompetencia(mesNum, ano);
+        await window.ValeAlimentacao.upsertEmLote(linhas);
+      }
+
+      if (modo === 'substituir') {
+        const sufixo = `|${mes}`;
+        Object.keys(window.VA_POR_MES).forEach(k => {
+          if (k.endsWith(sufixo)) delete window.VA_POR_MES[k];
+        });
+      }
+      linhas.forEach(l => {
+        window.VA_POR_MES[`${l.colaborador_id}|${mes}`] = {
+          tipo: 'fixo', valor: l.valor_mensal, dias_uteis: null, observacoes: '',
+        };
+      });
+    },
+    aoImportar: (mes) => {
+      const sel = $('#va-mes');
+      if (sel) {
+        if (![...sel.options].some(o => o.value === mes)) {
+          sel.insertAdjacentHTML('afterbegin', `<option value="${mes}">${mesLabel(mes)}</option>`);
+        }
+        sel.value = mes;
+      }
+      valeAlimentacao.render();
     },
   });
 
@@ -426,6 +490,10 @@ function bootstrap() {
   window.escolherArquivoFolha      = ()           => folhaImportacao.escolherArquivo();
   window.confirmarFolhaImport      = ()           => folhaImportacao.confirmar();
   window.abrirModalValeImport      = ()           => valeImportacao.abrirModal();
+  window.abrirModalVaImport        = ()           => valeAlimImportacao.abrirModal();
+  window.fecharModalVaImport       = ()           => valeAlimImportacao.fecharModal();
+  window.escolherArquivoVaImport   = ()           => valeAlimImportacao.escolherArquivo();
+  window.confirmarVaImport         = ()           => valeAlimImportacao.confirmar();
   window.fecharModalValeImport     = ()           => valeImportacao.fecharModal();
   window.escolherArquivoValeImport = ()           => valeImportacao.escolherArquivo();
   window.confirmarValeImport       = ()           => valeImportacao.confirmar();

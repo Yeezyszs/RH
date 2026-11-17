@@ -258,6 +258,31 @@ const ValeAlimentacao = {
     return data;
   },
 
+  // Apaga a competência inteira antes de reimportá-la. É o que faz a
+  // importação em modo "substituir" ser de verdade: sem isto, quem saiu do
+  // relatório novo continuaria gravado do anterior.
+  async limparCompetencia(mes, ano) {
+    const { error } = await withTimeout(
+      sb.from('vale_alimentacao').delete().eq('mes', mes).eq('ano', ano)
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_alimentacao');
+  },
+
+  // Uma competência inteira de uma vez, vinda do relatório da operadora.
+  async upsertEmLote(linhas) {
+    if (!linhas.length) return [];
+    const { data, error } = await withTimeout(
+      sb.from('vale_alimentacao')
+        .upsert(linhas, { onConflict: 'colaborador_id,mes,ano' })
+        .select(),
+      15000
+    );
+    if (error) throw error;
+    Cache.invalidate('vale_alimentacao');
+    return data ?? [];
+  },
+
   async atualizar(id, payload) {
     const { data, error } = await withTimeout(
       sb.from('vale_alimentacao').update(payload).eq('id', id).select().single()
