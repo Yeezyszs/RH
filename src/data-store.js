@@ -45,6 +45,12 @@ var SAC              = [];
 // Avaliações de engajamento (formulário de 11 itens). Uma linha por avaliador:
 // gestor e RH avaliam separadamente e a média é feita na leitura.
 var ENGAJAMENTO      = [];
+
+// Compliance de segurança do trabalho.
+var TREINAMENTOS_NR  = [];   // matriz: uma linha por (colaborador, norma)
+var CAT              = [];   // comunicações de acidente de trabalho
+var PROGRAMAS        = [];   // LTCAT, PGR, PCMSO…
+var PLANO_ACAO       = [];   // itens do plano que acompanha o programa
 var PRESTADORES      = [];
 var PC_CARGOS        = [];
 var PC_PLANOS        = {};
@@ -91,6 +97,10 @@ window.POLITICAS        = POLITICAS;
 window.PROCEDIMENTOS    = PROCEDIMENTOS;
 window.PROLABORE        = PROLABORE;
 window.ENGAJAMENTO      = ENGAJAMENTO;
+window.TREINAMENTOS_NR  = TREINAMENTOS_NR;
+window.CAT              = CAT;
+window.PROGRAMAS        = PROGRAMAS;
+window.PLANO_ACAO       = PLANO_ACAO;
 window.SAC              = SAC;
 window.PRESTADORES      = PRESTADORES;
 window.PC_CARGOS        = PC_CARGOS;

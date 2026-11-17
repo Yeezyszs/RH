@@ -236,3 +236,131 @@ const Treinamentos = {
     Cache.invalidate('vencimentos');
   },
 };
+
+// ─── Compliance de SST: treinamentos de NR, CAT e programas do eSocial ──────
+
+const TreinamentosNR = {
+  async listar() {
+    const { data, error } = await withTimeout(
+      sb.from('treinamentos_nr')
+        .select('id, colaborador_id, nr, data_realizacao, pendente, validade_meses, observacoes')
+        .order('colaborador_id')
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  // Uma célula da matriz. Reusa a chave (colaborador, norma): editar a mesma
+  // célula duas vezes não cria duas linhas.
+  async salvar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('treinamentos_nr')
+        .upsert({ ...payload, atualizado_em: new Date().toISOString() },
+          { onConflict: 'colaborador_id,nr' })
+        .select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate();
+    return data;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(sb.from('treinamentos_nr').delete().eq('id', id));
+    if (error) throw error;
+    Cache.invalidate();
+  },
+};
+
+const CatAcidentes = {
+  async listar() {
+    const { data, error } = await withTimeout(
+      sb.from('cat_acidentes').select('*').order('data_acidente', { ascending: false })
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('cat_acidentes').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate();
+    return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('cat_acidentes').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate();
+    return data;
+  },
+
+  async excluir(id) {
+    const { error } = await withTimeout(sb.from('cat_acidentes').delete().eq('id', id));
+    if (error) throw error;
+    Cache.invalidate();
+  },
+};
+
+const ProgramasEsocial = {
+  async listar() {
+    const { data, error } = await withTimeout(
+      sb.from('programas_esocial').select('*').order('data_documento', { ascending: false })
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async criar(payload) {
+    const { data, error } = await withTimeout(
+      sb.from('programas_esocial').insert(payload).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate();
+    return data;
+  },
+
+  async atualizar(id, payload) {
+    const { data, error } = await withTimeout(
+      sb.from('programas_esocial').update(payload).eq('id', id).select().single()
+    );
+    if (error) throw error;
+    Cache.invalidate();
+    return data;
+  },
+
+  // O plano de ação cai junto pelo ON DELETE CASCADE: plano sem programa não
+  // diz de onde veio, e é do programa que a auditoria cobra.
+  async excluir(id) {
+    const { error } = await withTimeout(sb.from('programas_esocial').delete().eq('id', id));
+    if (error) throw error;
+    Cache.invalidate();
+  },
+
+  async listarPlano() {
+    const { data, error } = await withTimeout(
+      sb.from('plano_acao_programa').select('*').order('prazo')
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async salvarItemPlano(payload) {
+    const query = payload.id
+      ? sb.from('plano_acao_programa').update(payload).eq('id', payload.id)
+      : sb.from('plano_acao_programa').insert(payload);
+    const { data, error } = await withTimeout(query.select().single());
+    if (error) throw error;
+    Cache.invalidate();
+    return data;
+  },
+
+  async excluirItemPlano(id) {
+    const { error } = await withTimeout(sb.from('plano_acao_programa').delete().eq('id', id));
+    if (error) throw error;
+    Cache.invalidate();
+  },
+};

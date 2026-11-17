@@ -13,6 +13,7 @@ import { QuadroModule }           from './modules/quadro.js?v=dev';
 import { AdvertenciasModule }     from './modules/advertencias.js?v=dev';
 import { FeriasModule }           from './modules/ferias.js?v=dev';
 import { EngajamentoModule }      from './modules/engajamento.js?v=dev';
+import { ComplianceSstModule }    from './modules/compliance-sst.js?v=dev';
 import { DesligamentosModule }    from './modules/desligamentos.js?v=dev';
 import { RescisoesModule }        from './modules/rescisoes.js?v=dev';
 import { CronogramaModule }       from './modules/cronograma.js?v=dev';
@@ -150,6 +151,21 @@ function bootstrap() {
     $, h, iniciais, fmtDate,
     COLABORADORES, ENGAJAMENTO: window.ENGAJAMENTO, CHART_COLORS,
     Auth: window.Auth, AvaliacoesEngajamento: window.AvaliacoesEngajamento, showToast,
+  });
+
+  const complianceSst = new ComplianceSstModule({
+    $, h, iniciais, fmtDate,
+    COLABORADORES,
+    TREINAMENTOS_NR: window.TREINAMENTOS_NR,
+    CAT: window.CAT,
+    PROGRAMAS: window.PROGRAMAS,
+    PLANO_ACAO: window.PLANO_ACAO,
+    Auth: window.Auth,
+    TreinamentosNR: window.TreinamentosNR,
+    CatAcidentes: window.CatAcidentes,
+    ProgramasEsocial: window.ProgramasEsocial,
+    StorageDocs: window.StorageDocs,
+    showToast,
   });
 
   const cronograma = new CronogramaModule({
@@ -389,6 +405,29 @@ function bootstrap() {
 
   // Avaliação de engajamento
   window.renderEngajamento          = ()     => engajamento.render();
+
+  // Segurança do trabalho: treinamentos de NR, CAT e programas do eSocial.
+  window.renderComplianceSst        = ()       => complianceSst.render();
+  window.abrirModalTreinamentoNR    = (c, nr)  => complianceSst.abrirModalTreinamento(c, nr);
+  window.fecharModalTreinamentoNR   = ()       => complianceSst.fecharModalTreinamento();
+  window.salvarTreinamentoNR        = (ev)     => complianceSst.salvarTreinamento(ev);
+  window.excluirTreinamentoNR       = ()       => complianceSst.excluirTreinamento();
+  window.abrirModalCat              = (id)     => complianceSst.abrirModalCat(id);
+  window.fecharModalCat             = ()       => complianceSst.fecharModalCat();
+  window.salvarCat                  = (ev)     => complianceSst.salvarCat(ev);
+  window.excluirCat                 = (id)     => complianceSst.excluirCat(id);
+  window.arquivoCatEscolhido        = (i)      => complianceSst.arquivoCatEscolhido(i);
+  window.abrirDocumentoCat          = (id)     => complianceSst.abrirDocumentoCat(id);
+  window.abrirModalPrograma         = (id)     => complianceSst.abrirModalPrograma(id);
+  window.fecharModalPrograma        = ()       => complianceSst.fecharModalPrograma();
+  window.salvarPrograma             = (ev)     => complianceSst.salvarPrograma(ev);
+  window.excluirPrograma            = (id)     => complianceSst.excluirPrograma(id);
+  window.arquivoProgramaEscolhido   = (i)      => complianceSst.arquivoProgramaEscolhido(i);
+  window.abrirDocumentoPrograma     = (id)     => complianceSst.abrirDocumentoPrograma(id);
+  window.abrirModalItemPlano        = (p, i)   => complianceSst.abrirModalItemPlano(p, i);
+  window.fecharModalItemPlano       = ()       => complianceSst.fecharModalItemPlano();
+  window.salvarItemPlano            = (ev)     => complianceSst.salvarItemPlano(ev);
+  window.excluirItemPlano           = (id)     => complianceSst.excluirItemPlano(id);
   window.abrirDrawerEngajamento     = (ch)   => engajamento.abrirDrawer(ch);
   window.fecharDrawerEngajamento    = ()     => engajamento.fecharDrawer();
   window.abrirModalEngajamento      = ()     => engajamento.abrirModal();

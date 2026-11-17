@@ -12,7 +12,8 @@ async function inicializarSupabase() {
     console.info('[RH] Sessão ativa, carregando dados...');
 
     const [colaboradores, advertencias, ferias, desligamentos, afastamentos, eventos, pcPlanos,
-           vencimentos, epis, salarios, feedbacks, pesquisas, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac, valeDesc, config, folhaHist, engajamento] =
+           vencimentos, epis, salarios, feedbacks, pesquisas, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac, valeDesc, config, folhaHist, engajamento,
+           treinNr, cats, programas, planoAcao] =
       await Promise.allSettled([
         Colaboradores.listar(),
         Advertencias.listar(),
@@ -42,6 +43,10 @@ async function inicializarSupabase() {
         Configuracoes.listar(),
         FolhaCompetencia.listar(),
         AvaliacoesEngajamento.listar(),
+        TreinamentosNR.listar(),
+        CatAcidentes.listar(),
+        ProgramasEsocial.listar(),
+        ProgramasEsocial.listarPlano(),
       ]);
 
     // Nada acima rejeita (allSettled), então o que falhou precisa ser
@@ -72,6 +77,10 @@ async function inicializarSupabase() {
       'pró-labore':          prolabore,
       'SAC':                 sac,
       'avaliações de engajamento': engajamento,
+      'treinamentos de NR':  treinNr,
+      'CATs':                cats,
+      'programas do eSocial': programas,
+      'plano de ação':       planoAcao,
       'descontos do vale':   valeDesc,
       'configurações':       config,
       'histórico da folha':  folhaHist,
@@ -225,6 +234,17 @@ async function inicializarSupabase() {
         console.info(`[RH] ${ENGAJAMENTO.length} avaliações de engajamento carregadas.`);
       }
     }
+
+    [[treinNr, TREINAMENTOS_NR, 'treinamentos de NR'],
+      [cats, CAT, 'CATs'],
+      [programas, PROGRAMAS, 'programas do eSocial'],
+      [planoAcao, PLANO_ACAO, 'itens de plano de ação']].forEach(([res, destino, rotulo]) => {
+      if (res.status !== 'fulfilled') return;
+      const lista = res.value ?? [];
+      if (!lista.length) return;
+      _preencherArray(destino, lista);
+      console.info(`[RH] ${destino.length} ${rotulo} carregados.`);
+    });
 
     if (folhaHist.status === 'fulfilled') {
       const lista = folhaHist.value ?? [];
@@ -385,6 +405,7 @@ async function inicializarSupabase() {
     if (typeof renderProlabore      === 'function') renderProlabore();
     if (typeof renderSac            === 'function') renderSac();
     if (typeof renderEngajamento    === 'function') renderEngajamento();
+    if (typeof renderComplianceSst === 'function') renderComplianceSst();
     if (typeof renderSacTratativas  === 'function') renderSacTratativas();
     if (typeof renderPrestadores    === 'function') renderPrestadores();
     if (typeof renderBeneficios     === 'function') renderBeneficios();
@@ -442,6 +463,9 @@ window.ProcedimentosEmpresa   = ProcedimentosEmpresa;
 window.ProlaboreSocios        = ProlaboreSocios;
 window.SacMensagens           = SacMensagens;
 window.AvaliacoesEngajamento  = AvaliacoesEngajamento;
+window.TreinamentosNR         = TreinamentosNR;
+window.CatAcidentes           = CatAcidentes;
+window.ProgramasEsocial       = ProgramasEsocial;
 window.StorageDocs            = StorageDocs;
 window.PrestadoresServico     = PrestadoresServico;
 window.RespostasPesquisa      = RespostasPesquisa;

@@ -128,6 +128,10 @@
         <span class="nav-icon">⛨</span>
         <span>EPI</span>
       </div>
+      <div class="nav-item" data-page="compliance-sst">
+        <span class="nav-icon">⚕</span>
+        <span>Segurança do Trabalho</span>
+      </div>
     </div>
 
     <div class="nav-group">
@@ -703,6 +707,117 @@
             <tbody id="tb-rescisoes"></tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <!-- ───── SEGURANÇA DO TRABALHO ───── -->
+    <section id="page-compliance-sst" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Segurança do Trabalho</h1>
+          <div class="page-subtitle">Matriz de treinamentos de NR · CAT · programas do eSocial</div>
+        </div>
+      </div>
+
+      <div class="view-tabs">
+        <div class="view-tab active" data-view="sst-treinamentos">Treinamentos</div>
+        <div class="view-tab" data-view="sst-cat">CAT</div>
+        <div class="view-tab" data-view="sst-programas">Programas eSocial</div>
+      </div>
+
+      <!-- ══════ TREINAMENTOS ══════ -->
+      <div id="view-sst-treinamentos" class="view-content active">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <input type="text" id="sst-busca" placeholder="Buscar colaborador ou cargo…">
+          </div>
+          <select id="sst-filtro-norma"><option value="">Todas as normas</option></select>
+          <select id="sst-filtro-situacao">
+            <option value="">Todas as situações</option>
+            <option value="vencido">Vencidos</option>
+            <option value="vencendo">Vencendo em 60 dias</option>
+            <option value="realizar">A realizar</option>
+            <option value="ok">Em dia</option>
+            <option value="ausente">Sem registro</option>
+          </select>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat"><div class="stat-label">Colaboradores</div>
+            <div class="stat-value" id="sst-stat-pessoas">—</div></div>
+          <div class="stat stat-success"><div class="stat-label">Treinamentos em dia</div>
+            <div class="stat-value" id="sst-stat-emdia">—</div></div>
+          <div class="stat stat-warn"><div class="stat-label">Vencendo em 60 dias</div>
+            <div class="stat-value" id="sst-stat-vencendo">—</div></div>
+          <div class="stat stat-danger"><div class="stat-label">Vencidos</div>
+            <div class="stat-value" id="sst-stat-vencidos">—</div></div>
+          <div class="stat"><div class="stat-label">Marcados “realizar”</div>
+            <div class="stat-value" id="sst-stat-realizar">—</div></div>
+        </div>
+
+        <div class="sst-legenda">
+          <span><i class="sst-cel sst-ok"></i>Em dia</span>
+          <span><i class="sst-cel sst-vencendo"></i>Vence em 60 dias</span>
+          <span><i class="sst-cel sst-vencido"></i>Vencido</span>
+          <span><i class="sst-cel sst-realizar"></i>A realizar</span>
+          <span><i class="sst-cel sst-ausente"></i>Sem registro</span>
+          <span class="fer-dica">clique numa célula para lançar ou alterar</span>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="data sst-matriz">
+              <thead id="sst-matriz-cab"></thead>
+              <tbody id="tb-sst-matriz"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ CAT ══════ -->
+      <div id="view-sst-cat" class="view-content">
+        <div class="toolbar">
+          <select id="cat-filtro-ano"><option value="">Todos os anos</option></select>
+          <div class="toolbar-spacer"></div>
+          <button class="btn" type="button" data-action="abrirModalCat">+ Registrar acidente</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat stat-danger"><div class="stat-label">Acidentes no recorte</div>
+            <div class="stat-value" id="cat-stat-total">—</div></div>
+          <div class="stat stat-warn"><div class="stat-label">Com afastamento</div>
+            <div class="stat-value" id="cat-stat-afastamento">—</div></div>
+          <div class="stat"><div class="stat-label">Dias de afastamento</div>
+            <div class="stat-value" id="cat-stat-dias">—</div></div>
+          <div class="stat"><div class="stat-label">Sem documento anexado</div>
+            <div class="stat-value" id="cat-stat-semdoc">—</div></div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="data">
+              <thead><tr>
+                <th style="width:22%">Colaborador</th>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Afastamento</th>
+                <th>Nº da CAT</th>
+                <th>Documento</th>
+                <th style="width:90px; text-align:right">Ações</th>
+              </tr></thead>
+              <tbody id="tb-sst-cat"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ PROGRAMAS ESOCIAL ══════ -->
+      <div id="view-sst-programas" class="view-content">
+        <div class="toolbar">
+          <div class="toolbar-spacer"></div>
+          <button class="btn" type="button" data-action="abrirModalPrograma">+ Novo programa</button>
+        </div>
+        <div id="sst-programas"></div>
       </div>
     </section>
 
@@ -3519,6 +3634,231 @@
               style="margin-right:auto;">🖨 Imprimir ficha</button>
       <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalFeedback">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-feedback">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — TREINAMENTO DE NR ════════════ -->
+<div id="modal-treinamento-nr" class="modal">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="trn-titulo">Treinamento</div>
+        <div class="cell-person-sub" id="trn-subtitulo"></div>
+      </div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalTreinamentoNR">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-treinamento-nr" class="form-grid" onsubmit="salvarTreinamentoNR(event)">
+        <input type="hidden" name="id">
+        <input type="hidden" name="colaborador_id">
+        <input type="hidden" name="nr">
+        <div class="form-group">
+          <label>Data da realização</label>
+          <input type="date" name="data_realizacao">
+        </div>
+        <div class="form-group">
+          <label>Validade (meses)</label>
+          <input type="number" name="validade_meses" min="1" max="120">
+        </div>
+        <div class="form-group full">
+          <label style="display:flex; align-items:center; gap:8px; text-transform:none; letter-spacing:0;">
+            <input type="checkbox" name="pendente" style="width:auto;">
+            Marcar como <strong>a realizar</strong> — exigido e ainda não feito
+          </label>
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea name="observacoes" rows="2"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" type="button" id="btn-trn-excluir"
+              data-action="excluirTreinamentoNR" style="margin-right:auto; display:none;">Apagar registro</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalTreinamentoNR">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-treinamento-nr">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — CAT (ACIDENTE DE TRABALHO) ════════════ -->
+<div id="modal-cat" class="modal">
+  <div class="modal-box" style="max-width:640px;">
+    <div class="modal-header">
+      <div class="modal-title" id="cat-modal-titulo">Registrar acidente (CAT)</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalCat">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-cat" class="form-grid" onsubmit="salvarCat(event)">
+        <input type="hidden" name="id">
+        <div class="form-group full">
+          <label>Colaborador</label>
+          <select name="colaborador_id" required></select>
+        </div>
+        <div class="form-group">
+          <label>Data do acidente</label>
+          <input type="date" name="data_acidente" required>
+        </div>
+        <div class="form-group">
+          <label>Hora</label>
+          <input type="time" name="hora">
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="tipo">
+            <option value="tipico">Típico (no trabalho)</option>
+            <option value="trajeto">De trajeto</option>
+            <option value="doenca">Doença ocupacional</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Parte do corpo atingida</label>
+          <input type="text" name="parte_corpo" placeholder="Ex.: mão direita">
+        </div>
+        <div class="form-group full">
+          <label>Descrição do acidente</label>
+          <textarea name="descricao" rows="2" placeholder="O que aconteceu"></textarea>
+        </div>
+
+        <div class="form-group full">
+          <label style="display:flex; align-items:center; gap:8px; text-transform:none; letter-spacing:0;">
+            <input type="checkbox" name="houve_afastamento" style="width:auto;">
+            Houve afastamento
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Início do afastamento</label>
+          <input type="date" name="afastamento_inicio">
+        </div>
+        <div class="form-group">
+          <label>Retorno ao trabalho</label>
+          <input type="date" name="afastamento_fim">
+        </div>
+
+        <div class="form-group">
+          <label>Nº da CAT</label>
+          <input type="text" name="numero_cat" placeholder="Protocolo do INSS">
+        </div>
+        <div class="form-group">
+          <label>Documento da CAT (PDF)</label>
+          <input type="file" id="cat-arquivo" accept="application/pdf,.pdf,image/*" hidden
+                 onchange="arquivoCatEscolhido(this)">
+          <button class="btn btn-secondary btn-sm" type="button"
+                  onclick="document.getElementById('cat-arquivo').click()">Escolher arquivo</button>
+          <div class="cell-person-sub" id="cat-arquivo-nome" style="margin-top:4px;">nenhum arquivo escolhido</div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalCat">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-cat">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — PROGRAMA DO ESOCIAL ════════════ -->
+<div id="modal-programa" class="modal">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="modal-header">
+      <div class="modal-title" id="prog-modal-titulo">Novo programa</div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalPrograma">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-programa" class="form-grid" onsubmit="salvarPrograma(event)">
+        <input type="hidden" name="id">
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="tipo" required></select>
+        </div>
+        <div class="form-group">
+          <label>Responsável técnico</label>
+          <input type="text" name="responsavel" placeholder="Quem elaborou">
+        </div>
+        <div class="form-group full">
+          <label>Título / identificação</label>
+          <input type="text" name="titulo" placeholder="Ex.: PGR 2026 — unidade Paranavaí">
+        </div>
+        <div class="form-group">
+          <label>Data do documento</label>
+          <input type="date" name="data_documento">
+        </div>
+        <div class="form-group">
+          <label>Válido até</label>
+          <input type="date" name="validade">
+        </div>
+        <div class="form-group full">
+          <label>Arquivo (PDF)</label>
+          <input type="file" id="prog-arquivo" accept="application/pdf,.pdf" hidden
+                 onchange="arquivoProgramaEscolhido(this)">
+          <button class="btn btn-secondary btn-sm" type="button"
+                  onclick="document.getElementById('prog-arquivo').click()">Escolher arquivo</button>
+          <div class="cell-person-sub" id="prog-arquivo-nome" style="margin-top:4px;">nenhum arquivo escolhido</div>
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea name="observacoes" rows="2"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalPrograma">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-programa">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — AÇÃO DO PLANO ════════════ -->
+<div id="modal-item-plano" class="modal">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="plano-modal-titulo">Nova ação do plano</div>
+        <div class="cell-person-sub" id="plano-modal-sub"></div>
+      </div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModalItemPlano">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-item-plano" class="form-grid" onsubmit="salvarItemPlano(event)">
+        <input type="hidden" name="id">
+        <input type="hidden" name="programa_id">
+        <div class="form-group full">
+          <label>Ação</label>
+          <textarea name="item" rows="2" required placeholder="O que precisa ser feito"></textarea>
+        </div>
+        <div class="form-group full">
+          <label>Risco relacionado</label>
+          <input type="text" name="risco" placeholder="Ex.: ruído acima do limite no setor de moagem">
+        </div>
+        <div class="form-group">
+          <label>Responsável</label>
+          <input type="text" name="responsavel">
+        </div>
+        <div class="form-group">
+          <label>Prazo</label>
+          <input type="date" name="prazo">
+        </div>
+        <div class="form-group">
+          <label>Situação</label>
+          <select name="status">
+            <option value="pendente">Pendente</option>
+            <option value="andamento">Em andamento</option>
+            <option value="concluido">Concluído</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Concluído em</label>
+          <input type="date" name="conclusao">
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea name="observacoes" rows="2"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalItemPlano">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-item-plano">Salvar</button>
     </div>
   </div>
 </div>

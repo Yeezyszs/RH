@@ -1379,3 +1379,55 @@ table.data td.actions {
   line-height: 1.45;
   color: #92400E;
 }
+
+/* ── Matriz de treinamentos de NR ────────────────────────────────────────
+   A planilha do RH é uma matriz: pessoa nas linhas, norma nas colunas, data
+   na célula. A cor diz a situação sem precisar ler a data — que é como o RH
+   lê a planilha hoje, com marca-texto. */
+.sst-matriz th,
+.sst-matriz td { white-space: nowrap; }
+.sst-cel {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: .76rem;
+  cursor: pointer;
+  transition: filter .12s;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+.sst-cel:hover { filter: brightness(.94); }
+.sst-ok       { background: #ECFDF5; color: #065F46; }
+.sst-vencendo { background: #FFFBEB; color: #92400E; }
+.sst-vencido  { background: #FEF2F2; color: #991B1B; font-weight: 700; }
+.sst-realizar { background: #FFEDD5; color: #9A3412; font-weight: 700; letter-spacing: .04em; }
+.sst-ausente  { color: var(--text-soft); }
+
+.sst-legenda {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: .76rem;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+.sst-legenda span { display: inline-flex; align-items: center; gap: 6px; }
+.sst-legenda i {
+  width: 16px; height: 16px; border-radius: 4px;
+  border: 1px solid var(--border); display: inline-block;
+}
+
+/* Progresso do plano de ação do PGR. */
+.sst-plano-barra {
+  height: 7px;
+  border-radius: 4px;
+  background: var(--border-soft);
+  overflow: hidden;
+  margin: 2px;
+}
+.sst-plano-barra span {
+  display: block;
+  height: 100%;
+  background: var(--success);
+  transition: width .3s;
+}

@@ -19,6 +19,7 @@
     rescisoes:         'Relatório de Rescisões',
     vencimentos:       'Relatório de Vencimentos',
     epi:               'Relatório de EPIs',
+    'compliance-sst':  'Relatório de Segurança do Trabalho',
     'vale-combustivel':'Relatório de Vale Combustível',
     'vale-alimentacao':'Relatório de Vale Alimentação',
     ferias:            'Relatório de Férias',
