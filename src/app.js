@@ -212,8 +212,8 @@ function bootstrap() {
   });
 
   const valeAlimentacao = new ValeAlimentacaoModule({
-    $, h, iniciais, fmtDate, fmtBRL, mesLabel,
-    COLABORADORES, VA_BENEFICIOS, CHART_COLORS, showToast,
+    $, h, iniciais, fmtDate, fmtBRL, mesLabel, mesChave,
+    COLABORADORES, VA_BENEFICIOS, VA_POR_MES: window.VA_POR_MES, CHART_COLORS, showToast,
     Auth: window.Auth, ValeAlimentacao: window.ValeAlimentacao,
   });
 

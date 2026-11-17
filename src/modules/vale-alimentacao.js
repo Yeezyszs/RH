@@ -13,6 +13,8 @@ export class ValeAlimentacaoModule {
     this.mesLabel     = deps.mesLabel;
     this.COLABORADORES    = deps.COLABORADORES;
     this.VA_BENEFICIOS    = deps.VA_BENEFICIOS;
+    this.VA_POR_MES       = deps.VA_POR_MES || {};
+    this.mesChave         = deps.mesChave;
     this.CHART_COLORS     = deps.CHART_COLORS;
     this.showToast        = deps.showToast;
     this.Auth             = deps.Auth;
@@ -56,22 +58,56 @@ export class ValeAlimentacaoModule {
     return (parseFloat(beneficio.valor) || 0) * dias;
   }
 
+  /**
+   * Meses do seletor: os que têm lançamento, mais o corrente.
+   *
+   * Antes a lista eram os 12 meses anteriores a hoje, existissem ou não — o
+   * RH escolhia maio e via a configuração de hoje, porque a tela ignorava a
+   * competência. Mostrar só o que existe deixa claro o que foi registrado.
+   *
+   * @returns {string} a competência selecionada, no formato AAAA-MM
+   */
+  _preencherMeses() {
+    // `mesChave` do projeto recebe a data em ISO, não um objeto Date.
+    const atual = this.mesChave(new Date().toISOString().slice(0, 10));
+
+    const comLancamento = [...new Set(
+      Object.keys(this.VA_POR_MES || {}).map(k => k.split('|')[1]).filter(Boolean),
+    )];
+    const meses = [...new Set([atual, ...comLancamento])].sort().reverse();
+
+    const sel = this.$('#va-mes');
+    if (sel) {
+      const assinatura = meses.join(',');
+      if (sel._assinatura !== assinatura) {
+        const anterior = sel.value;
+        sel.innerHTML = meses.map(m => `<option value="${m}">${this.mesLabel(m)}</option>`).join('');
+        sel._assinatura = assinatura;
+        sel.value = meses.includes(anterior) ? anterior : meses[0];
+      }
+      return sel.value || meses[0];
+    }
+    return meses[0];
+  }
+
+  /**
+   * O benefício daquela pessoa naquele mês.
+   *
+   * Com lançamento na competência, vale o que foi lançado. Sem lançamento,
+   * vale o cadastro vigente — o vale alimentação é benefício permanente, e um
+   * mês sem lançamento significa "segue o combinado", não "não recebeu". É
+   * aqui que esta tela difere da do combustível, onde cada mês é um crédito
+   * avulso e a ausência quer dizer ausência mesmo.
+   */
+  _beneficioDoMes(colabId, mes) {
+    return this.VA_POR_MES?.[`${colabId}|${mes}`] || this.VA_BENEFICIOS[colabId];
+  }
+
   render() {
     const tb = this.$('#tb-vale-alimentacao');
     if (!tb) return;
 
-    const selMes = this.$('#va-mes');
-    if (selMes && selMes.options.length === 0) {
-      const now  = new Date();
-      const meses = [];
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
-      }
-      selMes.innerHTML = meses.map(m => `<option value="${m}">${this.mesLabel(m)}</option>`).join('');
-    }
-    const now      = new Date();
-    const mesAtual = selMes?.value || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const mesAtual = this._preencherMeses();
 
     const q     = (this.$('#va-search')?.value || '').trim().toLowerCase();
     const fSet  = this.$('#va-filter-setor')?.value || '';
@@ -80,7 +116,7 @@ export class ValeAlimentacaoModule {
     const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo');
 
     const linhas = ativos.map(c => {
-      const b = this.VA_BENEFICIOS[c.id];
+      const b = this._beneficioDoMes(c.id, mesAtual);
       return { colab: c, beneficio: b, total: this._valorMensal(b, mesAtual) };
     });
 
@@ -141,7 +177,10 @@ export class ValeAlimentacaoModule {
 
   _renderEvolucao() {
     const ctx = this.$('#chart-vale-alimentacao-evolucao');
-    if (!ctx) return;
+    // Sem a guarda, uma falha ao carregar o Chart.js derrubava o render
+    // inteiro — a tabela de valores sumia junto com o gráfico. É a mesma
+    // guarda que os outros módulos já tinham.
+    if (!ctx || typeof Chart === 'undefined') return;
 
     const selMes  = this.$('#va-mes');
     const now     = new Date();

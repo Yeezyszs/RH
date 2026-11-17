@@ -284,6 +284,19 @@ async function inicializarSupabase() {
         // Indexa por colaborador (registro mais recente — lista vem ordenada
         // por ano/mês desc) no formato esperado pelo módulo (VA_BENEFICIOS).
         lista.forEach(v => {
+          // Histórico mês a mês, antes do "mais recente ganha": é dele que
+          // sai a tela quando o RH escolhe uma competência passada.
+          if (v.mes != null && v.ano != null) {
+            const chave = `${v.colaborador_id}|${v.ano}-${String(v.mes).padStart(2, '0')}`;
+            if (!VA_POR_MES[chave]) {
+              VA_POR_MES[chave] = {
+                tipo:       v.tipo || 'fixo',
+                valor:      v.valor_mensal,
+                dias_uteis: v.dias_uteis ?? null,
+                observacoes: v.observacoes || '',
+              };
+            }
+          }
           if (VA_BENEFICIOS[v.colaborador_id]) return;
           VA_BENEFICIOS[v.colaborador_id] = {
             id:             v.id,

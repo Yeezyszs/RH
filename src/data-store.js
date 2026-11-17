@@ -28,6 +28,10 @@ var VALE_SALDO_INI = {};
 // Configurações gerais (chave → valor), ex.: vale_combustivel_valor_padrao.
 var CONFIG         = {};
 var VA_BENEFICIOS  = {};
+// Vale alimentação por mês: chave `${colaborador_id}|AAAA-MM`. VA_BENEFICIOS
+// guarda o cadastro vigente; aqui fica o que cada competência recebeu de fato,
+// que é o que a tela mostra ao escolher um mês passado.
+var VA_POR_MES     = {};
 var SALARIOS       = {};
 // Histórico da folha por competência — a série que alimenta o seletor de mês
 // da tela de Salários. `SALARIOS` continua sendo o salário vigente.
@@ -76,6 +80,7 @@ window.VALE_DESCONTOS   = VALE_DESCONTOS;
 window.VALE_USO_MES     = VALE_USO_MES;
 window.VALE_SALDO_INI   = VALE_SALDO_INI;
 window.CONFIG           = CONFIG;
+window.VA_POR_MES       = VA_POR_MES;
 window.VA_BENEFICIOS    = VA_BENEFICIOS;
 window.SALARIOS         = SALARIOS;
 window.FOLHA_HIST       = FOLHA_HIST;

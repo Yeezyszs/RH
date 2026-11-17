@@ -77,6 +77,7 @@ const globaisDoProjeto = {
   'VALE_SALDO_INI': 'writable',
   'VALE_USO_MES': 'writable',
   'VA_BENEFICIOS': 'writable',
+  'VA_POR_MES': 'writable',
   'VENCIMENTOS': 'writable',
   'ValeAlimentacao': 'writable',
   'ValeCombustivel': 'writable',
