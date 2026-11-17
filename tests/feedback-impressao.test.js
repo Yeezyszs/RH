@@ -263,3 +263,58 @@ describe('notas do formulário de feedback', () => {
     expect((impressos[0].corpo.match(/<i class="on">/g) || [])).toHaveLength(3);
   });
 });
+
+// ── O que o formulário manda para o banco ─────────────────────────────────
+// "Registrar feedback" nunca funcionou: o banco recusava com "null value in
+// column data_feedback". A coluna legada ficou obrigatória depois de um
+// renomeio e a aplicação grava `data`. Corrigido no banco (migration 064);
+// aqui fica fixado o que a tela envia, que é o outro lado do contrato.
+describe('payload do feedback', () => {
+  it('manda `data`, e não a coluna legada', async () => {
+    const salvos = [];
+    const { mod, doc } = await montar();
+    mod.FeedbackClima = { criarFeedback: async (p) => { salvos.push(p); return { id: 1, ...p }; } };
+    mod.Auth = { sessaoAtual: async () => ({ user: 1 }) };
+
+    mod.abrirModalFeedback();
+    const form = doc.querySelector('#form-feedback');
+    form.elements['colaborador_id'].value = '1';
+    form.elements['avaliador'].value = 'Maycon';
+    form.elements['data'].value = '2026-11-13';
+    ['nota_entrega', 'nota_comportamento', 'nota_colaboracao'].forEach((c, i) => {
+      form.elements[c].value = String(3 + i);
+    });
+    await mod.salvarFeedback({ preventDefault() {} });
+
+    expect(salvos).toHaveLength(1);
+    expect(salvos[0].data).toBe('2026-11-13');
+    expect(salvos[0]).not.toHaveProperty('data_feedback');
+  });
+
+  it('leva as três notas e os três textos', async () => {
+    const salvos = [];
+    const { mod, doc } = await montar();
+    mod.FeedbackClima = { criarFeedback: async (p) => { salvos.push(p); return { id: 1, ...p }; } };
+    mod.Auth = { sessaoAtual: async () => ({ user: 1 }) };
+
+    mod.abrirModalFeedback();
+    const form = doc.querySelector('#form-feedback');
+    form.elements['colaborador_id'].value = '1';
+    form.elements['avaliador'].value = 'Maycon';
+    form.elements['data'].value = '2026-11-13';
+    form.elements['nota_entrega'].value = '4';
+    form.elements['nota_comportamento'].value = '4';
+    form.elements['nota_colaboracao'].value = '3';
+    form.elements['pontos_fortes'].value = 'Técnica e conhecimento no que faz';
+    form.elements['pontos_desenvolver'].value = 'Comunicação e gestão de pessoas';
+    form.elements['plano_acao'].value = 'Treinamento e capacitação em gestão';
+    await mod.salvarFeedback({ preventDefault() {} });
+
+    expect(salvos[0]).toMatchObject({
+      colaborador_id: 1, avaliador: 'Maycon',
+      nota_entrega: 4, nota_comportamento: 4, nota_colaboracao: 3,
+      pontos_fortes: 'Técnica e conhecimento no que faz',
+      plano_acao: 'Treinamento e capacitação em gestão',
+    });
+  });
+});

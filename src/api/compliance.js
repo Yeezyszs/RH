@@ -35,10 +35,35 @@ const Vencimentos = {
     return result;
   },
 
+  /**
+   * Id do treinamento com aquele nome, criando-o se ainda não existir.
+   *
+   * `participantes_treinamento.treinamento_id` é obrigatório — uma
+   * participação sem treinamento não quer dizer nada. A tela de vencimentos,
+   * porém, pede só o NOME do item ("NR 35", "Integração"), porque quem lança
+   * ali está registrando o vencimento, não montando um catálogo. Esta função
+   * faz a ponte entre as duas visões em vez de afrouxar a chave estrangeira.
+   */
+  async _idDoTreinamento(nome) {
+    const limpo = String(nome || '').trim() || 'Treinamento';
+    const { data: achado } = await withTimeout(
+      sb.from('treinamentos').select('id').eq('nome', limpo).limit(1).maybeSingle()
+    );
+    if (achado?.id) return achado.id;
+
+    const { data: novo, error } = await withTimeout(
+      sb.from('treinamentos').insert({ nome: limpo, categoria: 'Treinamento' }).select('id').single()
+    );
+    if (error) throw error;
+    Cache.invalidate('treinamentos');
+    return novo.id;
+  },
+
   async criar(payload) {
     if (payload.categoria === 'Treinamento') {
       const row = {
         colaborador_id:  payload.colaborador_id,
+        treinamento_id:  await this._idDoTreinamento(payload.tipo),
         data_conclusao:  payload.data_emissao || null,
         data_vencimento: payload.data_vencimento,
         observacoes:     payload.observacoes || null,
