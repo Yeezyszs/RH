@@ -41,6 +41,22 @@ export class FeedbackClimaModule {
     document.addEventListener('change', (e) => {
       if (e.target.id === 'fb-filter-setor') this.renderFeedback();
     });
+
+    // As notas de 1 a 5 do formulário de feedback.
+    //
+    // Até 06/11 quem fazia isso era um listener GLOBAL que morava no módulo de
+    // desligamentos, posto lá para a entrevista de saída e que, por ser
+    // global, acabava atendendo este formulário também. Quando a entrevista
+    // saiu da tela, o listener saiu junto — e as notas daqui pararam de
+    // responder ao clique, sem erro no console. O handler agora é deste
+    // módulo e escopado ao próprio formulário.
+    document.addEventListener('click', (e) => {
+      const botao = e.target.closest('#form-feedback .rating-input button');
+      if (!botao) return;
+      const campo = botao.parentElement?.dataset.ratingField;
+      const valor = parseInt(botao.dataset.ratingVal, 10);
+      if (campo && valor) this._setRating(campo, valor);
+    });
     document.querySelectorAll('.nav-item[data-page="feedback-clima"]').forEach(el => {
       el.addEventListener('click', () => setTimeout(() => {
         this.renderFeedback();

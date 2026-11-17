@@ -194,3 +194,72 @@ describe('ligação com a tela', () => {
 });
 
 vi.useRealTimers();
+
+// ── As notas de 1 a 5 ─────────────────────────────────────────────────────
+// Quem respondia ao clique nestes botões era um listener GLOBAL do módulo de
+// desligamentos, posto lá para a entrevista de saída. Quando a entrevista saiu
+// da tela, o listener saiu junto e as notas pararam de responder — sem erro no
+// console, sem teste quebrando. O formulário ficou impossível de preencher.
+describe('notas do formulário de feedback', () => {
+  const clicar = (doc, campo, valor) => {
+    const botao = doc.querySelector(
+      `#form-feedback .rating-input[data-rating-field="${campo}"] button[data-rating-val="${valor}"]`);
+    botao.dispatchEvent(new doc.defaultView.MouseEvent('click', { bubbles: true }));
+    return botao;
+  };
+
+  it('clicar numa nota grava o valor no formulário', async () => {
+    const { mod, doc } = await montar();
+    mod.abrirModalFeedback();
+
+    clicar(doc, 'nota_entrega', '4');
+    expect(doc.querySelector('#form-feedback [name="nota_entrega"]').value).toBe('4');
+  });
+
+  it('a nota clicada fica marcada, e só ela', async () => {
+    const { mod, doc } = await montar();
+    mod.abrirModalFeedback();
+
+    clicar(doc, 'nota_comportamento', '5');
+    const grupo = doc.querySelector('.rating-input[data-rating-field="nota_comportamento"]');
+    const marcados = [...grupo.querySelectorAll('button.active')];
+    expect(marcados).toHaveLength(1);
+    expect(marcados[0].dataset.ratingVal).toBe('5');
+  });
+
+  it('trocar de nota desmarca a anterior', async () => {
+    const { mod, doc } = await montar();
+    mod.abrirModalFeedback();
+
+    clicar(doc, 'nota_entrega', '2');
+    clicar(doc, 'nota_entrega', '5');
+    const grupo = doc.querySelector('.rating-input[data-rating-field="nota_entrega"]');
+    expect([...grupo.querySelectorAll('button.active')].map(b => b.dataset.ratingVal)).toEqual(['5']);
+    expect(doc.querySelector('#form-feedback [name="nota_entrega"]').value).toBe('5');
+  });
+
+  it('cada escala guarda a sua nota, sem contaminar as outras', async () => {
+    const { mod, doc } = await montar();
+    mod.abrirModalFeedback();
+
+    clicar(doc, 'nota_entrega', '3');
+    clicar(doc, 'nota_comportamento', '4');
+    clicar(doc, 'nota_colaboracao', '5');
+
+    const v = (campo) => doc.querySelector(`#form-feedback [name="${campo}"]`).value;
+    expect([v('nota_entrega'), v('nota_comportamento'), v('nota_colaboracao')]).toEqual(['3', '4', '5']);
+  });
+
+  it('as três notas preenchidas no clique saem na ficha impressa', async () => {
+    const { mod, doc, impressos } = await montar();
+    mod.abrirModalFeedback();
+    doc.querySelector('#form-feedback').elements['colaborador_id'].value = '1';
+
+    clicar(doc, 'nota_entrega', '3');
+    clicar(doc, 'nota_comportamento', '4');
+    clicar(doc, 'nota_colaboracao', '5');
+    mod.imprimirFormularioFeedback();
+
+    expect((impressos[0].corpo.match(/<i class="on">/g) || [])).toHaveLength(3);
+  });
+});
