@@ -15,7 +15,12 @@ async function inicializarSupabase() {
            vencimentos, epis, salarios, feedbacks, pesquisas, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac, valeDesc, config, folhaHist, engajamento,
            treinNr, cats, programas, planoAcao] =
       await Promise.allSettled([
-        Colaboradores.listar(),
+        // Sem limite explícito seriam só os 100 primeiros em ordem alfabética
+        // — e o resto da empresa simplesmente não existiria para nenhuma tela,
+        // sem erro nenhum. Hoje são 93 cadastros; o próximo admitido com nome
+        // no fim do alfabeto passaria a sumir. Os outros pontos que recarregam
+        // a lista (realtime, cadastro) já pedem tudo.
+        Colaboradores.listar({ limit: 100000 }),
         Advertencias.listar(),
         Ferias.listar(),
         Desligamentos.listar(),

@@ -113,14 +113,15 @@ describe('os valores seguem a competência escolhida', () => {
     expect(linhaDe(doc, 'Adão').textContent).not.toContain('400.00');
   });
 
-  it('junho mostra junho — e quem não teve lançamento cai no cadastro vigente', async () => {
-    // Em junho só o Adão teve lançamento (330). A Beatriz segue o combinado:
-    // vale alimentação é benefício permanente, e mês sem lançamento quer dizer
-    // "segue o cadastro", não "não recebeu".
+  it('junho mostra só quem teve lançamento em junho', async () => {
+    // Em junho só o Adão teve lançamento (330). A Beatriz não aparece: a
+    // competência veio do relatório da operadora, e o relatório é a lista de
+    // quem recebeu. Completá-la com o cadastro de hoje inventava crédito —
+    // era assim que gente admitida em agosto aparecia na tabela de janeiro.
     const { mod, doc } = await criar({ porMes: POR_MES, vigente: VIGENTE });
     escolher(mod, doc, '2026-06');
     expect(linhaDe(doc, 'Adão').textContent).toContain('330.00');
-    expect(linhaDe(doc, 'Beatriz').textContent).toContain('400.00');
+    expect(linhaDe(doc, 'Beatriz')).toBeUndefined();
   });
 
   it('o mês corrente, sem lançamento, mostra o cadastro vigente', async () => {
@@ -173,5 +174,102 @@ describe('benefício por dia útil', () => {
     doc.querySelector('#va-mes').value = '2026-08';
     mod.render();
     expect(linhaDe(doc, 'Adão').textContent).toContain('150.00');
+  });
+});
+
+// ─── A competência importada é a lista da operadora ─────────────────────────
+//
+// A tela partia sempre de todo mundo que está na casa HOJE e, na falta de
+// lançamento, caía no cadastro vigente. Em janeiro apareciam pessoas admitidas
+// em agosto, com o valor de hoje, como se tivessem recebido — e o gráfico de
+// evolução repetia o mesmo total em todos os meses, porque só olhava o
+// cadastro.
+
+const ADMITIDA_EM_AGOSTO = { id: 3, nome: 'Larissa Marques', setor: 'Produção', status: 'ativo', data_admissao: '2026-08-18' };
+const DESLIGADO = { id: 4, nome: 'Oswaldo Saiu', setor: 'Produção', status: 'inativo', data_admissao: '2020-01-02', data_desligamento: '2026-09-30' };
+
+async function criarCom(pessoas, { porMes = {}, vigente = {} } = {}) {
+  const dom = new JSDOM(`<body><div id="page-vale-alimentacao">${PAGINA}</div></body>`);
+  global.window = dom.window;
+  global.document = dom.window.document;
+  const doc = dom.window.document;
+  global.Chart = class { constructor() {} destroy() {} };
+  const { ValeAlimentacaoModule } = await import('../src/modules/vale-alimentacao.js');
+  const mod = new ValeAlimentacaoModule({
+    $: (s) => doc.querySelector(s),
+    h: (s) => String(s ?? ''),
+    iniciais: (s) => String(s).slice(0, 2),
+    fmtDate: (d) => d || '—',
+    fmtBRL: (v) => Number(v || 0).toFixed(2),
+    mesLabel: (c) => c,
+    mesChave: (iso) => (iso ? iso.slice(0, 7) : ''),
+    COLABORADORES: pessoas,
+    VA_BENEFICIOS: vigente,
+    VA_POR_MES: porMes,
+    CHART_COLORS: { grid: '#eee', phthaloLight: '#2E7AB8', phthaloBright: '#4A9FD6' },
+    Auth: { sessaoAtual: async () => null },
+    ValeAlimentacao: null,
+    showToast: () => {},
+  });
+  return { mod, doc };
+}
+
+describe('a competência importada traz só quem estava no relatório', () => {
+  const PESSOAS_COM_LARISSA = [...PESSOAS, ADMITIDA_EM_AGOSTO];
+  const JANEIRO = { '1|2026-01': fixo(441.92), '2|2026-01': fixo(300) };
+  const VIG = { 1: fixo(400), 2: fixo(400), 3: fixo(360) };
+
+  it('quem foi admitido depois não aparece no mês importado', async () => {
+    const { mod, doc } = await criarCom(PESSOAS_COM_LARISSA, { porMes: JANEIRO, vigente: VIG });
+    mod.render();
+    doc.querySelector('#va-mes').value = '2026-01';
+    mod.render();
+    expect(linhaDe(doc, 'Adão')).toBeDefined();
+    expect(linhaDe(doc, 'Larissa')).toBeUndefined();
+  });
+
+  it('a tabela tem exatamente as linhas do relatório', async () => {
+    const { mod, doc } = await criarCom(PESSOAS_COM_LARISSA, { porMes: JANEIRO, vigente: VIG });
+    mod.render();
+    doc.querySelector('#va-mes').value = '2026-01';
+    mod.render();
+    expect(doc.querySelectorAll('#tb-vale-alimentacao tr')).toHaveLength(2);
+    expect(doc.querySelector('#va-stat-benef').textContent).toBe('2');
+    expect(doc.querySelector('#va-stat-folha').textContent).toBe('741.92');
+  });
+
+  it('quem já foi desligado continua no mês em que recebeu', async () => {
+    // O relatório de janeiro é histórico: quem saiu em setembro recebeu em
+    // janeiro, e tirá-lo da tabela faria a soma do mês não fechar com o PDF.
+    const { mod, doc } = await criarCom([...PESSOAS, DESLIGADO], {
+      porMes: { ...JANEIRO, '4|2026-01': fixo(200) }, vigente: VIG,
+    });
+    mod.render();
+    doc.querySelector('#va-mes').value = '2026-01';
+    mod.render();
+    expect(linhaDe(doc, 'Oswaldo')).toBeDefined();
+    expect(doc.querySelector('#va-stat-folha').textContent).toBe('941.92');
+  });
+});
+
+describe('a competência sem lançamento nenhum segue o cadastro', () => {
+  it('mas só para quem já tinha sido admitido', async () => {
+    // Novembro ainda não foi creditado: aí a pergunta é mesmo "quanto está
+    // combinado". Larissa entrou em agosto, então entra; num mês anterior à
+    // admissão dela, não entraria.
+    const { mod, doc } = await criarCom([...PESSOAS, ADMITIDA_EM_AGOSTO], {
+      porMes: {}, vigente: { 1: fixo(400), 2: fixo(400), 3: fixo(360) },
+    });
+    mod.render();
+    expect(linhaDe(doc, 'Larissa')).toBeDefined();
+    expect(doc.querySelector('#va-stat-benef').textContent).toBe('3');
+  });
+
+  it('quem foi desligado antes do mês não aparece', async () => {
+    const { mod, doc } = await criarCom([...PESSOAS, { ...DESLIGADO, status: 'ativo' }], {
+      porMes: {}, vigente: { 1: fixo(400), 2: fixo(400), 4: fixo(400) },
+    });
+    mod.render();
+    expect(linhaDe(doc, 'Oswaldo')).toBeUndefined();
   });
 });

@@ -306,12 +306,22 @@ export class ValeImportacaoModule {
       </div>
       ${this._contaAberta(r, c)}`;
 
-    const opcoesColab = (escolhido) => ['<option value="">— não importar —</option>']
-      .concat(this.COLABORADORES
-        .filter(x => x.status !== 'inativo' || x.id === escolhido)
-        .sort((a, b) => a.nome.localeCompare(b.nome))
-        .map(x => `<option value="${x.id}"${x.id === escolhido ? ' selected' : ''}>${this.h(x.nome)}</option>`))
-      .join('');
+    // Quem já saiu também entra na lista, num grupo à parte. O relatório é do
+    // mês que passou: quem recebeu em janeiro e foi desligado em março está no
+    // PDF de janeiro, e sem ele na lista a linha não tinha como ser ligada a
+    // ninguém — restava "não importar", e o crédito sumia da competência.
+    const opcao = (x, escolhido) =>
+      `<option value="${x.id}"${x.id === escolhido ? ' selected' : ''}>${this.h(x.nome)}</option>`;
+    const opcoesColab = (escolhido) => {
+      const ordenar = (l) => [...l].sort((a, b) => a.nome.localeCompare(b.nome));
+      const naCasa  = ordenar(this.COLABORADORES.filter(x => x.status !== 'inativo'));
+      const antigos = ordenar(this.COLABORADORES.filter(x => x.status === 'inativo'));
+      return '<option value="">— não importar —</option>'
+        + `<optgroup label="Colaboradores">${naCasa.map(x => opcao(x, escolhido)).join('')}</optgroup>`
+        + (antigos.length
+          ? `<optgroup label="Ex-colaboradores">${antigos.map(x => opcao(x, escolhido)).join('')}</optgroup>`
+          : '');
+    };
 
     // A linha que já foi ligada à mão continua na lista, com a ligação à vista:
     // some da tabela só quem o próprio cruzamento resolveu. Assim dá para

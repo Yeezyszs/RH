@@ -51,7 +51,7 @@ const PESSOAS = [
   { id: 2, nome: 'Beatriz Nunes', cpf: '071.409.949-00', setor: 'Produção', status: 'ativo' },
 ];
 
-async function montar({ linhas = [...CABECALHO, ...CORPO], porMes = {}, config = {} } = {}) {
+async function montar({ linhas = [...CABECALHO, ...CORPO], porMes = {}, config = {}, pessoas = PESSOAS } = {}) {
   const dom = new JSDOM(`<body>${MODAL}<select id="va-mes"></select></body>`);
   global.window = dom.window;
   global.document = dom.window.document;
@@ -64,7 +64,7 @@ async function montar({ linhas = [...CABECALHO, ...CORPO], porMes = {}, config =
     h: (s) => String(s ?? ''),
     fmtBRL: (v) => Number(v).toFixed(2),
     mesLabel: (c) => c,
-    COLABORADORES: PESSOAS,
+    COLABORADORES: pessoas,
     CONFIG: config,
     Auth: { sessaoAtual: async () => ({ user: 'x' }) },
     Configuracoes: { definir: async (k, v) => { gravado.config[k] = v; } },
@@ -211,5 +211,50 @@ describe('gravação', () => {
     });
     await mod.lerArquivo(pdfFalso());
     expect(resultado(doc)).toContain('Ignorados por configuração');
+  });
+});
+
+describe('ligar à mão quem o cruzamento não achou', () => {
+  // O relatório é do mês que passou. Quem recebeu em janeiro e foi desligado
+  // em março está no PDF de janeiro — e o seletor só oferecia quem está na
+  // casa hoje, então a linha dele não tinha a quem ser ligada: restava "não
+  // importar", e o crédito sumia da competência.
+  const COM_EX = [
+    ...PESSOAS,
+    { id: 9, nome: 'Zuleica Antiga', cpf: '', setor: 'Produção', status: 'inativo' },
+  ];
+  const grupos = (doc) => [...doc.querySelectorAll('#va-imp-resultado optgroup')]
+    .map(g => ({ rotulo: g.label, nomes: [...g.querySelectorAll('option')].map(o => o.textContent) }));
+
+  it('o seletor oferece ex-colaboradores, num grupo à parte', async () => {
+    const { mod, doc } = await montar({ pessoas: COM_EX });
+    await mod.lerArquivo(pdfFalso());
+    const g = grupos(doc);
+    expect(g.map(x => x.rotulo)).toEqual(['Colaboradores', 'Ex-colaboradores']);
+    expect(g[1].nomes).toContain('Zuleica Antiga');
+  });
+
+  it('os que estão na casa vêm primeiro — é o uso do dia a dia', async () => {
+    const { mod, doc } = await montar({ pessoas: COM_EX });
+    await mod.lerArquivo(pdfFalso());
+    const todas = [...doc.querySelectorAll('#va-imp-resultado option')].map(o => o.textContent);
+    expect(todas.indexOf('Adão Ribeiro')).toBeLessThan(todas.indexOf('Zuleica Antiga'));
+  });
+
+  it('sem ninguém desligado, o grupo de ex não aparece vazio', async () => {
+    const { mod, doc } = await montar();
+    await mod.lerArquivo(pdfFalso());
+    expect(grupos(doc).map(g => g.rotulo)).toEqual(['Colaboradores']);
+  });
+
+  it('o crédito do ex-colaborador é gravado para ele', async () => {
+    const { mod, doc, gravado } = await montar({ pessoas: COM_EX });
+    await mod.lerArquivo(pdfFalso());
+    const sel = doc.querySelector('#va-imp-resultado select[data-vinculo="08850662947"]');
+    sel.value = '9';
+    sel.dispatchEvent(new doc.defaultView.Event('change', { bubbles: true }));
+    await mod.confirmar();
+    const casados = gravado.chamadas[0].casados;
+    expect(casados.find(x => x.colab.id === 9)?.registro.valor).toBe(180);
   });
 });

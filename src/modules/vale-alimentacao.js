@@ -90,17 +90,52 @@ export class ValeAlimentacaoModule {
     return meses[0];
   }
 
+  /** Quem estava na casa naquela competência, pela admissão e pelo desligamento. */
+  _naCasaEm(c, mes) {
+    const [y, m] = String(mes).split('-').map(Number);
+    if (!y || !m) return true;
+    const inicio = `${mes}-01`;
+    const fim    = `${mes}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
+    const admissao     = c.data_admissao || c.admissao || '';
+    const desligamento = c.data_desligamento || '';
+    if (admissao && admissao > fim)            return false;
+    if (desligamento && desligamento < inicio) return false;
+    return true;
+  }
+
   /**
-   * O benefício daquela pessoa naquele mês.
+   * As linhas de uma competência: quem recebeu, e quanto.
    *
-   * Com lançamento na competência, vale o que foi lançado. Sem lançamento,
-   * vale o cadastro vigente — o vale alimentação é benefício permanente, e um
-   * mês sem lançamento significa "segue o combinado", não "não recebeu". É
-   * aqui que esta tela difere da do combustível, onde cada mês é um crédito
-   * avulso e a ausência quer dizer ausência mesmo.
+   * Competência IMPORTADA é a lista da operadora, e nada além dela. Antes
+   * esta tela partia sempre de todo mundo que está na casa hoje e caía no
+   * cadastro vigente quando faltava lançamento — em janeiro apareciam, com o
+   * valor de hoje, pessoas admitidas em agosto. O relatório da operadora é a
+   * verdade do mês: se o PDF de janeiro traz 46 pessoas, janeiro tem 46
+   * linhas, inclusive as de quem já foi desligado desde então.
+   *
+   * Competência SEM lançamento nenhum continua caindo no cadastro vigente —
+   * é o mês corrente, ainda não creditado, e aí a pergunta é mesmo "quanto
+   * está combinado". Só que restrita a quem já tinha sido admitido.
    */
-  _beneficioDoMes(colabId, mes) {
-    return this.VA_POR_MES?.[`${colabId}|${mes}`] || this.VA_BENEFICIOS[colabId];
+  _linhasDoMes(mes) {
+    const sufixo = `|${mes}`;
+    const lancados = Object.keys(this.VA_POR_MES || {})
+      .filter(k => k.endsWith(sufixo))
+      .map(k => Number(k.slice(0, -sufixo.length)));
+
+    const linha = (c, beneficio) =>
+      ({ colab: c, beneficio, total: this._valorMensal(beneficio, mes) });
+
+    if (lancados.length) {
+      const porId = new Map(this.COLABORADORES.map(c => [c.id, c]));
+      return lancados
+        .filter(id => porId.has(id))
+        .map(id => linha(porId.get(id), this.VA_POR_MES[`${id}${sufixo}`]));
+    }
+
+    return this.COLABORADORES
+      .filter(c => c.status !== 'inativo' && this._naCasaEm(c, mes))
+      .map(c => linha(c, this.VA_BENEFICIOS[c.id]));
   }
 
   render() {
@@ -113,12 +148,7 @@ export class ValeAlimentacaoModule {
     const fSet  = this.$('#va-filter-setor')?.value || '';
     const fTipo = this.$('#va-filter-tipo')?.value  || '';
 
-    const ativos = this.COLABORADORES.filter(c => c.status !== 'inativo');
-
-    const linhas = ativos.map(c => {
-      const b = this._beneficioDoMes(c.id, mesAtual);
-      return { colab: c, beneficio: b, total: this._valorMensal(b, mesAtual) };
-    });
+    const linhas = this._linhasDoMes(mesAtual);
 
     const filtradas = linhas.filter(r => {
       if (fSet  && r.colab.setor !== fSet)   return false;
@@ -192,17 +222,17 @@ export class ValeAlimentacaoModule {
       meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
     }
 
+    // Cada barra é a competência dela, não o cadastro de hoje repetido seis
+    // vezes — que era o que o gráfico mostrava: a mesma altura em todos os
+    // meses, inclusive nos que já tinham relatório importado.
     const totaisFixo = [];
     const totaisDU   = [];
     meses.forEach(chave => {
       let fx = 0, du = 0;
-      Object.values(this.VA_BENEFICIOS).forEach(b => {
-        if (b.tipo === 'fixo') {
-          fx += parseFloat(b.valor) || 0;
-        } else if (b.tipo === 'dia_util') {
-          const dias = b.dias_uteis || this._diasUteisDoMes(chave);
-          du += (parseFloat(b.valor) || 0) * dias;
-        }
+      this._linhasDoMes(chave).forEach(({ beneficio, total }) => {
+        if (!beneficio) return;
+        if (beneficio.tipo === 'dia_util') du += total;
+        else fx += total;
       });
       totaisFixo.push(fx);
       totaisDU.push(du);
