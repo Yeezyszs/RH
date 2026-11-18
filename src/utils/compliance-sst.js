@@ -143,6 +143,89 @@ export function montarMatriz(colaboradores, registros, opcoes = {}) {
   return { normas, linhas };
 }
 
+/**
+ * As normas que o setor exige, deduzidas do próprio quadro.
+ *
+ * Não existe tabela dizendo "logística precisa de NR 11 e NR 35" — isso vive
+ * na cabeça do técnico de segurança. Mas está escrito no histórico: se quase
+ * todo mundo da logística tem NR 11, é porque a função exige. A regra é essa:
+ * norma que METADE ou mais do setor tem registrada conta como exigida.
+ *
+ * Metade é um corte deliberado. Mais baixo, uma exceção (o único que operou
+ * empilhadeira uma vez) viraria exigência do setor inteiro; mais alto, uma
+ * norma recém-adotada demoraria meses para aparecer.
+ *
+ * @returns {{chave: string, quantos: number, total: number, pct: number}[]}
+ */
+export function perfilDoSetor(colaboradores, registros, setor) {
+  const doSetor = (colaboradores || [])
+    .filter(c => c.status !== 'inativo' && (c.setor || '') === (setor || ''));
+  if (!doSetor.length) return [];
+
+  const ids = new Set(doSetor.map(c => c.id));
+  const contagem = new Map();
+  for (const r of registros || []) {
+    if (!ids.has(r.colaborador_id)) continue;
+    // Conta quem tem a norma registrada — feita ou marcada para fazer. As
+    // duas significam "esta função exige".
+    if (!r.data_realizacao && !r.pendente) continue;
+    contagem.set(r.nr, (contagem.get(r.nr) || 0) + 1);
+  }
+
+  return NORMAS
+    .filter(n => (contagem.get(n.chave) || 0) >= doSetor.length / 2)
+    .map(n => ({
+      chave: n.chave,
+      quantos: contagem.get(n.chave) || 0,
+      total: doSetor.length,
+      pct: ((contagem.get(n.chave) || 0) / doSetor.length) * 100,
+    }));
+}
+
+/**
+ * O painel de um colaborador: o que o setor dele exige, o que ele tem e o
+ * que falta.
+ *
+ * Separa em três listas porque são três ações diferentes: o que falta é para
+ * agendar, o que está vencido é para refazer, e o que ele tem além do setor
+ * não é problema nenhum — mas some da conta se não for mostrado.
+ */
+export function painelDoColaborador(colab, colaboradores, registros, hoje = undefined) {
+  const meus = (registros || []).filter(r => r.colaborador_id === colab?.id);
+  const porNr = Object.fromEntries(meus.map(r => [r.nr, r]));
+  const exigidas = perfilDoSetor(colaboradores, registros, colab?.setor).map(e => e.chave);
+
+  const linha = (chave, exigida) => {
+    const registro = porNr[chave] || null;
+    return {
+      norma: NORMA_POR_CHAVE[chave] || { chave, rotulo: chave, descricao: '' },
+      registro,
+      exigida,
+      situacao: situacaoTreinamento(registro, hoje),
+    };
+  };
+
+  const doSetor = exigidas.map(c => linha(c, true));
+  const extras = meus
+    .filter(r => !exigidas.includes(r.nr))
+    .map(r => linha(r.nr, false))
+    .sort((a, b) => NORMAS.findIndex(n => n.chave === a.norma.chave)
+                  - NORMAS.findIndex(n => n.chave === b.norma.chave));
+
+  const todas = [...doSetor, ...extras];
+  return {
+    setor: colab?.setor || '—',
+    doSetor,
+    extras,
+    // O que o setor exige e esta pessoa não tem registro nenhum.
+    faltando: doSetor.filter(l => l.situacao.chave === 'ausente'),
+    vencidos:  todas.filter(l => l.situacao.chave === 'vencido'),
+    vencendo:  todas.filter(l => l.situacao.chave === 'vencendo'),
+    aRealizar: todas.filter(l => l.situacao.chave === 'realizar'),
+    emDia:     todas.filter(l => ['ok', 'sem_validade'].includes(l.situacao.chave)),
+  };
+}
+
 /** Os números do topo da aba de treinamentos. */
 export function resumoMatriz(matriz) {
   const todas = matriz.linhas.flatMap(l => l.celulas);
@@ -200,5 +283,6 @@ export function progressoPlano(itens) {
 export default {
   NORMAS, NORMA_POR_CHAVE, TIPOS_ACIDENTE, TIPOS_PROGRAMA, STATUS_PLANO,
   somarMeses, vencimentoDe, situacaoTreinamento, montarMatriz, resumoMatriz,
+  perfilDoSetor, painelDoColaborador,
   diasAfastado, situacaoPrograma, progressoPlano,
 };

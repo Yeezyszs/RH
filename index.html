@@ -742,16 +742,26 @@
           </select>
         </div>
 
+        <!-- Os cards filtram a matriz: o número responde "quantos", e um
+             clique responde "quais". -->
         <div class="stats-row">
           <div class="stat"><div class="stat-label">Colaboradores</div>
             <div class="stat-value" id="sst-stat-pessoas">—</div></div>
-          <div class="stat stat-success"><div class="stat-label">Treinamentos em dia</div>
+          <div class="stat stat-success stat-clicavel" data-sst-situacao="ok"
+               title="Ver só os treinamentos em dia">
+            <div class="stat-label">Treinamentos em dia</div>
             <div class="stat-value" id="sst-stat-emdia">—</div></div>
-          <div class="stat stat-warn"><div class="stat-label">Vencendo em 60 dias</div>
+          <div class="stat stat-warn stat-clicavel" data-sst-situacao="vencendo"
+               title="Ver quem vence nos próximos 60 dias">
+            <div class="stat-label">Vencendo em 60 dias</div>
             <div class="stat-value" id="sst-stat-vencendo">—</div></div>
-          <div class="stat stat-danger"><div class="stat-label">Vencidos</div>
+          <div class="stat stat-danger stat-clicavel" data-sst-situacao="vencido"
+               title="Ver quem está com treinamento vencido">
+            <div class="stat-label">Vencidos</div>
             <div class="stat-value" id="sst-stat-vencidos">—</div></div>
-          <div class="stat"><div class="stat-label">Marcados “realizar”</div>
+          <div class="stat stat-clicavel" data-sst-situacao="realizar"
+               title="Ver quem está marcado para realizar">
+            <div class="stat-label">Marcados “realizar”</div>
             <div class="stat-value" id="sst-stat-realizar">—</div></div>
         </div>
 
@@ -3637,6 +3647,28 @@
     </div>
   </div>
 </div>
+
+<!-- ════════════ PAINEL — NR DO COLABORADOR ════════════ -->
+<div id="drawer-backdrop-sst" class="drawer-backdrop" data-action="fecharPainelSst"></div>
+<aside id="drawer-sst" class="drawer" style="width:640px;">
+  <div class="drawer-header">
+    <div class="drawer-avatar" id="dsst-avatar">—</div>
+    <div class="drawer-title-block">
+      <div class="drawer-name" id="dsst-nome">—</div>
+      <div class="drawer-role" id="dsst-cargo">—</div>
+    </div>
+    <button class="drawer-close" data-action="fecharPainelSst">×</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-section active">
+      <div id="dsst-resumo"></div>
+      <div id="dsst-corpo"></div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn btn-secondary btn-sm" data-action="fecharPainelSst">Fechar</button>
+  </div>
+</aside>
 
 <!-- ════════════ MODAL — TREINAMENTO DE NR ════════════ -->
 <div id="modal-treinamento-nr" class="modal">

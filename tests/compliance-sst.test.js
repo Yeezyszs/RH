@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   NORMAS, NORMA_POR_CHAVE, somarMeses, vencimentoDe, situacaoTreinamento,
   montarMatriz, resumoMatriz, diasAfastado, situacaoPrograma, progressoPlano,
+  perfilDoSetor, painelDoColaborador,
 } from '../src/utils/compliance-sst.js';
 
 // A matriz de treinamentos de NR saiu de uma planilha onde a situação era cor
@@ -221,5 +222,126 @@ describe('progresso do plano de ação', () => {
     const p = progressoPlano([]);
     expect(p.percentual).toBe(0);
     expect(p.total).toBe(0);
+  });
+});
+
+// ── Quais NR o setor exige ────────────────────────────────────────────────
+// Não existe tabela dizendo "logística precisa de NR 11". Isso vive na cabeça
+// do técnico de segurança — mas está escrito no histórico: se quase todo mundo
+// do setor tem a norma, é porque a função exige. É daí que o painel do
+// colaborador tira a lista.
+
+const pessoa = (id, nome, setor) => ({ id, nome, setor, cargo: 'x', status: 'ativo' });
+const reg = (cid, nr, data, pendente = false) =>
+  ({ colaborador_id: cid, nr, data_realizacao: data || null, pendente });
+
+const LOGISTICA = [pessoa(1, 'Um', 'Logística'), pessoa(2, 'Dois', 'Logística'),
+  pessoa(3, 'Três', 'Logística'), pessoa(4, 'Quatro', 'Logística')];
+const PRODUCAO = [pessoa(5, 'Cinco', 'Produção'), pessoa(6, 'Seis', 'Produção')];
+
+const REGISTROS = [
+  // Logística: os quatro têm NR 11/EN; três dos quatro têm NR 35.
+  ...LOGISTICA.map(p => reg(p.id, 'NR 11/EN', '2026-05-01')),
+  reg(1, 'NR 35', '2026-06-01'), reg(2, 'NR 35', '2026-06-01'), reg(4, 'NR 35', '2026-06-01'),
+  // Um único da logística fez NR 33 — exceção, não exigência do setor.
+  reg(1, 'NR 33', '2026-06-01'),
+  // Produção: perfil diferente.
+  ...PRODUCAO.flatMap(p => [reg(p.id, 'NR 12', '2026-05-01'), reg(p.id, 'NR 13', '2024-01-10')]),
+];
+
+describe('perfil de NR do setor', () => {
+  it('a norma que a maioria do setor tem conta como exigida', () => {
+    const perfil = perfilDoSetor([...LOGISTICA, ...PRODUCAO], REGISTROS, 'Logística');
+    expect(perfil.map(e => e.chave)).toEqual(['NR 11/EN', 'NR 35']);
+  });
+
+  it('a exceção de uma pessoa não vira exigência do setor', () => {
+    // Só o colaborador 1 fez NR 33: um em quatro, abaixo da metade.
+    const perfil = perfilDoSetor([...LOGISTICA, ...PRODUCAO], REGISTROS, 'Logística');
+    expect(perfil.map(e => e.chave)).not.toContain('NR 33');
+  });
+
+  it('cada setor tem o seu perfil', () => {
+    const prod = perfilDoSetor([...LOGISTICA, ...PRODUCAO], REGISTROS, 'Produção');
+    expect(prod.map(e => e.chave)).toEqual(['NR 12', 'NR 13']);
+  });
+
+  it('diz quantos do setor têm cada norma — é o que sustenta a conclusão', () => {
+    const perfil = perfilDoSetor([...LOGISTICA, ...PRODUCAO], REGISTROS, 'Logística');
+    const nr35 = perfil.find(e => e.chave === 'NR 35');
+    expect([nr35.quantos, nr35.total]).toEqual([3, 4]);
+  });
+
+  it('"a realizar" também conta como exigência', () => {
+    // Marcar REALIZAR é a empresa dizendo que a função pede aquela norma,
+    // mesmo antes de alguém ter feito.
+    const perfil = perfilDoSetor(PRODUCAO, [reg(5, 'NR 33', null, true), reg(6, 'NR 33', null, true)], 'Produção');
+    expect(perfil.map(e => e.chave)).toContain('NR 33');
+  });
+
+  it('registro sem data e sem pendência não conta', () => {
+    // Linha vazia na matriz não é exigência — é lixo de preenchimento.
+    expect(perfilDoSetor(PRODUCAO, [reg(5, 'NR 33'), reg(6, 'NR 33')], 'Produção')).toEqual([]);
+  });
+
+  it('setor vazio ou inexistente não quebra', () => {
+    expect(perfilDoSetor([], REGISTROS, 'Logística')).toEqual([]);
+    expect(perfilDoSetor(LOGISTICA, REGISTROS, 'Setor Que Não Existe')).toEqual([]);
+  });
+
+  it('a ordem é a da planilha, não a de cadastro', () => {
+    const perfil = perfilDoSetor(PRODUCAO, [
+      ...PRODUCAO.map(p => reg(p.id, 'NR 35', '2026-01-01')),
+      ...PRODUCAO.map(p => reg(p.id, 'NR 01', '2026-01-01')),
+    ], 'Produção');
+    expect(perfil.map(e => e.chave)).toEqual(['NR 01', 'NR 35']);
+  });
+});
+
+describe('painel do colaborador', () => {
+  const TODOS = [...LOGISTICA, ...PRODUCAO];
+  const painel = (id) => painelDoColaborador(
+    TODOS.find(p => p.id === id), TODOS, REGISTROS, HOJE);
+
+  it('lista o que o setor exige, com a situação de cada norma', () => {
+    const p = painel(1);
+    expect(p.setor).toBe('Logística');
+    expect(p.doSetor.map(l => l.norma.chave)).toEqual(['NR 11/EN', 'NR 35']);
+    expect(p.doSetor.every(l => l.exigida)).toBe(true);
+  });
+
+  it('aponta o que falta — exigido no setor e sem registro nenhum', () => {
+    // O colaborador 3 é o único da logística sem NR 35.
+    const p = painel(3);
+    expect(p.faltando.map(l => l.norma.chave)).toEqual(['NR 35']);
+  });
+
+  it('quem tem tudo do setor não aparece faltando nada', () => {
+    expect(painel(2).faltando).toHaveLength(0);
+  });
+
+  it('norma que a pessoa tem além do setor fica numa lista à parte', () => {
+    // A NR 33 do colaborador 1 não é exigência da logística, mas existe e
+    // não pode sumir da tela.
+    const p = painel(1);
+    expect(p.extras.map(l => l.norma.chave)).toEqual(['NR 33']);
+    expect(p.extras[0].exigida).toBe(false);
+  });
+
+  it('separa vencidos, vencendo e a realizar', () => {
+    const p = painel(5);                       // produção: NR 13 de 2024
+    expect(p.vencidos.map(l => l.norma.chave)).toEqual(['NR 13']);
+    expect(p.emDia.map(l => l.norma.chave)).toEqual(['NR 12']);
+  });
+
+  it('o painel traz a descrição da norma, não só o código', () => {
+    expect(painel(1).doSetor[0].norma.descricao).toContain('Empilhadeira');
+  });
+
+  it('colaborador sem setor não quebra o painel', () => {
+    const solto = { id: 99, nome: 'Sem setor', status: 'ativo' };
+    const p = painelDoColaborador(solto, [...TODOS, solto], REGISTROS, HOJE);
+    expect(p.doSetor).toEqual([]);
+    expect(p.faltando).toEqual([]);
   });
 });

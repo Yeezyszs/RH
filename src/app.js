@@ -408,6 +408,9 @@ function bootstrap() {
 
   // Segurança do trabalho: treinamentos de NR, CAT e programas do eSocial.
   window.renderComplianceSst        = ()       => complianceSst.render();
+  window.abrirPainelSst             = (id)     => complianceSst.abrirPainel(id);
+  window.fecharPainelSst            = ()       => complianceSst.fecharPainel();
+  window.filtrarSstPorSituacao      = (ch)     => complianceSst.filtrarPorSituacao(ch);
   window.abrirModalTreinamentoNR    = (c, nr)  => complianceSst.abrirModalTreinamento(c, nr);
   window.fecharModalTreinamentoNR   = ()       => complianceSst.fecharModalTreinamento();
   window.salvarTreinamentoNR        = (ev)     => complianceSst.salvarTreinamento(ev);

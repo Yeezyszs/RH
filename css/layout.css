@@ -251,6 +251,12 @@
    ════════════════════════════════════════════════ */
 .main {
   flex: 1;
+  /* Item de flex nasce com `min-width: auto`, ou seja, nunca encolhe abaixo
+     da largura natural do conteúdo. Uma tabela larga — a matriz de NR tem 18
+     colunas — empurrava a área inteira para além da janela: a página ganhava
+     rolagem horizontal e o conteúdo passava POR BAIXO da sidebar fixa, em vez
+     de a tabela rolar dentro do próprio quadro. */
+  min-width: 0;
   margin-left: var(--sidebar-w);
   padding: 28px 32px;
   min-height: calc(100vh - var(--topbar-h));

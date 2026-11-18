@@ -10,6 +10,7 @@ import { limparFormulario } from '../utils/ui.js?v=dev';
 import {
   NORMAS, NORMA_POR_CHAVE, TIPOS_ACIDENTE, TIPOS_PROGRAMA, STATUS_PLANO,
   montarMatriz, resumoMatriz, diasAfastado, situacaoPrograma, progressoPlano,
+  painelDoColaborador, perfilDoSetor,
 } from '../utils/compliance-sst.js?v=dev';
 
 export class ComplianceSstModule {
@@ -46,6 +47,15 @@ export class ComplianceSstModule {
       if (['sst-filtro-norma', 'sst-filtro-situacao'].includes(e.target.id)) this.renderTreinamentos();
       if (e.target.id === 'cat-filtro-ano') this.renderCat();
     });
+    // Os cards de situação filtram a matriz. Delegado por atributo em vez de
+    // `onclick` no HTML: é o caminho que o projeto segue, e há teste que
+    // cobra o número de handlers inline no index.html.
+    document.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-sst-situacao]');
+      if (!card) return;
+      this.filtrarPorSituacao(card.dataset.sstSituacao);
+    });
+
     document.querySelectorAll('.nav-item[data-page="compliance-sst"]').forEach(el => {
       el.addEventListener('click', () => setTimeout(() => this.render(), 60));
     });
@@ -100,9 +110,10 @@ export class ComplianceSstModule {
 
     tb.innerHTML = linhas.length ? linhas.map(l => `
       <tr>
-        <td style="position:sticky; left:0; background:var(--white); z-index:1">
+        <td style="position:sticky; left:0; background:var(--white); z-index:1; cursor:pointer"
+            onclick="abrirPainelSst(${l.colab.id})" title="Ver as NR exigidas no setor">
           <div class="cell-person-name">${this.h(l.colab.nome)}</div>
-          <div class="cell-person-sub">${this.h(l.colab.cargo || '—')}</div>
+          <div class="cell-person-sub">${this.h(l.colab.cargo || '—')}${l.colab.setor ? ` · ${this.h(l.colab.setor)}` : ''}</div>
         </td>
         ${l.celulas.filter(c => normas.includes(c.norma)).map(c => {
           const s = c.situacao;
@@ -123,6 +134,110 @@ export class ComplianceSstModule {
     def('#sst-stat-vencendo',  r.vencendo);
     def('#sst-stat-vencidos',  r.vencidos);
     def('#sst-stat-realizar',  r.aRealizar);
+  }
+
+  /**
+   * Clicar num card filtra a matriz por aquela situação.
+   *
+   * O número no card responde "quantos"; o RH precisa de "quais". Antes a
+   * resposta estava no seletor ao lado, e ninguém liga um ao outro.
+   */
+  filtrarPorSituacao(chave) {
+    const sel = this.$('#sst-filtro-situacao');
+    if (!sel) return;
+    // Clicar de novo no mesmo card desfaz o filtro.
+    sel.value = sel.value === chave ? '' : chave;
+    this.renderTreinamentos();
+    this.$('#tb-sst-matriz')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ─── Painel do colaborador ────────────────────────────────────────────────
+
+  /**
+   * O que o setor daquela pessoa exige, o que ela tem e o que falta.
+   *
+   * A matriz mostra tudo de todo mundo e é boa para varrer; aqui a pergunta
+   * é outra — "este da logística está qualificado?" —, e a resposta é a
+   * lista das normas do setor dele com o estado de cada uma.
+   */
+  abrirPainel(colabId) {
+    const colab = this.COLABORADORES.find(c => c.id === colabId);
+    if (!colab) return;
+    this._painelColabId = colabId;
+
+    const p = painelDoColaborador(colab, this.COLABORADORES, this.TREINAMENTOS_NR);
+    const perfil = Object.fromEntries(
+      perfilDoSetor(this.COLABORADORES, this.TREINAMENTOS_NR, colab.setor).map(e => [e.chave, e]));
+
+    this.$('#dsst-avatar').textContent = this.iniciais(colab.nome);
+    this.$('#dsst-nome').textContent = colab.nome;
+    this.$('#dsst-cargo').textContent =
+      `${colab.cargo || '—'}${colab.setor ? ` · ${colab.setor}` : ''}`;
+
+    const cartao = (rotulo, valor, cor) => `
+      <div class="dsst-num"><span>${rotulo}</span><strong ${cor ? `style="color:${cor}"` : ''}>${valor}</strong></div>`;
+
+    this.$('#dsst-resumo').innerHTML = `
+      <div class="dsst-nums">
+        ${cartao('Em dia', p.emDia.length, 'var(--success)')}
+        ${cartao('Vencendo', p.vencendo.length, p.vencendo.length ? 'var(--warning)' : '')}
+        ${cartao('Vencidos', p.vencidos.length, p.vencidos.length ? 'var(--danger)' : '')}
+        ${cartao('A realizar', p.aRealizar.length, '')}
+        ${cartao('Faltando', p.faltando.length, p.faltando.length ? 'var(--danger)' : '')}
+      </div>`;
+
+    const linha = (l) => {
+      const s = l.situacao;
+      const quantos = perfil[l.norma.chave];
+      return `
+        <tr onclick="abrirModalTreinamentoNR(${colabId}, '${this.h(l.norma.chave)}')" style="cursor:pointer">
+          <td>
+            <div class="cell-person-name">${this.h(l.norma.rotulo)}</div>
+            <div class="cell-person-sub">${this.h(l.norma.descricao || '')}</div>
+            ${quantos ? `<div class="fer-dica">${quantos.quantos} de ${quantos.total} no setor</div>` : ''}
+          </td>
+          <td class="cell-mono">${l.registro?.data_realizacao ? this.fmtDate(l.registro.data_realizacao) : '—'}</td>
+          <td class="cell-mono">${s.vencimento ? this.fmtDate(s.vencimento) : '—'}</td>
+          <td><span class="sst-pino sst-${s.cls}">${this.h(s.rotulo)}</span></td>
+        </tr>`;
+    };
+
+    const tabela = (titulo, linhas, vazio) => `
+      <div class="fer-secao" style="margin-top:14px;">${titulo}</div>
+      ${linhas.length ? `
+        <div class="table-card" style="box-shadow:none;">
+          <div class="table-wrapper">
+            <table class="data">
+              <thead><tr><th>Norma</th><th>Realizado</th><th>Vence</th><th>Situação</th></tr></thead>
+              <tbody>${linhas.map(linha).join('')}</tbody>
+            </table>
+          </div>
+        </div>` : `<div class="fer-dica">${vazio}</div>`}`;
+
+    this.$('#dsst-corpo').innerHTML = `
+      ${p.faltando.length ? `
+        <div class="alerta-erro" style="margin-bottom:10px;">
+          <strong>${p.faltando.length} norma(s) do setor sem registro:</strong>
+          ${p.faltando.map(l => this.h(l.norma.rotulo)).join(', ')}.
+        </div>` : ''}
+      ${tabela(`Exigidas no setor ${this.h(p.setor)}`, p.doSetor,
+        'Ainda não dá para dizer o que este setor exige — as normas aparecem aqui quando metade do setor tiver registro.')}
+      ${p.extras.length
+        ? tabela('Outras normas registradas para esta pessoa', p.extras, '')
+        : ''}
+      <div class="fer-dica" style="margin-top:12px;">
+        As normas do setor saem do próprio quadro: conta como exigida a que
+        metade ou mais do setor tem registrada. Clique numa linha para lançar ou alterar.
+      </div>`;
+
+    this.$('#drawer-backdrop-sst').classList.add('active');
+    this.$('#drawer-sst').classList.add('active');
+  }
+
+  fecharPainel() {
+    this.$('#drawer-backdrop-sst')?.classList.remove('active');
+    this.$('#drawer-sst')?.classList.remove('active');
+    this._painelColabId = null;
   }
 
   _preencherFiltroNormas() {
@@ -191,6 +306,7 @@ export class ComplianceSstModule {
 
     this.fecharModalTreinamento();
     this.renderTreinamentos();
+    if (this._painelColabId != null) this.abrirPainel(this._painelColabId);
     this.showToast('Treinamento registrado', 'ok');
   }
 
@@ -209,6 +325,7 @@ export class ComplianceSstModule {
 
     this.fecharModalTreinamento();
     this.renderTreinamentos();
+    if (this._painelColabId != null) this.abrirPainel(this._painelColabId);
     this.showToast('Registro apagado', 'ok');
   }
 

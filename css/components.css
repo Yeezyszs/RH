@@ -1431,3 +1431,40 @@ table.data td.actions {
   background: var(--success);
   transition: width .3s;
 }
+
+/* Card de estatística que filtra a lista ao ser clicado. */
+.stat-clicavel { cursor: pointer; transition: transform .12s, box-shadow .12s; }
+.stat-clicavel:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+/* Painel de NR do colaborador. */
+.dsst-nums {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.dsst-num {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.dsst-num span {
+  display: block;
+  font-size: .66rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+.dsst-num strong { font-family: var(--mono); font-size: 1.15rem; color: var(--text); }
+
+/* Etiqueta de situação dentro do painel — as mesmas cores da matriz. */
+.sst-pino {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
