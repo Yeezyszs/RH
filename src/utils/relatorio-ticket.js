@@ -1,5 +1,12 @@
-// Leitura do "Demonstrativo de Créditos por Usuário por Pedido" — o PDF que a
-// Ticket/Edenred emite a cada pedido de crédito do vale alimentação.
+// Leitura dos relatórios de crédito que a Ticket/Edenred emite a cada pedido
+// do vale alimentação.
+//
+// São DOIS arquivos diferentes, e o RH usa os dois conforme de onde baixa:
+// o "Demonstrativo de Créditos por Usuário por Pedido" e o "Relatório de
+// Detalhes do Pedido". Trazem a mesma informação — quem recebeu quanto, em que
+// crédito —, mas com outro cabeçalho e outra ordem de colunas. Este módulo lê
+// os dois e devolve o mesmo relatório conferido, para que a tela de importação
+// não precise saber qual deles o operador escolheu.
 //
 // É o segundo formato de relatório de benefício que o sistema lê. O do vale
 // combustível vem de outra operadora e tem outro layout; o que os dois
@@ -31,16 +38,43 @@
 //  3. A última linha da tabela é um "Total" que vem R$ 0,00 — não é
 //     beneficiário e não é o total de nada. Exigir CPF na linha a descarta.
 //
+// O "Relatório de Detalhes do Pedido" tem esta cara:
+//
+//   RELATÓRIO DE DETALHES DO PEDIDO
+//   Número do Pedido Enviado: 16687462   Realizado em: 29/01/2026
+//   Valor (R$): 18.448,55                Método Pagamento: Boleto Bancário
+//   Empresa: 24.939.311/0001-89 - MATARUCO COMERCIO ATACADISTA DE FARINHAS
+//   Ticket Alimentação Eletrônico
+//   Unidade de Entrega: L M MATARUCO   Valor dos Benefícios (R$): 18.448,55
+//   Data de Crédito: 30/01/2026        Quantidade de Beneficiários: 47
+//   CPF            MATRÍCULA     BENEFICIÁRIO    DEPARTAMENTO   VALOR DO BENEFÍCIO
+//   572.032.379-15 57203237915   ADAO RIBEIRO    GERAL          R$ 441,92
+//   …
+//   Contrato: 4277850006091
+//   …rodapé com TOTAL BENEFÍCIOS, TAXA, RESUMO DO PRODUTO
+//
+// As armadilhas são as mesmas, com outros rótulos: a competência sai da "Data
+// de Crédito" (o pedido de 29/01 credita em 30/01, mas há pedido de fim de mês
+// que credita no mês seguinte), a conferência é contra "Valor dos Benefícios"
+// e o rodapé do produto repete totais que não são beneficiário nenhum —
+// exigir CPF formatado no começo da linha os descarta.
+//
 // Sem DOM, sem pdf.js, sem banco: entra texto, sai o relatório conferido.
 
 import {
-  normalizarTexto, numeroBR, valorBR, arredondar, moedaBR, dataBR,
+  normalizarTexto, numeroBR, valorBR, arredondar, moedaBR, dataBR, soDigitos,
 } from './texto-pdf.js?v=dev';
 
-// Linha de beneficiário: nome, CPF de 11 dígitos sem pontuação, valor.
-// O nome sai truncado em ~28 caracteres pela largura da coluna ("GUILHERME
-// VINICIUS M L MACED"), e é por isso que o CPF é a chave do cruzamento.
+// Linha de beneficiário do demonstrativo: nome, CPF de 11 dígitos sem
+// pontuação, valor. O nome sai truncado em ~28 caracteres pela largura da
+// coluna ("GUILHERME VINICIUS M L MACED"), e é por isso que o CPF é a chave
+// do cruzamento.
 const RE_LINHA = /^(.+?)\s+(\d{11})\s+R\$\s*([\d.]+,\d{2})$/;
+
+// Linha de beneficiário do relatório de detalhes: CPF pontuado, matrícula,
+// nome, departamento, valor. Começar por CPF é o que separa o beneficiário do
+// rodapé do produto, que tem linhas com nome de unidade e valor em real.
+const RE_LINHA_DETALHE = /^(\d{3}\.\d{3}\.\d{3}-\d{2})\s+(\d+)\s+(.+?)\s+R\$\s*([\d.]+,\d{2})$/;
 
 /** Valor de um campo "Rótulo: conteúdo" do cabeçalho. */
 function campo(linhas, rotulo) {
@@ -57,6 +91,76 @@ function campo(linhas, rotulo) {
   return '';
 }
 
+/** Primeira linha inteira que casa com o padrão, ou ''. */
+function linhaQueCasa(linhas, re) {
+  return linhas.find(l => re.test(l)) || '';
+}
+
+/**
+ * Separa "ADAO RIBEIRO GERAL" em nome e departamento.
+ *
+ * O texto do PDF chega com os espaços já colapsados, então a fronteira entre
+ * as duas colunas se perdeu: o que sobra é que o departamento é a última
+ * palavra. Vale para os departamentos da empresa ("GERAL", "PRODUCAO"); um
+ * departamento de duas palavras colaria a primeira no fim do nome. Não é
+ * grave — o cruzamento é por CPF, e o nome truncado já serve só de rótulo —,
+ * mas é o limite desta leitura.
+ */
+function partirNomeDepartamento(meio) {
+  const partes = meio.trim().split(' ');
+  if (partes.length < 2) return { nome: meio.trim(), departamento: '' };
+  return { nome: partes.slice(0, -1).join(' '), departamento: partes[partes.length - 1] };
+}
+
+/** Cabeçalho do "Demonstrativo de Créditos por Usuário por Pedido". */
+function cabecalhoDemonstrativo(linhas) {
+  const emissao = campo(linhas, 'Emissão');
+  return {
+    emissao,
+    dataCredito: campo(linhas, 'Data do crédito'),
+    pedido:      campo(linhas, 'Pedido'),
+    nfe:         campo(linhas, 'NF-e'),
+    beneficio:   campo(linhas, 'Benefício'),
+    empresa:     campo(linhas, 'Empresa'),
+    cnpj:        campo(linhas, 'CNPJ'),
+    contrato:    campo(linhas, 'Contrato'),
+    totalBeneficiarios: parseInt(campo(linhas, 'Total de beneficiários'), 10) || 0,
+    totalBeneficios:    valorBR(campo(linhas, 'Total de benefícios')),
+    totalTaxas:         valorBR(campo(linhas, 'Total de taxas')),
+    totalPedido:        valorBR(campo(linhas, 'Total do pedido')),
+  };
+}
+
+/** Cabeçalho do "Relatório de Detalhes do Pedido". */
+function cabecalhoDetalhes(linhas) {
+  // "Empresa: 24.939.311/0001-89 - MATARUCO COMERCIO ATACADISTA…" traz o CNPJ
+  // grudado no nome; o demonstrativo os imprime em campos separados.
+  const empresaBruta = campo(linhas, 'Empresa');
+  const mEmpresa = /^(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})\s*-\s*(.+)$/.exec(empresaBruta);
+
+  // O produto não vem rotulado: é o título solto logo antes do bloco de
+  // entrega ("Ticket Alimentação Eletrônico").
+  const iUnidade = linhas.findIndex(l => /^Unidade de Entrega:/i.test(l));
+  const titulo = iUnidade > 0 ? linhas[iUnidade - 1] : '';
+  const beneficio = !titulo.includes(':') && titulo.length <= 60 ? titulo : '';
+
+  return {
+    emissao:     campo(linhas, 'Realizado em'),
+    dataCredito: campo(linhas, 'Data de Crédito'),
+    pedido:      campo(linhas, 'Número do Pedido Enviado'),
+    nfe:         '',
+    beneficio,
+    empresa:  mEmpresa ? mEmpresa[2] : empresaBruta,
+    cnpj:     mEmpresa ? mEmpresa[1] : campo(linhas, 'CNPJ'),
+    contrato: campo(linhas, 'Contrato'),
+    totalBeneficiarios: parseInt(campo(linhas, 'Quantidade de Beneficiários'), 10) || 0,
+    // Estes dois saem sem "R$" no cabeçalho — o cifrão está no rótulo.
+    totalBeneficios: numeroBR(campo(linhas, 'Valor dos Benefícios (R$)')),
+    totalTaxas:      valorBR(linhaQueCasa(linhas, /total de taxas do produto/i)),
+    totalPedido:     numeroBR(campo(linhas, 'Valor (R$)')),
+  };
+}
+
 /**
  * Lê o relatório a partir das linhas de texto do PDF.
  *
@@ -71,48 +175,50 @@ function campo(linhas, rotulo) {
 export function lerRelatorioTicket(linhasBrutas) {
   const linhas = (linhasBrutas || []).map(normalizarTexto).filter(Boolean);
 
-  const registros = [];
+  // Os dois layouts são lidos em paralelo e vence quem encontrou gente: as
+  // duas expressões se excluem (uma exige CPF pontuado na frente, a outra CPF
+  // limpo depois do nome), então não há empate a desfazer.
+  const demonstrativo = [], detalhes = [];
   for (const l of linhas) {
+    const d = RE_LINHA_DETALHE.exec(l);
+    if (d) {
+      detalhes.push({
+        ...partirNomeDepartamento(d[3]),
+        cpf:   soDigitos(d[1]),
+        valor: numeroBR(d[4]),
+      });
+      continue;
+    }
     const m = RE_LINHA.exec(l);
-    if (!m) continue;
-    registros.push({
-      nome:  m[1].trim(),
-      cpf:   m[2],
-      valor: numeroBR(m[3]),
-    });
+    if (m) demonstrativo.push({ nome: m[1].trim(), cpf: m[2], valor: numeroBR(m[3]) });
   }
+
+  const ehDetalhes = detalhes.length > demonstrativo.length;
+  const registros  = ehDetalhes ? detalhes : demonstrativo;
 
   if (!registros.length) {
     throw new Error('Não encontrei nenhum beneficiário neste PDF. '
-      + 'Confira se é o demonstrativo de créditos por usuário que a operadora emite.');
+      + 'Confira se é o demonstrativo de créditos por usuário ou o relatório '
+      + 'de detalhes do pedido que a operadora emite.');
   }
 
-  const dataCredito = campo(linhas, 'Data do crédito');
-  const emissao     = campo(linhas, 'Emissão');
+  const cab = ehDetalhes ? cabecalhoDetalhes(linhas) : cabecalhoDemonstrativo(linhas);
 
   const relatorio = {
-    emissao:     dataBR(emissao).iso,
-    dataCredito: dataBR(dataCredito).iso,
+    ...cab,
+    layout:      ehDetalhes ? 'detalhes-do-pedido' : 'demonstrativo',
+    emissao:     dataBR(cab.emissao).iso,
+    dataCredito: dataBR(cab.dataCredito).iso,
     // A competência é a do CRÉDITO. Usar a emissão manda para o mês errado
     // todo pedido virado no fim do mês para creditar no seguinte.
-    competencia: dataBR(dataCredito).competencia || dataBR(emissao).competencia,
-    pedido:    campo(linhas, 'Pedido'),
-    nfe:       campo(linhas, 'NF-e'),
+    competencia: dataBR(cab.dataCredito).competencia || dataBR(cab.emissao).competencia,
     // Nomes compartilhados com o relatório do vale combustível: a tela de
     // importação é a mesma para os dois benefícios, e o que muda entre eles é
     // o leitor do arquivo, não o vocabulário da conferência.
-    nota:         campo(linhas, 'Pedido'),
-    emitidoBR:    emissao,
-    totalCredito: valorBR(campo(linhas, 'Total de benefícios')),
-    totalServico: valorBR(campo(linhas, 'Total de taxas')),
-    beneficio: campo(linhas, 'Benefício'),
-    empresa:   campo(linhas, 'Empresa'),
-    cnpj:      campo(linhas, 'CNPJ'),
-    contrato:  campo(linhas, 'Contrato'),
-    totalBeneficiarios: parseInt(campo(linhas, 'Total de beneficiários'), 10) || 0,
-    totalBeneficios:    valorBR(campo(linhas, 'Total de benefícios')),
-    totalTaxas:         valorBR(campo(linhas, 'Total de taxas')),
-    totalPedido:        valorBR(campo(linhas, 'Total do pedido')),
+    nota:         cab.pedido,
+    emitidoBR:    cab.emissao,
+    totalCredito: cab.totalBeneficios,
+    totalServico: cab.totalTaxas,
     registros,
     soma: arredondar(registros.reduce((s, r) => s + (r.valor || 0), 0)),
     problemas: [],
