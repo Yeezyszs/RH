@@ -353,7 +353,8 @@ export class ComplianceSstModule {
         <tr>
           <td>
             <div class="cell-person-name">${this.h(colab?.nome || '—')}</div>
-            <div class="cell-person-sub">${this.h(colab?.setor || '')}</div>
+            <div class="cell-person-sub">${this.h(colab?.setor || '')}${
+              colab?.status === 'inativo' ? ' · <span class="badge neutral">ex-colaborador</span>' : ''}</div>
           </td>
           <td class="cell-mono">${this.fmtDate(c.data_acidente)}${c.hora ? ` ${this.h(c.hora)}` : ''}</td>
           <td>${this.h(TIPOS_ACIDENTE[c.tipo] || c.tipo)}
@@ -398,8 +399,7 @@ export class ComplianceSstModule {
     if (!form) return;
     limparFormulario(form);
 
-    form.elements['colaborador_id'].innerHTML = this._ativos()
-      .map(c => `<option value="${c.id}">${this.h(c.nome)} — ${this.h(c.setor || '')}</option>`).join('');
+    form.elements['colaborador_id'].innerHTML = this._opcoesComExColaboradores();
 
     const c = id != null ? this.CAT.find(x => x.id === id) : null;
     this.$('#cat-modal-titulo').textContent = c ? 'Editar CAT' : 'Registrar acidente (CAT)';
@@ -417,6 +417,31 @@ export class ComplianceSstModule {
     if (nome) nome.textContent = c?.arquivo_nome || 'nenhum arquivo escolhido';
 
     this.$('#modal-cat').classList.add('active');
+  }
+
+  /**
+   * Quem pode entrar numa CAT: todo mundo, inclusive quem já saiu.
+   *
+   * Acidente de trabalho não some do histórico quando a pessoa é desligada, e
+   * a CAT muitas vezes é emitida depois — inclusive quando o próprio acidente
+   * levou ao afastamento e ao desligamento. Restringir aos ativos impedia
+   * registrar justamente os casos mais graves.
+   *
+   * Os ex-colaboradores vêm num grupo separado e depois dos ativos: continuam
+   * à mão sem atrapalhar o uso do dia a dia, que é registrar acidente de quem
+   * está na casa.
+   */
+  _opcoesComExColaboradores() {
+    const ordenar = (lista) => [...lista].sort((a, b) => a.nome.localeCompare(b.nome));
+    const opcao = (c) => `<option value="${c.id}">${this.h(c.nome)}${c.setor ? ` — ${this.h(c.setor)}` : ''}</option>`;
+
+    const ativos = ordenar(this.COLABORADORES.filter(c => c.status !== 'inativo'));
+    const antigos = ordenar(this.COLABORADORES.filter(c => c.status === 'inativo'));
+
+    return `<optgroup label="Colaboradores">${ativos.map(opcao).join('')}</optgroup>`
+      + (antigos.length
+        ? `<optgroup label="Ex-colaboradores">${antigos.map(opcao).join('')}</optgroup>`
+        : '');
   }
 
   fecharModalCat() { this.$('#modal-cat')?.classList.remove('active'); }
