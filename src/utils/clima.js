@@ -33,6 +33,62 @@ export const DIMENSOES = [
 export const DIM_LABEL = Object.fromEntries(DIMENSOES.map(d => [d.chave, d.rotulo]));
 
 /**
+ * Como se lê a nota de uma dimensão.
+ *
+ * Os cortes estavam escritos dentro do gráfico de barras, e a cor era a única
+ * coisa que saía deles. Agora que uma dimensão fora da meta abre um plano de
+ * ação, o corte virou regra do sistema e precisa de um nome: a mesma conta
+ * pinta a barra, decide se há plano a fazer e rotula o plano salvo.
+ */
+export const CLASSIFICACAO = {
+  meta:     { chave: 'meta',     rotulo: 'Na meta',  cor: '#10B981', minimo: 7.5 },
+  atencao:  { chave: 'atencao',  rotulo: 'Atenção',  cor: '#F59E0B', minimo: 6.0 },
+  critico:  { chave: 'critico',  rotulo: 'Crítico',  cor: '#EF4444', minimo: 0 },
+};
+
+/** A classificação de uma nota de 0 a 10. */
+export function classificarDimensao(nota) {
+  // `null` vira 0 no Number(), e 0 é "crítico" — mas dimensão sem resposta não
+  // é nota péssima, é ausência. É a mesma distinção que notasPorDimensao faz
+  // ao deixar de fora a dimensão que ninguém respondeu.
+  if (nota == null || nota === '') return null;
+  const v = Number(nota);
+  if (!Number.isFinite(v)) return null;
+  if (v >= CLASSIFICACAO.meta.minimo)    return CLASSIFICACAO.meta;
+  if (v >= CLASSIFICACAO.atencao.minimo) return CLASSIFICACAO.atencao;
+  return CLASSIFICACAO.critico;
+}
+
+/** A dimensão pede plano de ação? Tudo que não está na meta pede. */
+export function pedePlanoDeAcao(nota) {
+  const c = classificarDimensao(nota);
+  return !!c && c.chave !== 'meta';
+}
+
+/**
+ * Os sete campos do 5W2H, na ordem do formulário que a empresa usa.
+ *
+ * Ficam aqui, e não na tela, porque é a definição do método: o rótulo em
+ * português, a palavra em inglês que dá nome ao modelo e a pergunta que cada
+ * campo responde. A tela monta o formulário a partir desta lista.
+ */
+export const CAMPOS_5W2H = [
+  { campo: 'o_que',   w: 'What',     rotulo: 'O quê',      ajuda: 'A ação a ser feita' },
+  { campo: 'por_que', w: 'Why',      rotulo: 'Por quê',    ajuda: 'O motivo — o que o resultado da pesquisa mostrou' },
+  { campo: 'onde',    w: 'Where',    rotulo: 'Onde',       ajuda: 'Setor, turno ou local' },
+  { campo: 'quando',  w: 'When',     rotulo: 'Quando',     ajuda: 'Prazo para concluir', tipo: 'date' },
+  { campo: 'quem',    w: 'Who',      rotulo: 'Quem',       ajuda: 'Responsável pela ação' },
+  { campo: 'como',    w: 'How',      rotulo: 'Como',       ajuda: 'Os passos — como será feito' },
+  { campo: 'quanto',  w: 'How much', rotulo: 'Quanto custa', ajuda: 'Custo estimado, se houver', tipo: 'number' },
+];
+
+export const STATUS_PLANO_CLIMA = [
+  { chave: 'pendente',  rotulo: 'Pendente',  badge: 'warn' },
+  { chave: 'andamento', rotulo: 'Em andamento', badge: 'info' },
+  { chave: 'concluido', rotulo: 'Concluído', badge: 'ok' },
+];
+
+/**
  * As 17 perguntas, na ordem do formulário.
  *
  * Duas aparecem repetidas no questionário original ("O ambiente de trabalho é

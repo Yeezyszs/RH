@@ -1821,6 +1821,35 @@
             <div class="chart-container" style="height:240px;">
               <canvas id="chart-cl-dimensoes"></canvas>
             </div>
+            <div class="cl-dica-plano" id="cl-dica-plano"></div>
+          </div>
+        </div>
+
+        <!-- O gráfico acima diagnostica; esta lista é o que vai ser feito.
+             Uma dimensão fora da meta ano após ano é o retrato de diagnóstico
+             que nunca virou ação. -->
+        <div class="widget" id="cl-planos-widget" style="margin-bottom:14px;">
+          <div class="widget-header">
+            <div class="widget-title">Planos de ação — 5W2H</div>
+            <span class="widget-badge" id="cl-planos-badge">última pesquisa</span>
+          </div>
+          <div class="table-card" style="box-shadow:none; border:none;">
+            <div class="table-wrapper">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Dimensão</th>
+                    <th style="width:34%">O quê</th>
+                    <th>Quem</th>
+                    <th>Quando</th>
+                    <th>Quanto</th>
+                    <th>Status</th>
+                    <th style="width:70px"></th>
+                  </tr>
+                </thead>
+                <tbody id="tb-cl-planos"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -3953,6 +3982,47 @@
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModalClima">Cancelar</button>
       <button class="btn btn-sm" type="submit" form="form-clima">Salvar pesquisa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL — PLANO DE AÇÃO 5W2H (CLIMA) ════════════
+     Abre ao clicar numa dimensão fora da meta no gráfico da pesquisa. Os sete
+     campos são montados pelo módulo a partir de CAMPOS_5W2H, para a definição
+     do método viver num lugar só. -->
+<div id="modal-5w2h" class="modal">
+  <div class="modal-box" style="max-width:820px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="w2h-modal-title">Plano de ação 5W2H</div>
+        <div class="cell-person-sub" id="w2h-modal-sub"></div>
+      </div>
+      <button class="btn-ghost btn-sm btn-icon" type="button" data-action="fecharModal5w2h">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-5w2h" onsubmit="salvarPlanoClima(event)">
+        <input type="hidden" name="id">
+        <input type="hidden" name="pesquisa_id">
+        <input type="hidden" name="dimensao">
+        <input type="hidden" name="nota_origem">
+        <div class="form-grid" id="w2h-campos"></div>
+        <div class="form-grid" style="margin-top:4px;">
+          <div class="form-group">
+            <label>Status</label>
+            <select name="status" id="w2h-status"></select>
+          </div>
+          <div class="form-group">
+            <label>Concluído em</label>
+            <input type="date" name="conclusao">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" type="button" id="btn-5w2h-excluir"
+              data-action="excluirPlanoClimaAtual">Excluir</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-action="fecharModal5w2h">Cancelar</button>
+      <button class="btn btn-sm" type="submit" form="form-5w2h">Salvar plano</button>
     </div>
   </div>
 </div>

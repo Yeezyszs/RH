@@ -300,6 +300,7 @@ function bootstrap() {
   const feedbackClima = new FeedbackClimaModule({
     $, h, iniciais, fmtDate,
     COLABORADORES, FEEDBACK, CLIMA, POLITICAS, PROCEDIMENTOS, CHART_COLORS,
+    PLANO_CLIMA: window.PLANO_CLIMA,
     Auth: window.Auth, FeedbackClima: window.FeedbackClima,
     PoliticasEmpresa: window.PoliticasEmpresa,
     ProcedimentosEmpresa: window.ProcedimentosEmpresa,
@@ -567,6 +568,11 @@ function bootstrap() {
   window.atualizarPreviaClima         = ()    => feedbackClima.atualizarPreviaClima();
   window.salvarClima                  = (ev)  => feedbackClima.salvarClima(ev);
   window.excluirClima                 = (id)  => feedbackClima.excluirClima(id);
+  window.abrirModal5w2h               = (pid, dim) => feedbackClima.abrirModal5w2h(pid, dim);
+  window.fecharModal5w2h              = ()    => feedbackClima.fecharModal5w2h();
+  window.salvarPlanoClima             = (ev)  => feedbackClima.salvarPlanoClima(ev);
+  window.excluirPlanoClima            = (id)  => feedbackClima.excluirPlanoClima(id);
+  window.excluirPlanoClimaAtual       = ()    => feedbackClima.excluirPlanoClimaAtual();
   window.abrirModalRespostasPesquisa  = (id)  => feedbackClima.abrirModalRespostasPesquisa(id);
   window.fecharModalRespostasPesquisa = ()    => feedbackClima.fecharModalRespostasPesquisa();
   window.renderPoliticas              = ()    => feedbackClima.renderPoliticas();

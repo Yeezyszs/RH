@@ -131,6 +131,34 @@ const FeedbackClima = {
     if (error) throw error;
     Cache.invalidate('pesquisas_clima');
   },
+
+  // ── Plano de ação 5W2H das dimensões fracas ──────────────────────────────
+  // Nasce de uma dimensão abaixo da meta na pesquisa e fica preso a ela: é a
+  // comparação com a pesquisa seguinte que diz se a ação funcionou.
+
+  async listarPlanosClima() {
+    const { data, error } = await withTimeout(
+      sb.from('plano_acao_clima').select('*').order('quando', { nullsFirst: false })
+    );
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async salvarPlanoClima(payload) {
+    const query = payload.id
+      ? sb.from('plano_acao_clima').update(payload).eq('id', payload.id)
+      : sb.from('plano_acao_clima').insert(payload);
+    const { data, error } = await withTimeout(query.select().single());
+    if (error) throw error;
+    return data;
+  },
+
+  async excluirPlanoClima(id) {
+    const { error } = await withTimeout(
+      sb.from('plano_acao_clima').delete().eq('id', id)
+    );
+    if (error) throw error;
+  },
 };
 
 // Storage de documentos organizacionais (bucket privado 'organizacional')

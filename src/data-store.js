@@ -51,6 +51,8 @@ var TREINAMENTOS_NR  = [];   // matriz: uma linha por (colaborador, norma)
 var CAT              = [];   // comunicações de acidente de trabalho
 var PROGRAMAS        = [];   // LTCAT, PGR, PCMSO…
 var PLANO_ACAO       = [];   // itens do plano que acompanha o programa
+// Plano de ação 5W2H de uma dimensão fraca da pesquisa de clima.
+var PLANO_CLIMA      = [];
 var PRESTADORES      = [];
 var PC_CARGOS        = [];
 var PC_PLANOS        = {};
@@ -101,6 +103,7 @@ window.TREINAMENTOS_NR  = TREINAMENTOS_NR;
 window.CAT              = CAT;
 window.PROGRAMAS        = PROGRAMAS;
 window.PLANO_ACAO       = PLANO_ACAO;
+window.PLANO_CLIMA      = PLANO_CLIMA;
 window.SAC              = SAC;
 window.PRESTADORES      = PRESTADORES;
 window.PC_CARGOS        = PC_CARGOS;

@@ -3,9 +3,10 @@
 
 import { limparFormulario } from '../utils/ui.js?v=dev';
 import {
-  ESCALA, DIMENSOES, DIM_LABEL, PERGUNTAS,
+  ESCALA, DIMENSOES, DIM_LABEL, PERGUNTAS, CAMPOS_5W2H, STATUS_PLANO_CLIMA,
   perguntasDe, totalRespostas, notaPergunta, notasPorDimensao,
   scoreGeral, dimensaoMaisFraca, favorabilidade, pctParticipacao,
+  classificarDimensao, pedePlanoDeAcao,
 } from '../utils/clima.js?v=dev';
 import { montarFichaFeedback, ESTILO_FICHA, RODAPE_FICHA } from '../utils/ficha-feedback.js?v=dev';
 
@@ -18,6 +19,7 @@ export class FeedbackClimaModule {
     this.COLABORADORES    = deps.COLABORADORES;
     this.FEEDBACK         = deps.FEEDBACK;
     this.CLIMA            = deps.CLIMA;
+    this.PLANO_CLIMA      = deps.PLANO_CLIMA || [];
     this.POLITICAS        = deps.POLITICAS;
     this.PROCEDIMENTOS    = deps.PROCEDIMENTOS;
     this.CHART_COLORS     = deps.CHART_COLORS;
@@ -404,21 +406,15 @@ export class FeedbackClimaModule {
 
     this._chartClDims?.destroy();
     if (ultima) {
-      // Só as dimensões com resposta entram no gráfico — dimensão sem resposta
-      // apareceria como barra zerada, que é nota péssima, não ausência.
-      const notas = notasPorDimensao(ultima);
-      const dims  = DIMENSOES.map(d => d.chave).filter(d => notas[d] != null);
+      const dims = this._dimensoesDaPesquisa(ultima);
       this._chartClDims = new Chart(this.$('#chart-cl-dimensoes'), {
         type: 'bar',
         data: {
-          labels: dims.map(d => DIM_LABEL[d]),
+          labels: dims.map(d => d.rotulo),
           datasets: [{
             label: 'Score',
-            data: dims.map(d => notas[d]),
-            backgroundColor: dims.map(d => {
-              const v = notas[d];
-              return v >= 7.5 ? '#10B981' : v >= 6.0 ? '#F59E0B' : '#EF4444';
-            }),
+            data: dims.map(d => d.nota),
+            backgroundColor: dims.map(d => d.classificacao.cor),
             borderRadius: 4,
           }],
         },
@@ -430,9 +426,248 @@ export class FeedbackClimaModule {
             x: { min: 0, max: 10, grid: { color: this.CHART_COLORS.grid } },
             y: { grid: { display: false } },
           },
+          // Clicar numa barra fora da meta abre o 5W2H daquela dimensão. O
+          // gráfico sempre diagnosticou; o plano de ação é o que faltava para
+          // o diagnóstico virar alguma coisa.
+          onClick: (ev, elementos) => {
+            const alvo = dims[elementos?.[0]?.index];
+            if (alvo) this.abrirModal5w2h(ultima.id, alvo.chave);
+          },
+          onHover: (ev, elementos) => {
+            const alvo = dims[elementos?.[0]?.index];
+            const clicavel = !!alvo && (alvo.pedePlano || !!this._planoDe(ultima.id, alvo.chave));
+            ev.native.target.style.cursor = clicavel ? 'pointer' : 'default';
+          },
         },
       });
     }
+
+    this._renderPlanosClima(ultima);
+  }
+
+  // ─── Plano de ação 5W2H ──────────────────────────────────────────────────
+  // A pesquisa termina num gráfico de barras: verde na meta, amarelo abaixo,
+  // vermelho ruim. Até aqui ele só diagnosticava — e dimensão amarela ano após
+  // ano é o retrato de diagnóstico que nunca virou ação. Clicar na barra fora
+  // da meta abre a folha 5W2H daquela dimensão, presa à pesquisa que a
+  // originou: é a comparação com a pesquisa seguinte que diz se funcionou.
+
+  /**
+   * As dimensões do gráfico, com nota e classificação.
+   *
+   * Sai daqui e não de dentro do Chart porque o clique devolve só o ÍNDICE da
+   * barra: se a lista do clique não for exatamente a lista desenhada, o RH
+   * abre o plano da dimensão errada.
+   *
+   * Dimensão sem resposta fica fora — barra zerada seria lida como nota
+   * péssima, e é ausência.
+   */
+  _dimensoesDaPesquisa(pesquisa) {
+    const notas = notasPorDimensao(pesquisa);
+    return DIMENSOES
+      .filter(d => notas[d.chave] != null)
+      .map(d => ({
+        chave: d.chave,
+        rotulo: d.rotulo,
+        nota: notas[d.chave],
+        classificacao: classificarDimensao(notas[d.chave]),
+        pedePlano: pedePlanoDeAcao(notas[d.chave]),
+      }));
+  }
+
+  _planoDe(pesquisaId, dimensao) {
+    return this.PLANO_CLIMA.find(p =>
+      Number(p.pesquisa_id) === Number(pesquisaId) && p.dimensao === dimensao);
+  }
+
+  _nota1(v) {
+    return Number(v).toFixed(1).replace('.', ',');
+  }
+
+  _renderPlanosClima(pesquisa) {
+    const tb = this.$('#tb-cl-planos');
+    if (!tb) return;
+
+    const dica = this.$('#cl-dica-plano');
+    const dims = pesquisa ? this._dimensoesDaPesquisa(pesquisa) : [];
+    const foraDaMeta = dims.filter(d => d.pedePlano);
+    if (dica) {
+      dica.innerHTML = !pesquisa ? ''
+        : foraDaMeta.length
+          ? `Clique numa barra fora da meta para abrir o plano de ação 5W2H. `
+            + `<b>${foraDaMeta.length}</b> ${foraDaMeta.length === 1 ? 'dimensão' : 'dimensões'} abaixo de 7,5.`
+          : 'Todas as dimensões estão na meta.';
+    }
+
+    const planos = pesquisa
+      ? this.PLANO_CLIMA.filter(p => Number(p.pesquisa_id) === Number(pesquisa.id))
+      : [];
+    const badge = this.$('#cl-planos-badge');
+    if (badge) badge.textContent = pesquisa ? pesquisa.titulo : 'última pesquisa';
+
+    if (!planos.length) {
+      tb.innerHTML = `<tr><td colspan="7" class="empty">${pesquisa
+        ? 'Nenhum plano de ação registrado para esta pesquisa'
+        : 'Nenhuma pesquisa cadastrada'}</td></tr>`;
+      return;
+    }
+
+    const porChave = Object.fromEntries(dims.map(d => [d.chave, d]));
+    tb.innerHTML = planos
+      .sort((a, b) => (a.quando || '9999').localeCompare(b.quando || '9999'))
+      .map(p => {
+        const d = porChave[p.dimensao];
+        const st = STATUS_PLANO_CLIMA.find(s => s.chave === p.status) || STATUS_PLANO_CLIMA[0];
+        const nota = p.nota_origem ?? d?.nota;
+        return `
+          <tr>
+            <td>
+              <div style="font-weight:600">${this.h(DIM_LABEL[p.dimensao] || p.dimensao)}</div>
+              ${nota != null ? `<div class="cell-person-sub">nota ${this._nota1(nota)}</div>` : ''}
+            </td>
+            <td>${this.h(p.o_que || '')}</td>
+            <td>${this.h(p.quem || '—')}</td>
+            <td class="cell-mono">${p.quando ? this.fmtDate(p.quando) : '—'}</td>
+            <td class="cell-mono" style="text-align:right">${p.quanto != null && p.quanto !== ''
+              ? 'R$ ' + Number(p.quanto).toFixed(2).replace('.', ',') : '—'}</td>
+            <td><span class="badge ${st.badge}">${st.rotulo}</span></td>
+            <td class="actions">
+              <button class="btn btn-ghost btn-sm btn-icon" title="Abrir plano"
+                      onclick="abrirModal5w2h(${p.pesquisa_id}, '${p.dimensao}')">✎</button>
+              <button class="btn btn-ghost btn-sm btn-icon" title="Excluir"
+                      onclick="excluirPlanoClima(${p.id})">🗑</button>
+            </td>
+          </tr>`;
+      }).join('');
+  }
+
+  /** Abre a folha 5W2H de uma dimensão. Nova se não houver; a salva, se houver. */
+  abrirModal5w2h(pesquisaId, dimensao) {
+    const pesquisa = this.CLIMA.find(p => Number(p.id) === Number(pesquisaId));
+    if (!pesquisa) return;
+    const d = this._dimensoesDaPesquisa(pesquisa).find(x => x.chave === dimensao);
+    const plano = this._planoDe(pesquisaId, dimensao);
+
+    // Dimensão na meta não abre plano novo — mas abre o que já existe, senão
+    // um plano some da tela justamente quando a ação deu certo.
+    if (!plano && d && !d.pedePlano) {
+      this.showToast(
+        `${d.rotulo} está na meta (${this._nota1(d.nota)}). O plano de ação é para o que está abaixo de 7,5.`,
+        'ok');
+      return;
+    }
+
+    const form = this.$('#form-5w2h');
+    if (!form) return;
+    limparFormulario(form);
+
+    this.$('#w2h-campos').innerHTML = CAMPOS_5W2H.map(c => {
+      const largo = ['o_que', 'por_que', 'como'].includes(c.campo);
+      const controle = largo
+        ? `<textarea name="${c.campo}" rows="${c.campo === 'como' ? 3 : 2}"${c.campo === 'o_que' ? ' required' : ''}></textarea>`
+        : `<input type="${c.tipo || 'text'}" name="${c.campo}"${c.tipo === 'number' ? ' step="0.01" min="0"' : ''}>`;
+      return `
+        <div class="form-group${largo ? ' full' : ''}">
+          <label>${this.h(c.rotulo)}<span class="w2h-w">${this.h(c.w)}</span></label>
+          ${controle}
+          <div class="w2h-ajuda">${this.h(c.ajuda)}</div>
+        </div>`;
+    }).join('');
+
+    this.$('#w2h-status').innerHTML = STATUS_PLANO_CLIMA
+      .map(s => `<option value="${s.chave}">${s.rotulo}</option>`).join('');
+
+    form.elements['pesquisa_id'].value = pesquisaId;
+    form.elements['dimensao'].value    = dimensao;
+    form.elements['nota_origem'].value = plano?.nota_origem ?? (d?.nota != null ? d.nota.toFixed(2) : '');
+
+    if (plano) {
+      form.elements['id'].value = plano.id;
+      CAMPOS_5W2H.forEach(c => { form.elements[c.campo].value = plano[c.campo] ?? ''; });
+      form.elements['status'].value     = plano.status || 'pendente';
+      form.elements['conclusao'].value  = plano.conclusao || '';
+    }
+
+    const rotulo = DIM_LABEL[dimensao] || dimensao;
+    this.$('#w2h-modal-title').textContent = `Plano de ação — ${rotulo}`;
+    this.$('#w2h-modal-sub').textContent = [
+      pesquisa.titulo,
+      d ? `nota ${this._nota1(d.nota)} · ${d.classificacao.rotulo}` : '',
+    ].filter(Boolean).join(' · ');
+
+    const btnExcluir = this.$('#btn-5w2h-excluir');
+    if (btnExcluir) btnExcluir.style.display = plano ? '' : 'none';
+
+    this.$('#modal-5w2h').classList.add('active');
+  }
+
+  fecharModal5w2h() {
+    this.$('#modal-5w2h')?.classList.remove('active');
+  }
+
+  async salvarPlanoClima(ev) {
+    ev.preventDefault();
+    const form = this.$('#form-5w2h');
+    const d = Object.fromEntries(new FormData(form));
+    const id = d.id ? parseInt(d.id, 10) : null;
+
+    const texto = (v) => (v || '').trim() || null;
+    const payload = {
+      pesquisa_id: parseInt(d.pesquisa_id, 10),
+      dimensao:    d.dimensao,
+      nota_origem: d.nota_origem === '' ? null : Number(d.nota_origem),
+      o_que:       (d.o_que || '').trim(),
+      por_que:     texto(d.por_que),
+      onde:        texto(d.onde),
+      quando:      d.quando || null,
+      quem:        texto(d.quem),
+      como:        texto(d.como),
+      quanto:      d.quanto === '' ? null : Number(d.quanto),
+      status:      d.status || 'pendente',
+      conclusao:   d.conclusao || null,
+    };
+
+    if (!payload.o_que) { this.showToast('Descreva o que vai ser feito', 'err'); return; }
+    // Concluído sem data é o que faz a diretoria perguntar "quando?" na
+    // apresentação do resultado seguinte. Hoje é o palpite certo.
+    if (payload.status === 'concluido' && !payload.conclusao) {
+      payload.conclusao = new Date().toISOString().slice(0, 10);
+    }
+
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    let salvo = { id: id ?? Date.now(), ...payload };
+    if (temSessao && this.FeedbackClima) {
+      try {
+        salvo = await this.FeedbackClima.salvarPlanoClima(id ? { id, ...payload } : payload);
+      } catch (err) { this.showToast('Erro ao salvar: ' + err.message, 'err'); return; }
+    }
+
+    const i = this.PLANO_CLIMA.findIndex(x => x.id === salvo.id);
+    if (i >= 0) this.PLANO_CLIMA[i] = salvo; else this.PLANO_CLIMA.push(salvo);
+
+    this.fecharModal5w2h();
+    this.renderClima();
+    this.showToast('Plano de ação salvo', 'ok');
+  }
+
+  /** Exclui o plano aberto no modal — o botão só aparece quando há um salvo. */
+  excluirPlanoClimaAtual() {
+    const id = this.$('#form-5w2h')?.elements['id']?.value;
+    if (id) this.excluirPlanoClima(parseInt(id, 10));
+  }
+
+  async excluirPlanoClima(id) {
+    if (!confirm('Excluir este plano de ação?')) return;
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    if (temSessao && this.FeedbackClima) {
+      try { await this.FeedbackClima.excluirPlanoClima(id); }
+      catch (err) { this.showToast('Erro ao excluir: ' + err.message, 'err'); return; }
+    }
+    const i = this.PLANO_CLIMA.findIndex(x => x.id === id);
+    if (i >= 0) this.PLANO_CLIMA.splice(i, 1);
+    this.fecharModal5w2h();
+    this.renderClima();
+    this.showToast('Plano de ação excluído');
   }
 
   /**

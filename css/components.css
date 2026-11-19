@@ -1283,6 +1283,26 @@ table.data td.actions {
 .cl-escala-legenda i {
   width: 10px; height: 10px; border-radius: 3px; display: inline-block;
 }
+/* A dica embaixo do gráfico de dimensões: sem ela, que a barra fora da meta
+   abre um plano de ação é descoberta por acidente. */
+.cl-dica-plano {
+  font-size: .74rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  min-height: 16px;
+}
+.cl-dica-plano b { color: var(--text); font-weight: 600; }
+/* O 5W2H de cada campo: a palavra em inglês que dá nome ao método fica ao
+   lado do rótulo, pequena — é como o RH reconhece o formulário. */
+.w2h-w {
+  font-size: .64rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-left: 6px;
+}
+.w2h-ajuda { font-size: .72rem; color: var(--text-muted); margin-top: 3px; }
 .cl-pergunta {
   padding: 7px 0;
   border-bottom: 1px solid var(--border-soft);

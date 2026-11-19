@@ -71,6 +71,7 @@ const globaisDoProjeto = {
   'CAT': 'writable',
   'CatAcidentes': 'writable',
   'PLANO_ACAO': 'writable',
+  'PLANO_CLIMA': 'writable',
   'PROGRAMAS': 'writable',
   'TREINAMENTOS_NR': 'writable',
   'renderComplianceSst': 'writable',

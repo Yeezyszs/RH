@@ -13,7 +13,7 @@ async function inicializarSupabase() {
 
     const [colaboradores, advertencias, ferias, desligamentos, afastamentos, eventos, pcPlanos,
            vencimentos, epis, salarios, feedbacks, pesquisas, valeAlim, rotat, trein, valeCotas, politicas, epiCatalogo, epiKits, prestadores, contatosEmerg, procedimentos, prolabore, sac, valeDesc, config, folhaHist, engajamento,
-           treinNr, cats, programas, planoAcao] =
+           treinNr, cats, programas, planoAcao, planoClima] =
       await Promise.allSettled([
         // Sem limite explícito seriam só os 100 primeiros em ordem alfabética
         // — e o resto da empresa simplesmente não existiria para nenhuma tela,
@@ -52,6 +52,7 @@ async function inicializarSupabase() {
         CatAcidentes.listar(),
         ProgramasEsocial.listar(),
         ProgramasEsocial.listarPlano(),
+        FeedbackClima.listarPlanosClima(),
       ]);
 
     // Nada acima rejeita (allSettled), então o que falhou precisa ser
@@ -86,6 +87,7 @@ async function inicializarSupabase() {
       'CATs':                cats,
       'programas do eSocial': programas,
       'plano de ação':       planoAcao,
+      'planos de ação do clima': planoClima,
       'descontos do vale':   valeDesc,
       'configurações':       config,
       'histórico da folha':  folhaHist,
@@ -243,7 +245,8 @@ async function inicializarSupabase() {
     [[treinNr, TREINAMENTOS_NR, 'treinamentos de NR'],
       [cats, CAT, 'CATs'],
       [programas, PROGRAMAS, 'programas do eSocial'],
-      [planoAcao, PLANO_ACAO, 'itens de plano de ação']].forEach(([res, destino, rotulo]) => {
+      [planoAcao, PLANO_ACAO, 'itens de plano de ação'],
+      [planoClima, PLANO_CLIMA, 'planos de ação do clima']].forEach(([res, destino, rotulo]) => {
       if (res.status !== 'fulfilled') return;
       const lista = res.value ?? [];
       if (!lista.length) return;
