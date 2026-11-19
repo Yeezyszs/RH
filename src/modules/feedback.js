@@ -7,6 +7,7 @@ import {
   perguntasDe, totalRespostas, notaPergunta, notasPorDimensao,
   scoreGeral, dimensaoMaisFraca, favorabilidade, pctParticipacao,
 } from '../utils/clima.js?v=dev';
+import { montarFichaFeedback, ESTILO_FICHA, RODAPE_FICHA } from '../utils/ficha-feedback.js?v=dev';
 
 export class FeedbackClimaModule {
   constructor(deps) {
@@ -169,61 +170,17 @@ export class FeedbackClimaModule {
   }
 
   // ─── Ficha de feedback impressa ──────────────────────────────────────────
-  // A conversa de feedback termina em papel assinado pelos dois lados. A mesma
-  // folha serve preenchida, saindo de um registro salvo, e em branco, para o
-  // gestor levar à conversa e preencher à mão — por isso os campos vazios
-  // viram linhas pautadas em vez de sumirem.
+  // O desenho da folha mora em utils/ficha-feedback.js: é documento, não tela.
+  // Aqui fica só o que vai nela e de onde o conteúdo vem.
 
-  _escalaImpressa(nota) {
-    return `<div class="fb-doc-escala">${[1, 2, 3, 4, 5]
-      .map(n => `<i class="${Number(nota) === n ? 'on' : ''}">${n}</i>`).join('')}</div>`;
-  }
-
-  _blocoTextoImpresso(rotulo, texto, linhasVazias = 4) {
-    const conteudo = (texto || '').trim();
-    return `
-      <div class="fb-doc-bloco">
-        <div class="fb-doc-rotulo">${this.h(rotulo)}</div>
-        ${conteudo
-          ? `<div class="fb-doc-texto">${this.h(conteudo)}</div>`
-          : Array.from({ length: linhasVazias }, () => '<div class="fb-doc-linha"></div>').join('')}
-      </div>`;
-  }
-
-  /** Monta o corpo do documento. Sem DOM de saída: devolve HTML. */
-  _documentoFeedback(d) {
-    const campo = (rotulo, valor) => `
-      <div class="fb-doc-campo"><span>${this.h(rotulo)}</span><strong>${this.h(valor || '')}</strong></div>`;
-
-    return `
-      <div class="fb-doc-grid">
-        ${campo('Colaborador', d.colaborador)}
-        ${campo('Setor', d.setor)}
-        ${campo('Avaliador', d.avaliador)}
-        ${campo('Data', d.data ? this.fmtDate(d.data) : '')}
-      </div>
-
-      <div class="fb-doc-bloco">
-        <div class="fb-doc-rotulo">Entrega / desempenho (1 a 5)</div>
-        ${this._escalaImpressa(d.nota_entrega)}
-      </div>
-      <div class="fb-doc-bloco">
-        <div class="fb-doc-rotulo">Comportamento / atitude (1 a 5)</div>
-        ${this._escalaImpressa(d.nota_comportamento)}
-      </div>
-      <div class="fb-doc-bloco">
-        <div class="fb-doc-rotulo">Colaboração / trabalho em equipe (1 a 5)</div>
-        ${this._escalaImpressa(d.nota_colaboracao)}
-      </div>
-
-      ${this._blocoTextoImpresso('Pontos fortes', d.pontos_fortes)}
-      ${this._blocoTextoImpresso('Pontos a desenvolver', d.pontos_desenvolver)}
-      ${this._blocoTextoImpresso('Plano de ação — próximos passos combinados', d.plano_acao, 5)}
-
-      <div class="fb-doc-assinaturas">
-        <div>Assinatura do colaborador</div>
-        <div>Assinatura do avaliador</div>
-      </div>`;
+  _imprimirFicha(titulo, dados) {
+    window.imprimirDocumento?.(
+      titulo,
+      montarFichaFeedback(dados, { h: this.h, fmtDate: this.fmtDate }),
+      // A ficha tem papel timbrado próprio: com a moldura padrão sairiam dois
+      // cabeçalhos e dois rodapés na mesma folha.
+      { moldura: false, estilo: ESTILO_FICHA, rodape: RODAPE_FICHA },
+    );
   }
 
   /** Imprime um feedback já registrado. */
@@ -232,9 +189,9 @@ export class FeedbackClimaModule {
     if (!f) return;
     const c = this.COLABORADORES.find(x => x.id === f.colaborador_id);
     const titulo = `Ficha de Feedback — ${c?.nome || 'Colaborador'}`;
-    window.imprimirDocumento?.(titulo, this._documentoFeedback({
-      colaborador: c?.nome || '—',
-      setor: c?.setor || '—',
+    this._imprimirFicha(titulo, {
+      colaborador: c?.nome || '',
+      setor: c?.setor || '',
       avaliador: f.avaliador,
       data: f.data,
       nota_entrega: f.nota_entrega,
@@ -243,7 +200,7 @@ export class FeedbackClimaModule {
       pontos_fortes: f.pontos_fortes,
       pontos_desenvolver: f.pontos_desenvolver,
       plano_acao: f.plano_acao,
-    }), { rodape: 'Registro de feedback — uma via para o colaborador, uma para o RH.' });
+    });
   }
 
   /**
@@ -260,7 +217,7 @@ export class FeedbackClimaModule {
     const c = this.COLABORADORES.find(x => x.id === parseInt(v('colaborador_id'), 10));
     const titulo = c ? `Ficha de Feedback — ${c.nome}` : 'Ficha de Feedback';
 
-    window.imprimirDocumento?.(titulo, this._documentoFeedback({
+    this._imprimirFicha(titulo, {
       colaborador: c?.nome || '',
       setor: c?.setor || '',
       avaliador: v('avaliador'),
@@ -271,7 +228,7 @@ export class FeedbackClimaModule {
       pontos_fortes: v('pontos_fortes'),
       pontos_desenvolver: v('pontos_desenvolver'),
       plano_acao: v('plano_acao'),
-    }), { rodape: 'Registro de feedback — uma via para o colaborador, uma para o RH.' });
+    });
   }
 
   abrirModalFeedback(id = null) {

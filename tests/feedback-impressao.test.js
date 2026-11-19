@@ -57,7 +57,8 @@ async function montar({ feedback = FEEDBACK } = {}) {
 }
 
 const marcadas = (corpo) => (corpo.match(/<i class="on">/g) || []).length;
-const linhasPautadas = (corpo) => (corpo.match(/fb-doc-linha/g) || []).length;
+const linhasPautadas = (corpo) => (corpo.match(/ff-linha/g) || []).length;
+const linhasDoPlano   = (corpo) => (corpo.match(/<tr>/g) || []).length;
 
 describe('ficha de feedback preenchida', () => {
   it('sai com identificação, notas e textos', async () => {
@@ -83,7 +84,7 @@ describe('ficha de feedback preenchida', () => {
 
     // E é a bolinha certa: a primeira escala é 4 de 5.
     const primeira = impressos[0].corpo.slice(impressos[0].corpo.indexOf('Entrega'));
-    const escala = primeira.slice(0, primeira.indexOf('</div>', primeira.indexOf('fb-doc-escala')));
+    const escala = primeira.slice(0, primeira.indexOf('</div>', primeira.indexOf('ff-escala')));
     expect(escala).toContain('<i class="on">4</i>');
     expect(escala).not.toContain('<i class="on">5</i>');
   });
@@ -95,10 +96,59 @@ describe('ficha de feedback preenchida', () => {
     expect(impressos[0].corpo).toContain('Assinatura do avaliador');
   });
 
-  it('o rodapé lembra que são duas vias', async () => {
+  it('a folha lembra que são duas vias', async () => {
     const { mod, impressos } = await montar();
     mod.imprimirFeedback(7);
-    expect(impressos[0].opcoes.rodape).toContain('uma via para o colaborador');
+    expect(impressos[0].corpo).toContain('Uma via para o colaborador');
+  });
+
+  it('sai sem a moldura de relatório — a ficha tem timbre próprio', async () => {
+    // Com o cabeçalho padrão do sistema sairiam dois títulos e dois rodapés
+    // na mesma folha.
+    const { mod, impressos } = await montar();
+    mod.imprimirFeedback(7);
+    expect(impressos[0].opcoes.moldura).toBe(false);
+    expect(impressos[0].opcoes.estilo).toContain('.ff-topo');
+  });
+
+  it('traz a marca da casa e as três competências com a frase de cada uma', async () => {
+    const { mod, impressos } = await montar();
+    mod.imprimirFeedback(7);
+    const corpo = impressos[0].corpo;
+    expect(corpo).toContain('FICHA DE FEEDBACK');
+    expect(corpo).toContain('data:image/png;base64,');
+    expect(corpo).toContain('Entrega e desempenho');
+    expect(corpo).toContain('Qualidade, produtividade e cumprimento de tarefas');
+    expect(corpo).toContain('Colaboração e trabalho em equipe');
+  });
+
+  it('a legenda da escala vem junto — "3" sozinho não diz nada', async () => {
+    const { mod, impressos } = await montar();
+    mod.imprimirFeedback(7);
+    expect(impressos[0].corpo).toContain('1 = Muito abaixo');
+    expect(impressos[0].corpo).toContain('5 = Excelente');
+  });
+
+  it('o setor aparece na tarja do topo', async () => {
+    const { mod, impressos } = await montar();
+    mod.imprimirFeedback(7);
+    expect(impressos[0].corpo).toMatch(/ff-tag">RH \| Produção/);
+  });
+
+  it('o plano de ação sai em três colunas, com espaço para combinar mais', async () => {
+    const { mod, impressos } = await montar();
+    mod.imprimirFeedback(7);
+    const corpo = impressos[0].corpo;
+    expect(corpo).toContain('Responsável');
+    expect(corpo).toContain('Prazo');
+    expect(corpo).toContain('Treinamento de registro em dezembro.');
+    expect(linhasDoPlano(corpo)).toBe(4);   // cabeçalho + 3 linhas
+  });
+
+  it('tem a data de revisão para marcar o próximo encontro', async () => {
+    const { mod, impressos } = await montar();
+    mod.imprimirFeedback(7);
+    expect(impressos[0].corpo).toContain('Data de revisão');
   });
 
   it('campo não preenchido vira linha para escrever, não some', async () => {
@@ -140,8 +190,9 @@ describe('ficha em branco, para preencher à mão', () => {
     const { impressos } = await abrirFormulario();
     const corpo = impressos[0].corpo;
     expect(marcadas(corpo)).toBe(0);
-    // Três blocos de texto: 4 + 4 + 5 linhas.
-    expect(linhasPautadas(corpo)).toBe(13);
+    // Dois blocos de texto com 3 linhas cada; o plano de ação virou tabela.
+    expect(linhasPautadas(corpo)).toBe(6);
+    expect(linhasDoPlano(corpo)).toBe(4);
     expect(corpo).toContain('Assinatura do colaborador');
   });
 
@@ -165,7 +216,7 @@ describe('ficha em branco, para preencher à mão', () => {
 
     expect(impressos).toHaveLength(1);
     expect(impressos[0].titulo).toBe('Ficha de Feedback');
-    expect(linhasPautadas(impressos[0].corpo)).toBe(13);
+    expect(linhasPautadas(impressos[0].corpo)).toBe(6);
   });
 });
 
