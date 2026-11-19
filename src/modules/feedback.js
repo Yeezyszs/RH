@@ -4,9 +4,11 @@
 import { limparFormulario } from '../utils/ui.js?v=dev';
 import {
   ESCALA, DIMENSOES, DIM_LABEL, PERGUNTAS, CAMPOS_5W2H, STATUS_PLANO_CLIMA,
+  STATUS_RASCUNHO, ACOES_SUGERIDAS,
   perguntasDe, totalRespostas, notaPergunta, notasPorDimensao,
   scoreGeral, dimensaoMaisFraca, favorabilidade, pctParticipacao,
-  classificarDimensao, pedePlanoDeAcao,
+  classificarDimensao, pedePlanoDeAcao, justificativaDimensao,
+  pesquisaAnterior, evolucaoDaDimensao, planoAtrasado,
 } from '../utils/clima.js?v=dev';
 import { montarFichaFeedback, ESTILO_FICHA, RODAPE_FICHA } from '../utils/ficha-feedback.js?v=dev';
 
@@ -59,6 +61,17 @@ export class FeedbackClimaModule {
       const campo = botao.parentElement?.dataset.ratingField;
       const valor = parseInt(botao.dataset.ratingVal, 10);
       if (campo && valor) this._setRating(campo, valor);
+    });
+
+    // Sugestão de ação do 5W2H: escreve no campo só quando alguém clica.
+    document.addEventListener('click', (e) => {
+      const chip = e.target.closest('.w2h-sugestao');
+      if (!chip) return;
+      const alvo = this.$(`#form-5w2h [name="${chip.dataset.w2hCampo}"]`);
+      if (!alvo) return;
+      const texto = chip.dataset.w2hTexto;
+      alvo.value = alvo.value.trim() ? `${alvo.value.trim()}\n${texto}` : texto;
+      alvo.focus();
     });
     document.querySelectorAll('.nav-item[data-page="feedback-clima"]').forEach(el => {
       el.addEventListener('click', () => setTimeout(() => {
@@ -506,7 +519,7 @@ export class FeedbackClimaModule {
     if (badge) badge.textContent = pesquisa ? pesquisa.titulo : 'última pesquisa';
 
     if (!planos.length) {
-      tb.innerHTML = `<tr><td colspan="7" class="empty">${pesquisa
+      tb.innerHTML = `<tr><td colspan="8" class="empty">${pesquisa
         ? 'Nenhum plano de ação registrado para esta pesquisa'
         : 'Nenhuma pesquisa cadastrada'}</td></tr>`;
       return;
@@ -519,18 +532,31 @@ export class FeedbackClimaModule {
         const d = porChave[p.dimensao];
         const st = STATUS_PLANO_CLIMA.find(s => s.chave === p.status) || STATUS_PLANO_CLIMA[0];
         const nota = p.nota_origem ?? d?.nota;
+        const atrasado = planoAtrasado(p);
+        // A nota da pesquisa SEGUINTE: a única pergunta que importa no fim, e
+        // a única que o sistema responde sozinho — ela depende de uma pesquisa
+        // que nem existia quando o plano foi escrito.
+        const ev = evolucaoDaDimensao(this.CLIMA, p.pesquisa_id, p.dimensao, p.nota_origem);
+        const resultado = !ev
+          ? '<span class="cell-person-sub">aguarda a próxima pesquisa</span>'
+          : `<span class="badge ${ev.delta >= 0.05 ? 'ok' : ev.delta <= -0.05 ? 'danger' : 'neutral'}">`
+            + `${this._nota1(ev.de)} → ${this._nota1(ev.para)}</span>`;
         return `
-          <tr>
+          <tr${p.status === STATUS_RASCUNHO ? ' class="linha-rascunho"' : ''}>
             <td>
               <div style="font-weight:600">${this.h(DIM_LABEL[p.dimensao] || p.dimensao)}</div>
               ${nota != null ? `<div class="cell-person-sub">nota ${this._nota1(nota)}</div>` : ''}
             </td>
-            <td>${this.h(p.o_que || '')}</td>
+            <td>${p.o_que
+              ? this.h(p.o_que)
+              : '<span class="cell-person-sub">a definir — abra para assumir</span>'}</td>
             <td>${this.h(p.quem || '—')}</td>
-            <td class="cell-mono">${p.quando ? this.fmtDate(p.quando) : '—'}</td>
+            <td class="cell-mono">${p.quando ? this.fmtDate(p.quando) : '—'}
+              ${atrasado ? '<span class="badge danger">atrasado</span>' : ''}</td>
             <td class="cell-mono" style="text-align:right">${p.quanto != null && p.quanto !== ''
               ? 'R$ ' + Number(p.quanto).toFixed(2).replace('.', ',') : '—'}</td>
             <td><span class="badge ${st.badge}">${st.rotulo}</span></td>
+            <td>${resultado}</td>
             <td class="actions">
               <button class="btn btn-ghost btn-sm btn-icon" title="Abrir plano"
                       onclick="abrirModal5w2h(${p.pesquisa_id}, '${p.dimensao}')">✎</button>
@@ -561,21 +587,39 @@ export class FeedbackClimaModule {
     if (!form) return;
     limparFormulario(form);
 
+    // Sugestões ao LADO do campo, nunca dentro: o valor do 5W2H está em
+    // alguém digitar "eu, até março". Despejar texto pronto no campo faz o
+    // plano parecer feito sem ninguém ter assumido nada.
+    const sugestoes = (campo) => {
+      if (campo !== 'o_que' && campo !== 'como') return '';
+      const lista = ACOES_SUGERIDAS[dimensao] || [];
+      if (!lista.length) return '';
+      return `<div class="w2h-sugestoes">
+        <span>Sugestões:</span>
+        ${lista.map(s => `<button type="button" class="w2h-sugestao" data-w2h-campo="${campo}"
+            data-w2h-texto="${this.h(s)}">${this.h(s)}</button>`).join('')}
+      </div>`;
+    };
+
     this.$('#w2h-campos').innerHTML = CAMPOS_5W2H.map(c => {
       const largo = ['o_que', 'por_que', 'como'].includes(c.campo);
       const controle = largo
-        ? `<textarea name="${c.campo}" rows="${c.campo === 'como' ? 3 : 2}"${c.campo === 'o_que' ? ' required' : ''}></textarea>`
+        ? `<textarea name="${c.campo}" rows="${c.campo === 'por_que' ? 3 : c.campo === 'como' ? 3 : 2}"></textarea>`
         : `<input type="${c.tipo || 'text'}" name="${c.campo}"${c.tipo === 'number' ? ' step="0.01" min="0"' : ''}>`;
       return `
         <div class="form-group${largo ? ' full' : ''}">
           <label>${this.h(c.rotulo)}<span class="w2h-w">${this.h(c.w)}</span></label>
           ${controle}
           <div class="w2h-ajuda">${this.h(c.ajuda)}</div>
+          ${sugestoes(c.campo)}
         </div>`;
     }).join('');
 
     this.$('#w2h-status').innerHTML = STATUS_PLANO_CLIMA
       .map(s => `<option value="${s.chave}">${s.rotulo}</option>`).join('');
+    // Rascunho é o estado de um plano que o SISTEMA abriu e ninguém assumiu.
+    // Quem abre a folha à mão já está assumindo, então começa em pendente.
+    this.$('#w2h-status').value = 'pendente';
 
     form.elements['pesquisa_id'].value = pesquisaId;
     form.elements['dimensao'].value    = dimensao;
@@ -584,8 +628,15 @@ export class FeedbackClimaModule {
     if (plano) {
       form.elements['id'].value = plano.id;
       CAMPOS_5W2H.forEach(c => { form.elements[c.campo].value = plano[c.campo] ?? ''; });
-      form.elements['status'].value     = plano.status || 'pendente';
+      form.elements['status'].value     = plano.status || STATUS_RASCUNHO;
       form.elements['conclusao'].value  = plano.conclusao || '';
+    }
+
+    // O "por quê" é o único campo que o sistema sabe escrever: é transcrição
+    // dos números da pesquisa, não julgamento. Chega preenchido, e editável.
+    if (!form.elements['por_que'].value) {
+      form.elements['por_que'].value =
+        justificativaDimensao(pesquisa, dimensao, pesquisaAnterior(this.CLIMA, pesquisa));
     }
 
     const rotulo = DIM_LABEL[dimensao] || dimensao;
@@ -623,11 +674,18 @@ export class FeedbackClimaModule {
       quem:        texto(d.quem),
       como:        texto(d.como),
       quanto:      d.quanto === '' ? null : Number(d.quanto),
-      status:      d.status || 'pendente',
+      status:      d.status || STATUS_RASCUNHO,
       conclusao:   d.conclusao || null,
     };
 
-    if (!payload.o_que) { this.showToast('Descreva o que vai ser feito', 'err'); return; }
+    // Rascunho é justamente o plano que ainda não tem ação escrita — exigir o
+    // "o quê" ali impediria de salvar o que o sistema abriu sozinho. Sair do
+    // rascunho, porém, é assumir: aí a ação é obrigatória.
+    if (!payload.o_que && payload.status !== STATUS_RASCUNHO) {
+      this.showToast('Descreva o que vai ser feito para tirar do rascunho', 'err');
+      return;
+    }
+    if (!payload.o_que) payload.o_que = null;
     // Concluído sem data é o que faz a diretoria perguntar "quando?" na
     // apresentação do resultado seguinte. Hoje é o palpite certo.
     if (payload.status === 'concluido' && !payload.conclusao) {
@@ -869,7 +927,60 @@ export class FeedbackClimaModule {
     }
     this.showToast(id != null ? 'Pesquisa atualizada' : 'Pesquisa cadastrada', 'ok');
     this.fecharModalClima();
+
+    // Toda dimensão abaixo da meta já sai da pesquisa com um rascunho aberto.
+    // Antes dependia de alguém lembrar de clicar na barra certa — e o que
+    // depende de lembrar é o que não acontece.
+    const salva = this.CLIMA.find(x => x.id === (id ?? this.CLIMA[0]?.id)) || this.CLIMA[0];
+    const abertos = await this._abrirRascunhos(salva);
+    if (abertos) {
+      this.showToast(abertos === 1
+        ? '1 dimensão fora da meta: rascunho de plano de ação aberto'
+        : `${abertos} dimensões fora da meta: rascunhos de plano de ação abertos`, 'ok');
+    }
+
     this.renderClima();
+  }
+
+  /**
+   * Abre um rascunho de 5W2H para cada dimensão fora da meta que ainda não
+   * tem plano nesta pesquisa.
+   *
+   * O rascunho já nasce com o "por quê" escrito — esse campo é transcrição dos
+   * números, não julgamento. O "o quê" fica vazio de propósito: a ação é de
+   * quem assume, e plano que se escreve sozinho vira ritual sem dono.
+   *
+   * @returns {Promise<number>} quantos rascunhos foram abertos
+   */
+  async _abrirRascunhos(pesquisa) {
+    if (!pesquisa) return 0;
+    const anterior = pesquisaAnterior(this.CLIMA, pesquisa);
+    const faltando = this._dimensoesDaPesquisa(pesquisa)
+      .filter(d => d.pedePlano && !this._planoDe(pesquisa.id, d.chave));
+    if (!faltando.length) return 0;
+
+    const temSessao = this.Auth && await this.Auth.sessaoAtual().catch(() => null);
+    let abertos = 0, falhas = 0;
+    for (const [i, d] of faltando.entries()) {
+      const payload = {
+        pesquisa_id: pesquisa.id,
+        dimensao:    d.chave,
+        nota_origem: Number(d.nota.toFixed(2)),
+        por_que:     justificativaDimensao(pesquisa, d.chave, anterior),
+        status:      STATUS_RASCUNHO,
+      };
+      let salvo = { id: Date.now() + i, ...payload };
+      if (temSessao && this.FeedbackClima) {
+        // Um rascunho que não grava não pode derrubar o salvamento da
+        // pesquisa — o dado da pesquisa é que não pode se perder.
+        try { salvo = await this.FeedbackClima.salvarPlanoClima(payload); }
+        catch { falhas++; continue; }
+      }
+      this.PLANO_CLIMA.push(salvo);
+      abertos++;
+    }
+    if (falhas) this.showToast(`${falhas} rascunho(s) não puderam ser abertos`, 'err');
+    return abertos;
   }
 
   async excluirClima(id) {

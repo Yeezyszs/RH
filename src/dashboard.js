@@ -337,10 +337,31 @@ function renderDashboard() {
   }
 
   // Alertas de vencimentos críticos
+  //
+  // Os planos de ação do clima com prazo vencido entram aqui também. Eles não
+  // são documento, mas são a mesma pergunta — o que passou do prazo e ninguém
+  // fechou —, e é esta lista que o RH olha todo dia. Rascunho fica de fora:
+  // ninguém assumiu, então não há de quem cobrar.
+  const hojeIso = new Date().toISOString().slice(0, 10);
+  const planosAtrasados = (window.PLANO_CLIMA || []).filter(p =>
+    p.status !== 'rascunho' && p.status !== 'concluido' && p.quando && p.quando < hojeIso);
+
   const alertsList  = el('dash-alerts-list');
   const alertsBadge = el('dash-alerts-badge');
   if (alertsList) {
-    alertsList.innerHTML = vencCriticos.length > 0
+    const itensPlano = planosAtrasados
+      .sort((a, b) => a.quando.localeCompare(b.quando))
+      .slice(0, 3)
+      .map(p => {
+        const d = Math.abs(diasAte(p.quando));
+        const data = p.quando.slice(5).replace('-', '/');
+        return `<li class="alert-item"><span class="alert-dot danger"></span>`
+          + `<span class="alert-text">Plano de ação <strong>${h(p.o_que || 'sem descrição')}</strong>`
+          + ` passou do prazo há ${d} dia${d !== 1 ? 's' : ''}</span>`
+          + `<span class="alert-meta">${data}</span></li>`;
+      }).join('');
+
+    alertsList.innerHTML = (vencCriticos.length > 0
       ? [...vencCriticos]
           .sort((a, b) => diasAte(a.vencimento) - diasAte(b.vencimento))
           .slice(0, 6)
@@ -354,8 +375,11 @@ function renderDashboard() {
               : `<strong>${h(v.item)}</strong>${c ? ` de ${h(c.nome)}` : ''} vence em ${d} dia${d !== 1 ? 's' : ''}`;
             return `<li class="alert-item"><span class="alert-dot ${cls}"></span><span class="alert-text">${msg}</span><span class="alert-meta">${data}</span></li>`;
           }).join('')
-      : `<li style="padding:12px; color:var(--text-soft); font-size:.85rem">Nenhum vencimento crítico</li>`;
-    if (alertsBadge) alertsBadge.textContent = `${vencCriticos.length} ${vencCriticos.length === 1 ? 'item' : 'itens'}`;
+      : '') + itensPlano
+      || `<li style="padding:12px; color:var(--text-soft); font-size:.85rem">Nenhum vencimento crítico</li>`;
+
+    const total = vencCriticos.length + planosAtrasados.length;
+    if (alertsBadge) alertsBadge.textContent = `${total} ${total === 1 ? 'item' : 'itens'}`;
   }
 
   // Aniversariantes da semana

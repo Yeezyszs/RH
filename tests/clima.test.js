@@ -3,6 +3,8 @@ import {
   ESCALA, DIMENSOES, PERGUNTAS,
   perguntasDe, totalRespostas, mediaPergunta, nota10, notaPergunta,
   notasPorDimensao, scoreGeral, dimensaoMaisFraca, favorabilidade, pctParticipacao,
+  contagemDimensao, justificativaDimensao, pesquisaAnterior, evolucaoDaDimensao,
+  planoAtrasado, ACOES_SUGERIDAS,
 } from '../src/utils/clima.js';
 
 // A tela antes guardava seis notas de 0 a 10 digitadas à mão — entre elas uma
@@ -154,6 +156,192 @@ describe('pesquisa de 2026 — os números que entraram no sistema', () => {
     const notas = notasPorDimensao(PESQUISA_2026);
     DIMENSOES.forEach(d => {
       expect(notas[d.chave], `dimensão ${d.chave}`).toBeTypeOf('number');
+    });
+  });
+});
+
+// ─── O que o sistema escreve sozinho ────────────────────────────────────────
+// O "por quê" do plano de ação é o único campo do 5W2H que não é julgamento:
+// é transcrição dos números da pesquisa. Transcrever à mão é onde entra erro,
+// então quem transcreve é o sistema — e estes testes fixam o texto.
+
+const umaPergunta = (dimensao, respostas, chave = 'x') => ({
+  chave, texto: chave, dimensao, respostas,
+});
+const pesquisaCom = (perguntas, extra = {}) => ({ id: 1, perguntas, ...extra });
+
+describe('contagem de favoráveis, neutros e desfavoráveis', () => {
+  it('soma as perguntas da dimensão inteira', () => {
+    const p = pesquisaCom([
+      umaPergunta('ambiente', [1, 1, 2, 3, 3], 'a'),
+      umaPergunta('ambiente', [0, 0, 1, 4, 5], 'b'),
+    ]);
+    const c = contagemDimensao(p, 'ambiente');
+    expect(c.total).toBe(20);
+    expect(c.desfavoraveis).toBe(2);
+    expect(c.neutros).toBe(3);
+    expect(c.favoraveis).toBe(15);
+    expect(c.pctFavoravel).toBe(75);
+    expect(c.perguntas).toBe(2);
+  });
+
+  it('dimensão sem resposta não divide por zero', () => {
+    const c = contagemDimensao(pesquisaCom([umaPergunta('ambiente', [0, 0, 0, 0, 0])]), 'ambiente');
+    expect(c.total).toBe(0);
+    expect(c.pctFavoravel).toBe(null);
+  });
+});
+
+describe('o "por quê" escrito a partir dos números', () => {
+  const baixa = umaPergunta('reconhecimento', [1, 3, 7, 7, 10], 'trabalho_reconhecido');
+  const alta  = umaPergunta('pertencimento', [0, 0, 1, 8, 19], 'orgulho_empresa');
+
+  it('abre com a dimensão, a nota e a meta', () => {
+    const txt = justificativaDimensao(
+      pesquisaCom([baixa, alta], { titulo: 'Clima 2026' }), 'reconhecimento');
+    expect(txt).toContain('Reconhecimento ficou em 7,0 na Clima 2026');
+    expect(txt).toContain('abaixo da meta de 7,5');
+  });
+
+  it('sem título da pesquisa, a frase continua correndo', () => {
+    const txt = justificativaDimensao(pesquisaCom([baixa, alta]), 'reconhecimento');
+    expect(txt).toContain('Reconhecimento ficou em 7,0, abaixo da meta');
+  });
+
+  it('diz "a única" quando é só uma fora da meta', () => {
+    const txt = justificativaDimensao(pesquisaCom([baixa, alta]), 'reconhecimento');
+    expect(txt).toContain('É a única dimensão fora da meta');
+  });
+
+  it('e conta quantas são quando há mais de uma', () => {
+    const txt = justificativaDimensao(
+      pesquisaCom([baixa, umaPergunta('carreira', [0, 0, 10, 0, 0], 'aprender_crescer')]),
+      'reconhecimento');
+    expect(txt).toContain('É uma das 2 dimensões fora da meta');
+  });
+
+  it('traz a distribuição em português correto no plural e no singular', () => {
+    const muitos = justificativaDimensao(pesquisaCom([baixa]), 'reconhecimento');
+    expect(muitos).toContain('De 28 respostas, 17 favoráveis (60,7%), 7 neutras e 4 desfavoráveis.');
+
+    const um = justificativaDimensao(
+      pesquisaCom([umaPergunta('reconhecimento', [0, 1, 0, 0, 0], 'trabalho_reconhecido')]),
+      'reconhecimento');
+    expect(um).toContain('De 1 resposta, 0 favoráveis (0,0%), 0 neutras e 1 desfavorável.');
+  });
+
+  it('compara com a pesquisa anterior, para cima e para baixo', () => {
+    const atual = pesquisaCom([baixa]);
+    const pior  = pesquisaCom([umaPergunta('reconhecimento', [0, 0, 10, 0, 0], 'trabalho_reconhecido')], { id: 0 });
+    expect(justificativaDimensao(atual, 'reconhecimento', pior)).toContain('(+2,0)');
+
+    const melhor = pesquisaCom([umaPergunta('reconhecimento', [0, 0, 0, 0, 10], 'trabalho_reconhecido')], { id: 0 });
+    expect(justificativaDimensao(atual, 'reconhecimento', melhor)).toContain('(−3,0)');
+  });
+
+  it('nota parada é dita como parada, não como "+0,0"', () => {
+    const atual = pesquisaCom([baixa]);
+    const igual = pesquisaCom([{ ...baixa }], { id: 0 });
+    expect(justificativaDimensao(atual, 'reconhecimento', igual)).toContain('não se moveu');
+  });
+
+  it('dimensão sem resposta não gera justificativa', () => {
+    expect(justificativaDimensao(pesquisaCom([baixa]), 'carreira')).toBe('');
+  });
+});
+
+describe('a pesquisa anterior', () => {
+  const a = { id: 1, inicio: '2025-01-01' };
+  const b = { id: 2, inicio: '2026-01-01' };
+  const c = { id: 3, inicio: '2027-01-01' };
+
+  it('é a imediatamente anterior pela data de início', () => {
+    expect(pesquisaAnterior([a, b, c], c).id).toBe(2);
+  });
+
+  it('a primeira de todas não tem anterior', () => {
+    expect(pesquisaAnterior([a, b, c], a)).toBe(null);
+  });
+
+  it('sem pesquisa, nada a comparar', () => {
+    expect(pesquisaAnterior([a, b], null)).toBe(null);
+    expect(pesquisaAnterior(null, b)).toBe(null);
+  });
+});
+
+describe('a nota da pesquisa seguinte', () => {
+  const resp = (n) => [[0, 0, 10, 0, 0], [0, 0, 2, 8, 0], [0, 0, 0, 6, 4]][n];
+  const serie = [
+    pesquisaCom([umaPergunta('reconhecimento', resp(0), 'trabalho_reconhecido')], { id: 1, inicio: '2025-01-01' }),
+    pesquisaCom([umaPergunta('reconhecimento', resp(1), 'trabalho_reconhecido')], { id: 2, inicio: '2026-01-01' }),
+    pesquisaCom([umaPergunta('reconhecimento', resp(2), 'trabalho_reconhecido')], { id: 3, inicio: '2027-01-01' }),
+  ];
+
+  it('mede do plano para a pesquisa seguinte', () => {
+    const ev = evolucaoDaDimensao(serie, 2, 'reconhecimento');
+    expect(ev.de).toBeCloseTo(7, 2);
+    expect(ev.para).toBeCloseTo(8.5, 2);
+    expect(ev.delta).toBeCloseTo(1.5, 2);
+    expect(ev.pesquisa.id).toBe(3);
+  });
+
+  it('usa a nota que o plano guardou, não a recalculada', () => {
+    expect(evolucaoDaDimensao(serie, 2, 'reconhecimento', 6).de).toBe(6);
+  });
+
+  it('a última pesquisa ainda não tem seguinte', () => {
+    expect(evolucaoDaDimensao(serie, 3, 'reconhecimento')).toBe(null);
+  });
+
+  it('pesquisa que não existe na lista não mede nada', () => {
+    expect(evolucaoDaDimensao(serie, 99, 'reconhecimento')).toBe(null);
+  });
+
+  it('dimensão que a pesquisa de origem não respondeu não mede nada', () => {
+    expect(evolucaoDaDimensao(serie, 2, 'carreira')).toBe(null);
+  });
+
+  it('pula a pesquisa seguinte que não perguntou daquela dimensão', () => {
+    const comBuraco = [
+      serie[1],
+      pesquisaCom([umaPergunta('carreira', resp(2), 'aprender_crescer')], { id: 9, inicio: '2026-06-01' }),
+      serie[2],
+    ];
+    expect(evolucaoDaDimensao(comBuraco, 2, 'reconhecimento').pesquisa.id).toBe(3);
+  });
+});
+
+describe('o plano atrasado', () => {
+  const hoje = '2026-11-19';
+  const base = { status: 'pendente', quando: '2026-11-18' };
+
+  it('prazo vencido e não concluído está atrasado', () => {
+    expect(planoAtrasado(base, hoje)).toBe(true);
+  });
+
+  it('prazo de hoje ainda não venceu', () => {
+    expect(planoAtrasado({ ...base, quando: hoje }, hoje)).toBe(false);
+  });
+
+  it('concluído não é cobrado, mesmo fora do prazo', () => {
+    expect(planoAtrasado({ ...base, status: 'concluido' }, hoje)).toBe(false);
+  });
+
+  it('rascunho não é cobrado — o que falta ali é dono, não prazo', () => {
+    expect(planoAtrasado({ ...base, status: 'rascunho' }, hoje)).toBe(false);
+  });
+
+  it('plano sem prazo não está atrasado', () => {
+    expect(planoAtrasado({ ...base, quando: null }, hoje)).toBe(false);
+    expect(planoAtrasado(null, hoje)).toBe(false);
+  });
+});
+
+describe('sugestões de ação', () => {
+  it('toda dimensão tem sugestões', () => {
+    DIMENSOES.forEach(d => {
+      expect(ACOES_SUGERIDAS[d.chave], `dimensão ${d.chave}`).toBeTruthy();
+      expect(ACOES_SUGERIDAS[d.chave].length).toBeGreaterThan(0);
     });
   });
 });

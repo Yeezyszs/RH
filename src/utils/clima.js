@@ -83,10 +83,163 @@ export const CAMPOS_5W2H = [
 ];
 
 export const STATUS_PLANO_CLIMA = [
-  { chave: 'pendente',  rotulo: 'Pendente',  badge: 'warn' },
-  { chave: 'andamento', rotulo: 'Em andamento', badge: 'info' },
-  { chave: 'concluido', rotulo: 'Concluído', badge: 'ok' },
+  // Rascunho é o plano que o sistema abriu sozinho e ninguém assumiu. Não
+  // conta como plano ativo: número de plano sem dono é relatório bonito, e foi
+  // falta de dono que produziu a nota baixa.
+  { chave: 'rascunho',  rotulo: 'Rascunho',  badge: 'neutral', ativo: false },
+  { chave: 'pendente',  rotulo: 'Pendente',  badge: 'warn',  ativo: true },
+  { chave: 'andamento', rotulo: 'Em andamento', badge: 'info', ativo: true },
+  { chave: 'concluido', rotulo: 'Concluído', badge: 'ok',    ativo: true },
 ];
+
+export const STATUS_RASCUNHO = 'rascunho';
+
+/**
+ * Ações que costumam resolver cada dimensão.
+ *
+ * São SUGESTÕES, mostradas ao lado do campo para o responsável escolher ou
+ * ignorar — nunca escritas dentro dele. A diferença não é detalhe: o valor do
+ * 5W2H está em alguém digitar "eu, até março". Plano que se escreve sozinho
+ * vira ritual sem dono, que é justamente o que faz a nota cair.
+ */
+export const ACOES_SUGERIDAS = {
+  ambiente:       ['Rodada de conversas por setor sobre convivência',
+                   'Canal de escuta com retorno em até 7 dias',
+                   'Combinar e afixar acordos de convivência do turno'],
+  lideranca:      ['Treinamento de liderança para encarregados',
+                   'Reunião quinzenal de 15 min entre líder e equipe',
+                   'Feedback individual trimestral registrado no sistema'],
+  comunicacao:    ['Informativo mensal no quadro e no grupo da equipe',
+                   'Comunicar toda mudança antes de ela acontecer, por escrito',
+                   'Abertura de turno de 5 min com os avisos do dia'],
+  recursos:       ['Levantamento do que falta por posto de trabalho',
+                   'Prazo fixo para atender pedido de ferramenta ou EPI',
+                   'Revisar manutenção preventiva dos equipamentos críticos'],
+  seguranca:      ['DDS semanal com caso real do setor',
+                   'Fechar as pendências do plano de ação do PGR',
+                   'Revisar a matriz de treinamentos de NR do setor'],
+  reconhecimento: ['Ritual mensal de reconhecimento por setor',
+                   'Feedback individual trimestral registrado no sistema',
+                   'Elogio registrado na hora, em Pontos fortes da ficha'],
+  carreira:       ['Publicar o plano de carreira e os critérios de promoção',
+                   'Priorizar vaga interna antes de abrir para fora',
+                   'Plano de desenvolvimento individual para quem quer crescer'],
+  pertencimento:  ['Divulgar resultados e metas da empresa ao time',
+                   'Integração estruturada para quem entra',
+                   'Encontro semestral com a diretoria'],
+};
+
+/** Favoráveis, neutros e desfavoráveis de uma dimensão inteira. */
+export function contagemDimensao(pesquisa, dimensao) {
+  const perguntas = perguntasDe(pesquisa).filter(p => p.dimensao === dimensao);
+  const soma = (i) => perguntas.reduce((s, p) => s + (Number(p.respostas?.[i]) || 0), 0);
+  const desfavoraveis = soma(0) + soma(1);
+  const neutros       = soma(2);
+  const favoraveis    = soma(3) + soma(4);
+  const total = desfavoraveis + neutros + favoraveis;
+  return {
+    total, favoraveis, neutros, desfavoraveis,
+    pctFavoravel: total ? (favoraveis / total) * 100 : null,
+    perguntas: perguntas.length,
+  };
+}
+
+const umaCasa = (v) => Number(v).toFixed(1).replace('.', ',');
+
+/**
+ * O "por quê" do 5W2H, escrito a partir dos números da pesquisa.
+ *
+ * Este é o campo que NÃO é julgamento: nota, favorabilidade, distribuição,
+ * posição entre as outras dimensões e comparação com a pesquisa anterior são
+ * todos derivados do que foi respondido. Escrever isso à mão é transcrever o
+ * gráfico, e transcrever à mão é onde entra erro.
+ *
+ * @param {object} pesquisa
+ * @param {string} dimensao
+ * @param {object} [anterior] a pesquisa imediatamente anterior, se houver
+ */
+export function justificativaDimensao(pesquisa, dimensao, anterior = null) {
+  const notas = notasPorDimensao(pesquisa);
+  const nota  = notas[dimensao];
+  if (nota == null) return '';
+
+  const rotulo = DIM_LABEL[dimensao] || dimensao;
+  const c = contagemDimensao(pesquisa, dimensao);
+  const partes = [];
+
+  const titulo = pesquisa?.titulo ? ` na ${pesquisa.titulo}` : '';
+  partes.push(`${rotulo} ficou em ${umaCasa(nota)}${titulo}, abaixo da meta de `
+    + `${umaCasa(CLASSIFICACAO.meta.minimo)}.`);
+
+  const fora = Object.values(notas).filter(n => n < CLASSIFICACAO.meta.minimo).length;
+  const geral = scoreGeral(pesquisa);
+  partes.push(fora === 1
+    ? `É a única dimensão fora da meta, contra um score geral de ${umaCasa(geral)}.`
+    : `É uma das ${fora} dimensões fora da meta, contra um score geral de ${umaCasa(geral)}.`);
+
+  if (c.total) {
+    // "favorável" → "favoráveis": o plural troca o -l, não soma um sufixo.
+    const plural = (n, um, muitos) => `${n} ${n === 1 ? um : muitos}`;
+    partes.push(`De ${plural(c.total, 'resposta', 'respostas')}, `
+      + `${plural(c.favoraveis, 'favorável', 'favoráveis')} (${umaCasa(c.pctFavoravel)}%), `
+      + `${plural(c.neutros, 'neutra', 'neutras')} e `
+      + `${plural(c.desfavoraveis, 'desfavorável', 'desfavoráveis')}.`);
+  }
+
+  const antes = anterior ? notasPorDimensao(anterior)[dimensao] : null;
+  if (antes != null) {
+    const delta = nota - antes;
+    partes.push(Math.abs(delta) < 0.05
+      ? `Estava em ${umaCasa(antes)} na pesquisa anterior — não se moveu.`
+      : `Estava em ${umaCasa(antes)} na pesquisa anterior (${delta > 0 ? '+' : '−'}`
+        + `${umaCasa(Math.abs(delta))}).`);
+  }
+
+  return partes.join(' ');
+}
+
+/** A pesquisa imediatamente anterior a esta, pela data de início. */
+export function pesquisaAnterior(pesquisas, pesquisa) {
+  if (!pesquisa) return null;
+  return [...(pesquisas || [])]
+    .filter(p => p.id !== pesquisa.id && (p.inicio || '') < (pesquisa.inicio || ''))
+    .sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''))[0] || null;
+}
+
+/**
+ * Como a dimensão saiu depois do plano: a nota da pesquisa seguinte.
+ *
+ * É a única pergunta que importa no fim — e ela só pode ser respondida pelo
+ * sistema, porque depende de uma pesquisa que ainda não existia quando o plano
+ * foi escrito.
+ *
+ * @returns {{de: number, para: number, delta: number, pesquisa: object}|null}
+ */
+export function evolucaoDaDimensao(pesquisas, pesquisaId, dimensao, notaOrigem = null) {
+  const lista = [...(pesquisas || [])].sort((a, b) => (a.inicio || '').localeCompare(b.inicio || ''));
+  const i = lista.findIndex(p => Number(p.id) === Number(pesquisaId));
+  if (i < 0) return null;
+
+  const de = notaOrigem != null ? Number(notaOrigem) : notasPorDimensao(lista[i])[dimensao];
+  if (de == null || !Number.isFinite(de)) return null;
+
+  for (const seguinte of lista.slice(i + 1)) {
+    const para = notasPorDimensao(seguinte)[dimensao];
+    if (para != null) return { de, para, delta: para - de, pesquisa: seguinte };
+  }
+  return null;
+}
+
+/**
+ * Prazo vencido e ainda não concluído.
+ *
+ * Rascunho fica de fora: ninguém assumiu, então não há de quem cobrar — o que
+ * falta ali é dono, e isso o alerta de prazo não resolve.
+ */
+export function planoAtrasado(plano, hojeIso = new Date().toISOString().slice(0, 10)) {
+  if (!plano || plano.status === STATUS_RASCUNHO || plano.status === 'concluido') return false;
+  return !!plano.quando && plano.quando < hojeIso;
+}
 
 /**
  * As 17 perguntas, na ordem do formulário.

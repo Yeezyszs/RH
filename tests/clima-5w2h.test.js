@@ -20,6 +20,7 @@ const trecho = (abre, fecha, de = 0) => {
 };
 const VIEW  = trecho('<div id="view-clima"', '<!-- ════════════');
 const MODAL = trecho('<div id="modal-5w2h"', '<!-- ════════════');
+const MODAL_CLIMA = trecho('<div id="modal-clima"', '<!-- ════════════');
 
 // Distribuições escolhidas para dar nota redonda: nota = ((média − 1) / 4) × 10.
 const resp = { oito5: [0, 0, 0, 6, 4], sete: [0, 0, 2, 8, 0], cinco: [0, 0, 10, 0, 0] };
@@ -43,7 +44,7 @@ const AMBIENTE = 0, RECONHECIMENTO = 1, CARREIRA = 2;
 let graficos;
 
 async function montar({ planos = [], pesquisas = [PESQUISA] } = {}) {
-  const dom = new JSDOM(`<body><div id="page-feedback-clima">${VIEW}</div>${MODAL}</body>`);
+  const dom = new JSDOM(`<body><div id="page-feedback-clima">${VIEW}</div>${MODAL}${MODAL_CLIMA}</body>`);
   global.window = dom.window;
   global.document = dom.window.document;
   global.FormData = dom.window.FormData;
@@ -385,5 +386,279 @@ describe('a lista de planos da pesquisa', () => {
     mod.renderClima();
     await mod.excluirPlanoClima(4);
     expect(planos).toHaveLength(1);
+  });
+});
+
+// ─── A automação ────────────────────────────────────────────────────────────
+//
+// Três coisas o sistema faz sozinho, e uma que ele não faz de propósito:
+//
+//  1. Escreve o "por quê" — é transcrição dos números, não julgamento.
+//  2. Abre um rascunho por dimensão fora da meta quando a pesquisa é salva.
+//  3. Mostra como a dimensão saiu na pesquisa seguinte.
+//
+// O "o quê" e o "como" continuam em branco: o valor do 5W2H está em alguém
+// digitar "eu, até março", e plano que se escreve sozinho vira ritual sem
+// dono — que é justamente o que faz a nota cair.
+
+const ANTERIOR = {
+  id: 1, titulo: 'Pesquisa 2025', inicio: '2025-10-01', fim: '2025-10-20',
+  convidados: 30, responderam: 25,
+  perguntas: [pergunta('trabalho_reconhecido', 'reconhecimento', [0, 0, 10, 0, 0])], // 5,0
+};
+const SEGUINTE = {
+  id: 7, titulo: 'Pesquisa 2027', inicio: '2027-10-01', fim: '2027-10-20',
+  convidados: 30, responderam: 25,
+  perguntas: [pergunta('trabalho_reconhecido', 'reconhecimento', [0, 0, 0, 6, 4])], // 8,5
+};
+
+describe('o "por quê" se escreve sozinho', () => {
+  it('traz nota, meta, posição entre as dimensões e a distribuição', async () => {
+    const { mod, doc } = await montar();
+    mod.renderClima();
+    clicarNaBarra(RECONHECIMENTO);
+
+    const txt = campo(doc, 'por_que').value;
+    expect(txt).toContain('Reconhecimento ficou em 7,0');
+    expect(txt).toContain('abaixo da meta de 7,5');
+    expect(txt).toContain('score geral');
+    expect(txt).toContain('10 resposta');
+  });
+
+  it('diz quando a dimensão é a única fora da meta', async () => {
+    const sozinha = {
+      ...PESQUISA, id: 11,
+      perguntas: [
+        pergunta('ambiente_respeitoso', 'ambiente', resp.oito5),
+        pergunta('trabalho_reconhecido', 'reconhecimento', resp.sete),
+      ],
+    };
+    const { mod, doc } = await montar({ pesquisas: [sozinha] });
+    mod.renderClima();
+    clicarNaBarra(1);
+    expect(campo(doc, 'por_que').value).toContain('única dimensão fora da meta');
+  });
+
+  it('compara com a pesquisa anterior quando existe', async () => {
+    const { mod, doc } = await montar({ pesquisas: [PESQUISA, ANTERIOR] });
+    mod.renderClima();
+    clicarNaBarra(RECONHECIMENTO);
+    const txt = campo(doc, 'por_que').value;
+    expect(txt).toContain('Estava em 5,0 na pesquisa anterior');
+    expect(txt).toContain('+2,0');
+  });
+
+  it('não sobrescreve o que a pessoa escreveu', async () => {
+    const { mod, doc } = await montar({
+      planos: [{
+        id: 4, pesquisa_id: 3, dimensao: 'reconhecimento',
+        o_que: 'x', por_que: 'Escrevi à mão', status: 'pendente',
+      }],
+    });
+    mod.renderClima();
+    clicarNaBarra(RECONHECIMENTO);
+    expect(campo(doc, 'por_que').value).toBe('Escrevi à mão');
+  });
+});
+
+describe('o rascunho nasce com a pesquisa', () => {
+  const salvarPesquisa = async (mod, doc) => {
+    mod.abrirModalClima(PESQUISA.id);
+    // O formulário monta as perguntas a partir da pesquisa aberta; salvar sem
+    // tocar em nada é o caso real de "revisei e gravei".
+    await mod.salvarClima({ preventDefault() {} });
+    return doc;
+  };
+
+  it('abre um rascunho por dimensão fora da meta', async () => {
+    const { mod, doc, planos } = await montar();
+    await salvarPesquisa(mod, doc);
+
+    expect(planos).toHaveLength(2);
+    expect(planos.map(p => p.dimensao).sort()).toEqual(['carreira', 'reconhecimento']);
+    expect(planos.every(p => p.status === 'rascunho')).toBe(true);
+  });
+
+  it('o rascunho já vem com o "por quê" e a nota de origem', async () => {
+    const { mod, doc, planos } = await montar();
+    await salvarPesquisa(mod, doc);
+
+    const rec = planos.find(p => p.dimensao === 'reconhecimento');
+    expect(rec.por_que).toContain('Reconhecimento ficou em 7,0');
+    expect(rec.nota_origem).toBeCloseTo(7, 2);
+  });
+
+  it('o "o quê" fica vazio — a ação é de quem assume', async () => {
+    const { mod, doc, planos } = await montar();
+    await salvarPesquisa(mod, doc);
+    expect(planos.every(p => !p.o_que)).toBe(true);
+  });
+
+  it('dimensão na meta não ganha rascunho', async () => {
+    const { mod, doc, planos } = await montar();
+    await salvarPesquisa(mod, doc);
+    expect(planos.find(p => p.dimensao === 'ambiente')).toBeUndefined();
+  });
+
+  it('salvar de novo não duplica nem apaga o que já foi escrito', async () => {
+    const { mod, doc, planos } = await montar({
+      planos: [{
+        id: 4, pesquisa_id: 3, dimensao: 'reconhecimento',
+        o_que: 'Ritual mensal', quem: 'Maycon', status: 'andamento',
+      }],
+    });
+    await salvarPesquisa(mod, doc);
+
+    expect(planos).toHaveLength(2);                    // só a carreira entrou
+    expect(planos[0].o_que).toBe('Ritual mensal');
+    expect(planos[0].status).toBe('andamento');
+  });
+
+  it('o rascunho aparece na lista marcado, sem ação definida', async () => {
+    const { mod, doc } = await montar();
+    await salvarPesquisa(mod, doc);
+    mod.renderClima();
+
+    const corpo = doc.querySelector('#tb-cl-planos').textContent;
+    expect(corpo).toContain('Rascunho');
+    expect(corpo).toContain('a definir');
+  });
+});
+
+describe('rascunho e dono', () => {
+  it('rascunho salva sem "o quê" — é o que o sistema abriu', async () => {
+    const { mod, doc, planos } = await montar({
+      planos: [{ id: 4, pesquisa_id: 3, dimensao: 'reconhecimento', o_que: null, status: 'rascunho' }],
+    });
+    mod.renderClima();
+    clicarNaBarra(RECONHECIMENTO);
+    campo(doc, 'status').value = 'rascunho';
+    await mod.salvarPlanoClima({ preventDefault() {} });
+    expect(planos).toHaveLength(1);
+  });
+
+  it('tirar do rascunho exige a ação escrita', async () => {
+    const { mod, doc, toasts } = await montar({
+      planos: [{ id: 4, pesquisa_id: 3, dimensao: 'reconhecimento', o_que: null, status: 'rascunho' }],
+    });
+    mod.renderClima();
+    clicarNaBarra(RECONHECIMENTO);
+    campo(doc, 'status').value = 'pendente';
+    await mod.salvarPlanoClima({ preventDefault() {} });
+    expect(toasts.at(-1)[1]).toBe('err');
+  });
+
+  it('abrir a folha à mão já começa em pendente, não em rascunho', async () => {
+    const { mod, doc } = await montar();
+    mod.renderClima();
+    clicarNaBarra(RECONHECIMENTO);
+    expect(campo(doc, 'status').value).toBe('pendente');
+  });
+});
+
+describe('sugestões de ação', () => {
+  it('aparecem ao lado do "o quê" e do "como", nunca dentro', async () => {
+    const { mod, doc } = await montar();
+    mod.renderClima();
+    clicarNaBarra(RECONHECIMENTO);
+
+    expect(campo(doc, 'o_que').value).toBe('');
+    const chips = [...doc.querySelectorAll('.w2h-sugestao')];
+    expect(chips.length).toBeGreaterThan(0);
+    expect(chips.map(c => c.dataset.w2hCampo)).toContain('o_que');
+    expect(chips.map(c => c.dataset.w2hCampo)).toContain('como');
+  });
+
+  it('são as da dimensão aberta', async () => {
+    const { mod, doc } = await montar();
+    mod.renderClima();
+    clicarNaBarra(RECONHECIMENTO);
+    const texto = doc.querySelector('#w2h-campos').textContent;
+    expect(texto).toContain('Ritual mensal de reconhecimento');
+    expect(texto).not.toContain('Treinamento de liderança');
+  });
+
+  it('clicar numa sugestão escreve no campo', async () => {
+    const { mod, doc } = await montar();
+    mod.renderClima();
+    clicarNaBarra(RECONHECIMENTO);
+    const chip = doc.querySelector('.w2h-sugestao[data-w2h-campo="o_que"]');
+    chip.dispatchEvent(new doc.defaultView.MouseEvent('click', { bubbles: true }));
+    expect(campo(doc, 'o_que').value).toBe(chip.dataset.w2hTexto);
+  });
+
+  it('uma segunda sugestão soma, não substitui', async () => {
+    const { mod, doc } = await montar();
+    mod.renderClima();
+    clicarNaBarra(RECONHECIMENTO);
+    const chips = [...doc.querySelectorAll('.w2h-sugestao[data-w2h-campo="como"]')];
+    chips[0].dispatchEvent(new doc.defaultView.MouseEvent('click', { bubbles: true }));
+    chips[1].dispatchEvent(new doc.defaultView.MouseEvent('click', { bubbles: true }));
+    expect(campo(doc, 'como').value.split('\n')).toHaveLength(2);
+  });
+});
+
+describe('o resultado na pesquisa seguinte', () => {
+  it('mostra de quanto para quanto foi', async () => {
+    const { mod, doc } = await montar({
+      pesquisas: [SEGUINTE, PESQUISA],
+      planos: [{
+        id: 4, pesquisa_id: 3, dimensao: 'reconhecimento', nota_origem: 7,
+        o_que: 'Ritual mensal', status: 'concluido',
+      }],
+    });
+    // A lista é da ÚLTIMA pesquisa; o plano é da anterior, então renderizo a
+    // lista da pesquisa que o originou.
+    mod._renderPlanosClima(PESQUISA);
+    expect(doc.querySelector('#tb-cl-planos').textContent).toContain('7,0 → 8,5');
+  });
+
+  it('sem pesquisa seguinte, diz que está aguardando', async () => {
+    const { mod, doc } = await montar({
+      planos: [{ id: 4, pesquisa_id: 3, dimensao: 'reconhecimento', o_que: 'x', status: 'pendente' }],
+    });
+    mod.renderClima();
+    expect(doc.querySelector('#tb-cl-planos').textContent).toContain('aguarda a próxima pesquisa');
+  });
+});
+
+describe('cobrança de prazo', () => {
+  const ontem = (dias) => {
+    const d = new Date();
+    d.setDate(d.getDate() - dias);
+    return d.toISOString().slice(0, 10);
+  };
+
+  it('plano com prazo vencido e não concluído está atrasado', async () => {
+    const { mod, doc } = await montar({
+      planos: [{
+        id: 4, pesquisa_id: 3, dimensao: 'reconhecimento', o_que: 'Atrasou',
+        quando: ontem(5), status: 'pendente',
+      }],
+    });
+    mod.renderClima();
+    expect(doc.querySelector('#tb-cl-planos').textContent).toContain('atrasado');
+  });
+
+  it('concluído no prazo ou não, não é cobrado', async () => {
+    const { mod, doc } = await montar({
+      planos: [{
+        id: 4, pesquisa_id: 3, dimensao: 'reconhecimento', o_que: 'Feito',
+        quando: ontem(5), status: 'concluido', conclusao: ontem(6),
+      }],
+    });
+    mod.renderClima();
+    expect(doc.querySelector('#tb-cl-planos').textContent).not.toContain('atrasado');
+  });
+
+  it('rascunho não é cobrado — o que falta ali é dono, não prazo', async () => {
+    const { mod, doc } = await montar({
+      planos: [{
+        id: 4, pesquisa_id: 3, dimensao: 'reconhecimento', o_que: null,
+        quando: ontem(5), status: 'rascunho',
+      }],
+    });
+    mod.renderClima();
+    expect(doc.querySelector('#tb-cl-planos').textContent).not.toContain('atrasado');
   });
 });

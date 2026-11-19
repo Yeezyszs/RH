@@ -1303,6 +1303,24 @@ table.data td.actions {
   margin-left: 6px;
 }
 .w2h-ajuda { font-size: .72rem; color: var(--text-muted); margin-top: 3px; }
+/* Sugestões ficam AO LADO do campo, como atalho — nunca escritas dentro dele
+   sozinhas: plano que se escreve sozinho vira ritual sem dono. */
+.w2h-sugestoes {
+  display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-top: 6px;
+}
+.w2h-sugestoes > span {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-muted); font-weight: 600;
+}
+.w2h-sugestao {
+  font: inherit; font-size: .72rem; line-height: 1.2;
+  background: var(--border-soft); color: var(--text);
+  border: 1px solid transparent; border-radius: 12px;
+  padding: 4px 9px; cursor: pointer;
+}
+.w2h-sugestao:hover { border-color: var(--phthalo); color: var(--phthalo-dark); }
+/* Rascunho é plano sem dono: fica visível, mas discreto. */
+.linha-rascunho { opacity: .72; }
 .cl-pergunta {
   padding: 7px 0;
   border-bottom: 1px solid var(--border-soft);
