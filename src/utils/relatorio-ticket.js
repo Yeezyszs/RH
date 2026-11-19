@@ -76,13 +76,46 @@ const RE_LINHA = /^(.+?)\s+(\d{11})\s+R\$\s*([\d.]+,\d{2})$/;
 // rodapé do produto, que tem linhas com nome de unidade e valor em real.
 const RE_LINHA_DETALHE = /^(\d{3}\.\d{3}\.\d{3}-\d{2})\s+(\d+)\s+(.+?)\s+R\$\s*([\d.]+,\d{2})$/;
 
-/** Valor de um campo "Rótulo: conteúdo" do cabeçalho. */
-function campo(linhas, rotulo) {
+// Linha de beneficiário do "Relatório de Pedidos": nome, cartão novo (0 ou 1),
+// CPF pontuado, matrícula, valor.
+//
+// Esta é a que exige cuidado. A coluna de nome é estreita e o nome QUEBRA em
+// duas linhas — e o pdf.js devolve a linha de dados ENTRE as duas metades do
+// nome, porque os dados ficam centrados verticalmente na célula:
+//
+//   "ANA CLAUDIA BATISTA"
+//   "0 094.831.059-60 9483105960 R$ 360,00"
+//   "BENV"
+//
+// Por isso o nome é remontado com a linha de cima e a de baixo (só quando a
+// linha de dados vem sem nome). Nome de três linhas perderia o pedaço do meio;
+// não chegou a acontecer, e o cruzamento é por CPF de qualquer jeito.
+const RE_LINHA_PEDIDOS =
+  /^(.*?)\s*(\d+)\s+(\d{3}\.\d{3}\.\d{3}-\d{2})\s+(\d+)\s+R\$\s*([\d.]+,\d{2})$/;
+
+// Pedaço de nome que sobrou numa linha só: caixa alta, sem dígito. É o que
+// separa "ANA CLAUDIA BATISTA" dos cabeçalhos da tabela ("Nome", "Novo",
+// "Valor") e do rodapé ("Relatório de Pedidos", "© Ticket Serviços S.A.").
+const RE_PEDACO_DE_NOME = /^[A-ZÀ-Ü][A-ZÀ-Ü\s.'-]*$/;
+
+/**
+ * Valor de um campo "Rótulo: conteúdo" do cabeçalho.
+ *
+ * `ate` é o rótulo da coluna seguinte, quando ela existe e o corte automático
+ * não dá conta: ele procura o próximo "Alguma coisa:", e um valor que começa
+ * por letra ("Produto: Ticket Alimentação Quantidade de colaboradores: 52")
+ * faz a busca casar no começo do próprio valor, devolvendo vazio.
+ */
+function campo(linhas, rotulo, ate = '') {
   const alvo = rotulo.toLowerCase();
   for (const l of linhas) {
     const i = l.toLowerCase().indexOf(alvo + ':');
     if (i < 0) continue;
-    const resto = l.slice(i + alvo.length + 1);
+    let resto = l.slice(i + alvo.length + 1);
+    if (ate) {
+      const corte = resto.toLowerCase().indexOf(ate.toLowerCase() + ':');
+      return (corte >= 0 ? resto.slice(0, corte) : resto).trim();
+    }
     // Duas colunas de cabeçalho podem sair na mesma linha impressa
     // ("Pedido: 99667080   Empresa: MATARUCO…"): corta no próximo rótulo.
     const proximo = /\s[A-Za-zÀ-ÿ][\w\-\sÀ-ÿ/]*?:\s/.exec(resto);
@@ -131,6 +164,26 @@ function cabecalhoDemonstrativo(linhas) {
   };
 }
 
+/** Cabeçalho do "Relatório de Pedidos". */
+function cabecalhoPedidos(linhas) {
+  return {
+    emissao:     campo(linhas, 'Data do pedido'),
+    // "Data DE crédito" aqui; "Data DO crédito" no demonstrativo. Mesma coisa,
+    // outra preposição — e um rótulo que não casa deixa a competência vazia.
+    dataCredito: campo(linhas, 'Data de crédito'),
+    pedido:      campo(linhas, 'Nº do Pedido') || campo(linhas, 'N do Pedido'),
+    nfe:         '',
+    beneficio:   campo(linhas, 'Produto', 'Quantidade de colaboradores'),
+    empresa:     campo(linhas, 'Razão social'),
+    cnpj:        campo(linhas, 'CNPJ'),
+    contrato:    campo(linhas, 'Contrato'),
+    totalBeneficiarios: parseInt(campo(linhas, 'Quantidade de colaboradores'), 10) || 0,
+    totalBeneficios:    valorBR(campo(linhas, 'Valor total')),
+    totalTaxas:         null,
+    totalPedido:        valorBR(campo(linhas, 'Valor total')),
+  };
+}
+
 /** Cabeçalho do "Relatório de Detalhes do Pedido". */
 function cabecalhoDetalhes(linhas) {
   // "Empresa: 24.939.311/0001-89 - MATARUCO COMERCIO ATACADISTA…" traz o CNPJ
@@ -175,11 +228,24 @@ function cabecalhoDetalhes(linhas) {
 export function lerRelatorioTicket(linhasBrutas) {
   const linhas = (linhasBrutas || []).map(normalizarTexto).filter(Boolean);
 
-  // Os dois layouts são lidos em paralelo e vence quem encontrou gente: as
-  // duas expressões se excluem (uma exige CPF pontuado na frente, a outra CPF
-  // limpo depois do nome), então não há empate a desfazer.
-  const demonstrativo = [], detalhes = [];
-  for (const l of linhas) {
+  // Os três layouts são lidos na mesma passada, e vence quem encontrou gente.
+  //
+  // A ORDEM das expressões importa, e é o que estava errado antes: a linha do
+  // "Relatório de Pedidos" também casa com a do demonstrativo — mas casando
+  // pela MATRÍCULA no lugar do CPF, e só nas matrículas de 11 dígitos. O
+  // arquivo de 52 pessoas entrava com 29, e sem nenhum aviso, porque aquele
+  // layout não tem o total que a conferência compara. Por isso o padrão mais
+  // específico é testado primeiro e a linha que ele reconhece não é oferecida
+  // aos outros.
+  const demonstrativo = [], detalhes = [], pedidos = [];
+  const usada = new Set();
+
+  const pedacoDeNome = (i) => {
+    const l = linhas[i];
+    return l && !usada.has(i) && RE_PEDACO_DE_NOME.test(l) ? l : '';
+  };
+
+  linhas.forEach((l, i) => {
     const d = RE_LINHA_DETALHE.exec(l);
     if (d) {
       detalhes.push({
@@ -187,26 +253,48 @@ export function lerRelatorioTicket(linhasBrutas) {
         cpf:   soDigitos(d[1]),
         valor: numeroBR(d[4]),
       });
-      continue;
+      return;
     }
+
+    const p = RE_LINHA_PEDIDOS.exec(l);
+    if (p) {
+      usada.add(i);
+      let nome = p[1].trim();
+      if (!nome) {
+        // Nome quebrado em duas linhas: a de cima e a de baixo desta.
+        const antes  = pedacoDeNome(i - 1);
+        const depois = pedacoDeNome(i + 1);
+        if (antes)  usada.add(i - 1);
+        if (depois) usada.add(i + 1);
+        nome = [antes, depois].filter(Boolean).join(' ');
+      }
+      pedidos.push({ nome, cpf: soDigitos(p[3]), matricula: p[4], valor: numeroBR(p[5]) });
+      return;
+    }
+
     const m = RE_LINHA.exec(l);
     if (m) demonstrativo.push({ nome: m[1].trim(), cpf: m[2], valor: numeroBR(m[3]) });
-  }
+  });
 
-  const ehDetalhes = detalhes.length > demonstrativo.length;
-  const registros  = ehDetalhes ? detalhes : demonstrativo;
+  const candidatos = [
+    { layout: 'relatorio-de-pedidos', registros: pedidos,       cabecalho: cabecalhoPedidos },
+    { layout: 'detalhes-do-pedido',   registros: detalhes,      cabecalho: cabecalhoDetalhes },
+    { layout: 'demonstrativo',        registros: demonstrativo, cabecalho: cabecalhoDemonstrativo },
+  ];
+  const vencedor = candidatos.reduce((a, b) => (b.registros.length > a.registros.length ? b : a));
+  const registros = vencedor.registros;
 
   if (!registros.length) {
     throw new Error('Não encontrei nenhum beneficiário neste PDF. '
-      + 'Confira se é o demonstrativo de créditos por usuário ou o relatório '
-      + 'de detalhes do pedido que a operadora emite.');
+      + 'Confira se é o demonstrativo de créditos por usuário, o relatório de '
+      + 'detalhes do pedido ou o relatório de pedidos que a operadora emite.');
   }
 
-  const cab = ehDetalhes ? cabecalhoDetalhes(linhas) : cabecalhoDemonstrativo(linhas);
+  const cab = vencedor.cabecalho(linhas);
 
   const relatorio = {
     ...cab,
-    layout:      ehDetalhes ? 'detalhes-do-pedido' : 'demonstrativo',
+    layout:      vencedor.layout,
     emissao:     dataBR(cab.emissao).iso,
     dataCredito: dataBR(cab.dataCredito).iso,
     // A competência é a do CRÉDITO. Usar a emissão manda para o mês errado

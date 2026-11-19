@@ -296,3 +296,116 @@ describe('relatório de detalhes do pedido', () => {
       .toThrow(/beneficiário/i);
   });
 });
+
+// ─── O terceiro arquivo da mesma operadora ──────────────────────────────────
+//
+// O "Relatório de Pedidos" era lido ERRADO, não recusado — que é pior. A linha
+// dele ("NOME 0 CPF MATRÍCULA R$ valor") também casa com a do demonstrativo,
+// só que casando pela MATRÍCULA no lugar do CPF e apenas quando a matrícula
+// tem 11 dígitos. Um arquivo de 52 pessoas entrava com 29, sem nenhum aviso,
+// porque este layout não traz o total que a conferência compara.
+//
+// Os números saíram do arquivo real de abril/2026: 52 colaboradores,
+// R$ 17.713,23, pedido em 29/04 para creditar em 30/04.
+
+const CAB_PEDIDOS = [
+  'Relatório de Pedidos',
+  'Perfil',
+  'CNPJ: 24.939.311/0001-89',
+  'Razão social: MATARUCO COMERCIO ATACADISTA DE FARINHAS LTDA',
+  'Contrato: 4277850006091',
+  'Detalhe do Pedido',
+  'Nº do Pedido: 92651899 Data de crédito: 30/04/2026',
+  'Data do pedido: 29/04/2026 Data de vencimento: 29/04/2026',
+  'Produto: Ticket Alimentação Quantidade de colaboradores: 4',
+  'Valor total: R$ 900,00 Quantidade de cartões novos: 1',
+  'Colaboradores (4)',
+  'Nome Cartão CPF Matrícula Valor',
+  'Novo',
+];
+// Com matrícula de 10 dígitos (a 2ª) e de 11 (a 1ª) — era essa diferença que
+// fazia metade do arquivo sumir. E com nome quebrado em duas linhas: o pdf.js
+// devolve a linha de dados ENTRE as duas metades, porque elas ficam centradas.
+const CORPO_PEDIDOS = [
+  'ADAO RIBEIRO 0 572.032.379-15 57203237915 R$ 360,00',
+  'ALESSANDRO RIBEIRO 0 071.409.949-00 7140994900 R$ 180,00',
+  'ANA CLAUDIA BATISTA',
+  '0 094.831.059-60 9483105960 R$ 360,00',
+  'BENV',
+  'LUCAS GABRIEL DA SILVA',
+  '0 134.317.689-11 13431768911 R$ 0,00',
+  'PIRES',
+];
+const RODAPE_PEDIDOS = ['© Ticket Serviços S.A. Página 1 de 4', 'CNPJ 47.866.934/0001-74'];
+
+const pedidos = (corpo = CORPO_PEDIDOS, cabecalho = CAB_PEDIDOS) =>
+  lerRelatorioTicket([...cabecalho, ...corpo, ...RODAPE_PEDIDOS]);
+
+describe('relatório de pedidos', () => {
+  it('é reconhecido como o terceiro layout, e não como o demonstrativo', () => {
+    expect(pedidos().layout).toBe('relatorio-de-pedidos');
+  });
+
+  it('lê TODO mundo, com matrícula de 10 ou de 11 dígitos', () => {
+    // A matrícula é o CPF sem o zero à esquerda, então ela tem 10 dígitos
+    // para quem tem CPF começando em zero. A leitura antiga só enxergava as
+    // de 11 — e a conta ainda "fechava", porque fechava contra a própria soma.
+    const r = pedidos();
+    expect(r.registros).toHaveLength(4);
+    expect(r.soma).toBe(900);
+    expect(fechaComOTotal(r).fecha).toBe(true);
+  });
+
+  it('o CPF sai da coluna de CPF, não da matrícula', () => {
+    const alessandro = pedidos().registros.find(x => x.nome.startsWith('ALESSANDRO'));
+    expect(alessandro.cpf).toBe('07140994900');
+    expect(alessandro.matricula).toBe('7140994900');
+  });
+
+  it('remonta o nome que o PDF quebrou em duas linhas', () => {
+    const nomes = pedidos().registros.map(r => r.nome);
+    expect(nomes).toContain('ANA CLAUDIA BATISTA BENV');
+    expect(nomes).toContain('LUCAS GABRIEL DA SILVA PIRES');
+  });
+
+  it('o cabeçalho da tabela não vira nome de ninguém', () => {
+    // "Nome Cartão CPF Matrícula Valor" / "Novo" ficam logo antes da primeira
+    // linha de dados de cada página.
+    expect(pedidos().registros.map(r => r.nome).join(' ')).not.toContain('Novo');
+  });
+
+  it('a competência vem da DATA DE CRÉDITO — outra preposição, mesmo campo', () => {
+    const r = pedidos();
+    expect(r.emissao).toBe('2026-04-29');
+    expect(r.dataCredito).toBe('2026-04-30');
+    expect(r.competencia).toBe('2026-04');
+  });
+
+  it('lê pedido, produto, empresa, contrato e os totais do cabeçalho', () => {
+    const r = pedidos();
+    expect(r.pedido).toBe('92651899');
+    expect(r.beneficio).toBe('Ticket Alimentação');
+    expect(r.empresa).toBe('MATARUCO COMERCIO ATACADISTA DE FARINHAS LTDA');
+    expect(r.cnpj).toBe('24.939.311/0001-89');
+    expect(r.contrato).toBe('4277850006091');
+    expect(r.totalBeneficiarios).toBe(4);
+    expect(r.totalBeneficios).toBe(900);
+  });
+
+  it('agora a conferência tem contra o que fechar', () => {
+    // Era isto que faltava: sem total no cabeçalho, a trava comparava a soma
+    // com ela mesma e aprovava qualquer leitura parcial.
+    const faltando = pedidos(CORPO_PEDIDOS.slice(0, 2));
+    expect(fechaComOTotal(faltando).fecha).toBe(false);
+    expect(faltando.problemas.join(' ')).toContain('4 beneficiários');
+  });
+
+  it('aponta quem veio sem valor', () => {
+    expect(pedidos().problemas.join(' ')).toContain('1 beneficiário');
+  });
+
+  it('não rouba as linhas dos outros dois layouts', () => {
+    expect(relatorio().layout).toBe('demonstrativo');
+    expect(detalhes().layout).toBe('detalhes-do-pedido');
+  });
+});
