@@ -19,7 +19,10 @@ export class SalariosModule {
     this.CHART_COLORS = deps.CHART_COLORS;
     this.Auth = deps.Auth;
     this.Salarios = deps.Salarios;
+    this.StorageHolerites = deps.StorageHolerites;
+    this.showToast = deps.showToast || (() => {});
 
+    this._holeritePdf   = null;
     this._chartSalSetor = null;
     this._chartSalFaixa = null;
 
@@ -516,7 +519,25 @@ export class SalariosModule {
         : `<div class="hol-bases"><div><span>Salário base</span><strong>${this.fmtBRL(parseFloat(h.salario_base) || 0)}</strong></div></div>
            <div class="fer-dica" style="margin-top:6px;">As demais bases (INSS, FGTS, IRRF) passaram a ser guardadas depois desta importação.</div>`}`;
 
+    // O PDF recortado na importação. Só aparece quando existe: folha antiga,
+    // importada antes disto, não tem anexo — e um botão que não abre nada é
+    // pior do que botão nenhum.
+    this._holeritePdf = h.holerite_path || null;
+    const btnPdf = this.$('#btn-hol-pdf');
+    if (btnPdf) btnPdf.style.display = this._holeritePdf ? '' : 'none';
+
     this.$('#modal-holerite').classList.add('active');
+  }
+
+  /** Abre o PDF do holerite numa aba, por link assinado de curta validade. */
+  async abrirHoleritePdf() {
+    if (!this._holeritePdf || !this.StorageHolerites) return;
+    try {
+      const url = await this.StorageHolerites.urlAssinada(this._holeritePdf);
+      window.open(url, '_blank', 'noopener');
+    } catch (err) {
+      this.showToast('Não foi possível abrir o PDF: ' + err.message, 'err');
+    }
   }
 
   fecharHolerite() {

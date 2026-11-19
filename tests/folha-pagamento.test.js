@@ -553,3 +553,69 @@ describe('verbas do holerite', () => {
     expect(lerFolhaPagamento(semQuadro).holerites[0].verbas).toEqual([]);
   });
 });
+
+// ─── Em que página cada holerite foi impresso ───────────────────────────────
+//
+// A importação recorta do PDF a página de cada pessoa e anexa o holerite
+// individual dela. Por isso a conta das páginas precisa ser EXATA: uma página
+// a mais e o anexo de alguém sai com o salário do colega impresso junto — que
+// é justamente o que o recorte existe para evitar.
+//
+// A armadilha: o bloco de uma via vai do cabeçalho de identificação até o
+// seguinte, então a cauda dele traz as linhas de abertura da PRÓXIMA via
+// (nome da empresa, CNPJ, competência), que costumam cair na página seguinte.
+// Contar as páginas do bloco inteiro dava duas páginas para todo mundo.
+
+// Pagina as linhas como o pdf.js entrega: cada via numa folha, e a via que
+// continua ocupando duas.
+const paginado = (vias) => {
+  const linhas = [];
+  vias.forEach(({ linhas: ls, pagina }) => ls.forEach(t => linhas.push({ texto: t, pagina })));
+  return linhas;
+};
+
+describe('páginas do holerite', () => {
+  it('cada pessoa fica com a sua página, não com a do vizinho', () => {
+    const f = lerFolhaPagamento(paginado([
+      { linhas: via({ codigo: '5', nome: 'ADAO RIBEIRO' }), pagina: 1 },
+      { linhas: via({ codigo: '5', nome: 'ADAO RIBEIRO' }), pagina: 1 },
+      { linhas: via({ codigo: '9', nome: 'BEATRIZ NUNES' }), pagina: 2 },
+      { linhas: via({ codigo: '9', nome: 'BEATRIZ NUNES' }), pagina: 2 },
+    ]));
+    expect(f.holerites.map(h => h.paginas)).toEqual([[1], [2]]);
+  });
+
+  it('as duas vias da mesma pessoa não viram duas páginas', () => {
+    const f = lerFolhaPagamento(paginado([
+      { linhas: via({}), pagina: 3 },
+      { linhas: via({}), pagina: 3 },
+    ]));
+    expect(f.holerites[0].paginas).toEqual([3]);
+  });
+
+  it('quem continua na folha seguinte leva as duas páginas', () => {
+    // Sem a segunda, o anexo sairia cortado no meio das verbas.
+    const f = lerFolhaPagamento(paginado([
+      { linhas: via({ continua: true }), pagina: 4 },
+      { linhas: via({}), pagina: 5 },
+      { linhas: via({ continua: true }), pagina: 4 },
+      { linhas: via({}), pagina: 5 },
+    ]));
+    expect(f.holerites[0].paginas).toEqual([4, 5]);
+  });
+
+  it('sem informação de página, a lista sai vazia em vez de inventar', () => {
+    // É o caso dos testes de texto puro e de qualquer extrator sem posição:
+    // melhor não anexar nada do que anexar a folha inteira para todo mundo.
+    const f = lerFolhaPagamento(folhaDe({}));
+    expect(f.holerites[0].paginas).toEqual([]);
+  });
+
+  it('a ordem das páginas é crescente', () => {
+    const f = lerFolhaPagamento(paginado([
+      { linhas: via({ continua: true }), pagina: 7 },
+      { linhas: via({}), pagina: 8 },
+    ]));
+    expect(f.holerites[0].paginas).toEqual([7, 8]);
+  });
+});

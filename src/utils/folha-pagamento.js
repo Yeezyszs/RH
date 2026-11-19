@@ -141,8 +141,11 @@ function temCompetencia(linha) {
  */
 function normalizarEntrada(linhasBrutas) {
   return (linhasBrutas || []).map(l => (typeof l === 'string'
-    ? { texto: normalizarTexto(l), celulas: null }
-    : { texto: normalizarTexto(l?.texto), celulas: l?.celulas || null }))
+    ? { texto: normalizarTexto(l), celulas: null, pagina: null }
+    // `pagina` é o número da folha impressa onde a linha saiu. Serve para
+    // recortar do PDF o holerite de cada pessoa: sem ele, o arquivo que o RH
+    // anexa a uma pessoa teria a folha inteira, com o salário de todo mundo.
+    : { texto: normalizarTexto(l?.texto), celulas: l?.celulas || null, pagina: l?.pagina ?? null }))
     .filter(l => l.texto);
 }
 
@@ -292,6 +295,38 @@ function lerBases(bloco) {
   })).filter(b => b.rotulo);
 }
 
+/**
+ * Em que páginas esta via foi impressa.
+ *
+ * Serve para recortar do PDF o holerite de cada pessoa — e por isso precisa
+ * ser EXATO: uma página a mais e o anexo de alguém sai com o salário do
+ * colega impresso junto.
+ *
+ * O bloco vai de um cabeçalho de identificação até o seguinte, então a cauda
+ * dele traz as linhas de abertura da PRÓXIMA via (nome da empresa, CNPJ,
+ * competência) — que costumam estar na página seguinte. Contar as páginas do
+ * bloco inteiro dava duas páginas para todo mundo na folha de janeiro/2026,
+ * em que cada pessoa ocupa uma.
+ *
+ * O corte é no fim do conteúdo próprio: o rodapé de bases, o líquido, ou o
+ * "A TRANSPORTAR" de quem continua na folha seguinte. Sem nenhum desses
+ * marcadores (via truncada), sobra o bloco todo — melhor um recorte com uma
+ * página a mais do que um sem o holerite.
+ */
+function paginasDaVia(bloco) {
+  let fim = -1;
+  bloco.forEach((l, i) => {
+    const t = l.texto;
+    if (t.startsWith(MARCA_BASES) || RE_LIQUIDO.test(t) || /A TRANSPORTAR/i.test(t)) {
+      // A linha seguinte ao rótulo das bases traz os valores, e ela ainda é
+      // da via.
+      fim = Math.max(fim, t.startsWith(MARCA_BASES) ? i + 1 : i);
+    }
+  });
+  const ate = fim >= 0 ? bloco.slice(0, Math.min(fim + 1, bloco.length)) : bloco;
+  return [...new Set(ate.map(l => l.pagina).filter(p => p != null))].sort((a, b) => a - b);
+}
+
 /** Lê uma via. Devolve null quando o bloco não tem sequer identificação. */
 function lerBloco(bloco) {
   const ident = RE_IDENT.exec(bloco[1]?.texto || '');
@@ -315,6 +350,7 @@ function lerBloco(bloco) {
     descontos:   null,
     liquido:     null,
     verbas:      lerVerbas(bloco),
+    paginas:     paginasDaVia(bloco),
   };
 
   const adm = RE_ADMISSAO.exec(bloco[2]?.texto || '');
@@ -369,6 +405,14 @@ function juntar(partes) {
       // seguinte traz o rodapé de bases só na segunda parte.
       if (k === 'bases') {
         if (!acc.bases?.length) acc.bases = v;
+        continue;
+      }
+      // Páginas somam: as duas vias saem na mesma folha, mas quem continua na
+      // seguinte precisa das duas no recorte — senão o holerite anexado sai
+      // cortado no meio das verbas.
+      if (k === 'paginas') {
+        acc.paginas = [...new Set([...(acc.paginas || []), ...(v || [])])]
+          .sort((a, b) => a - b);
         continue;
       }
       if (acc[k] == null || acc[k] === '') acc[k] = v;

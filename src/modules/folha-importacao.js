@@ -19,6 +19,10 @@ import { linhasComCelulas } from '../utils/texto-pdf.js?v=dev';
 const PDFJS_VERSAO = '4.10.38';
 const PDFJS_BASE   = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSAO}`;
 
+// O pdf-lib recorta o PDF; o pdf.js só lê. São bibliotecas diferentes e as
+// duas vêm do mesmo CDN, carregadas só quando a tela da importação precisa.
+const PDFLIB_URL = 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm';
+
 // Ligações código-da-folha → id do colaborador que o RH fez à mão.
 const CHAVE_VINCULOS = 'folha_vinculos';
 
@@ -54,12 +58,15 @@ export class FolhaImportacaoModule {
     this.Auth          = deps.Auth;
     this.Salarios      = deps.Salarios;
     this.FolhaCompetencia = deps.FolhaCompetencia;
+    this.StorageHolerites = deps.StorageHolerites;
     this.FOLHA_HIST       = deps.FOLHA_HIST || [];
     this.Configuracoes = deps.Configuracoes;
     this.showToast     = deps.showToast;
     this.aoImportar    = deps.aoImportar || (() => {});
     this.carregarPdfJs = deps.carregarPdfJs || (() => this._pdfjsDoCdn());
+    this.carregarPdfLib = deps.carregarPdfLib || (() => this._pdfLibDoCdn());
 
+    this._arquivo  = null;
     this._folha    = null;
     this._vinculos = {};   // código da folha → id, escolhido nesta sessão
     this._lembrar  = {};   // código da folha → true quando marcado "lembrar"
@@ -116,6 +123,13 @@ export class FolhaImportacaoModule {
 
   // ─── Leitura do PDF ─────────────────────────────────────────────────────────
 
+  // O pdf-lib só entra em cena na hora de recortar — e só então é baixado.
+  async _pdfLibDoCdn() {
+    if (this._pdflib) return this._pdflib;
+    this._pdflib = await import(/* webpackIgnore: true */ PDFLIB_URL);
+    return this._pdflib;
+  }
+
   async _pdfjsDoCdn() {
     if (this._pdfjs) return this._pdfjs;
     const lib = await import(/* webpackIgnore: true */ `${PDFJS_BASE}/build/pdf.min.mjs`);
@@ -131,7 +145,10 @@ export class FolhaImportacaoModule {
     for (let p = 1; p <= doc.numPages; p++) {
       // Com as células posicionadas, e não só o texto: é a posição que diz
       // se um valor do quadro de verbas é provento ou desconto.
-      linhas.push(...linhasComCelulas((await (await doc.getPage(p)).getTextContent()).items));
+      // A página fica anotada na linha: é dela que sai o recorte do holerite
+      // individual na hora de anexar.
+      linhas.push(...linhasComCelulas((await (await doc.getPage(p)).getTextContent()).items)
+        .map(l => ({ ...l, pagina: p })));
     }
     return linhas;
   }
@@ -149,10 +166,14 @@ export class FolhaImportacaoModule {
     try {
       this._folha = lerFolhaPagamento(await this._linhasDoPdf(arquivo));
       this._folha.arquivo = arquivo.name;
+      // O arquivo fica guardado: é dele que sai o recorte do holerite de cada
+      // pessoa na hora de confirmar.
+      this._arquivo = arquivo;
       this._lembrar = {};
       this._renderPreview();
     } catch (err) {
       this._folha = null;
+      this._arquivo = null;
       this._estado(`<div class="alerta-erro">Não foi possível ler o PDF.<br><small>${this.h(err.message)}</small></div>`);
     }
   }
@@ -342,6 +363,10 @@ export class FolhaImportacaoModule {
     }));
     if (!linhas.length) return;
 
+    // O papel, recortado: cada pessoa fica com a página dela. Vai antes do
+    // upsert para o caminho do arquivo entrar na mesma gravação.
+    await this._anexarHolerites(c, comp, linhas, temSessao);
+
     if (temSessao && this.FolhaCompetencia) {
       await this.FolhaCompetencia.upsertEmLote(linhas);
     }
@@ -350,6 +375,75 @@ export class FolhaImportacaoModule {
     const restante = this.FOLHA_HIST.filter(h => h.competencia !== comp);
     this.FOLHA_HIST.length = 0;
     this.FOLHA_HIST.push(...restante, ...linhas);
+  }
+
+  /**
+   * Recorta o holerite de cada pessoa do PDF da folha e anexa à competência.
+   *
+   * A folha vem num arquivo só, com uma página por colaborador — e o salário
+   * de todo mundo dentro. Guardar esse arquivo inteiro em cada pessoa faria do
+   * anexo algo que não se pode entregar a ninguém. Aqui cada um fica com as
+   * SUAS páginas (duas, quando as verbas transbordam para a folha seguinte).
+   *
+   * Falhar aqui não derruba a importação: o número da folha é o que não pode
+   * se perder. Sem o anexo, o histórico continua completo.
+   */
+  async _anexarHolerites(c, competencia, linhas, temSessao) {
+    if (!temSessao || !this.StorageHolerites || !this._arquivo) return;
+
+    const porColab = new Map(linhas.map(l => [l.colaborador_id, l]));
+    const alvos = c.mudancas.concat(c.iguais)
+      .filter(({ holerite }) => holerite.paginas?.length);
+    if (!alvos.length) return;
+
+    let lib;
+    try {
+      lib = await this.carregarPdfLib();
+    } catch {
+      this.showToast('Não foi possível carregar o recortador de PDF — a folha foi importada sem os holerites anexados', 'err');
+      return;
+    }
+
+    let anexados = 0, falhas = 0;
+    try {
+      const original = await lib.PDFDocument.load(await this._arquivo.arrayBuffer());
+      const total = original.getPageCount();
+
+      for (const { holerite, colab } of alvos) {
+        // pdf.js numera a partir de 1; o pdf-lib, de 0.
+        const indices = holerite.paginas
+          .map(p => p - 1)
+          .filter(i => Number.isInteger(i) && i >= 0 && i < total);
+        if (!indices.length) { falhas++; continue; }
+
+        try {
+          const recorte = await lib.PDFDocument.create();
+          const paginas = await recorte.copyPages(original, indices);
+          paginas.forEach(p => recorte.addPage(p));
+          const bytes = await recorte.save();
+
+          const path = this.StorageHolerites.caminho(competencia, colab.id);
+          await this.StorageHolerites.upload(path, new Blob([bytes], { type: 'application/pdf' }));
+
+          const linha = porColab.get(colab.id);
+          if (linha) {
+            linha.holerite_path = path;
+            linha.holerite_nome = `Holerite ${this.mesLabel(competencia)} — ${colab.nome}.pdf`;
+          }
+          anexados++;
+        } catch { falhas++; }
+      }
+    } catch {
+      this.showToast('Não foi possível abrir o PDF para recortar — a folha foi importada sem os holerites anexados', 'err');
+      return;
+    }
+
+    if (anexados) {
+      this.showToast(`${anexados} holerite(s) anexado(s)`, 'ok');
+    }
+    if (falhas) {
+      this.showToast(`${falhas} holerite(s) não puderam ser anexados`, 'err');
+    }
   }
 
   async confirmar() {

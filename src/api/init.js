@@ -460,6 +460,7 @@ window.Treinamentos           = Treinamentos;
 window.Ferias                 = Ferias;
 window.Salarios               = Salarios;
 window.FolhaCompetencia       = FolhaCompetencia;
+window.StorageHolerites       = StorageHolerites;
 window.ValeCombustivel        = ValeCombustivel;
 window.ValeDescontos          = ValeDescontos;
 window.Configuracoes          = Configuracoes;

@@ -127,6 +127,40 @@ const FolhaCompetencia = {
   },
 };
 
+// O holerite em PDF, recortado por pessoa na importação.
+//
+// Bucket próprio, separado do `organizacional`: aquele é legível por qualquer
+// autenticado, inclusive gerente, e holerite é salário com nome em cima — o
+// mesmo dado que faz folha_competencia ser restrita a admin e RH.
+const StorageHolerites = {
+  bucket: 'holerites',
+
+  /** Caminho estável: reimportar o mês substitui em vez de acumular cópias. */
+  caminho(competencia, colaboradorId) {
+    return `${competencia}/${colaboradorId}.pdf`;
+  },
+
+  async upload(path, blob) {
+    const { error } = await sb.storage.from(this.bucket).upload(path, blob, {
+      contentType: 'application/pdf',
+      upsert: true,
+    });
+    if (error) throw error;
+    return path;
+  },
+
+  async urlAssinada(path) {
+    const { data, error } = await sb.storage.from(this.bucket).createSignedUrl(path, 120);
+    if (error) throw error;
+    return data.signedUrl;
+  },
+
+  async remover(path) {
+    if (!path) return;
+    await sb.storage.from(this.bucket).remove([path]).catch(() => {});
+  },
+};
+
 const ValeCombustivel = {
   // O benefício é gerido por competência: cada linha tem `data` nula e guarda
   // crédito (valor_mensal), consumo (utilizado) e saldo de abertura do mês.

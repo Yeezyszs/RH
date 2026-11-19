@@ -194,6 +194,7 @@ function bootstrap() {
     $, h, iniciais, fmtDate, fmtBRL, faixaIdx, mesLabel,
     COLABORADORES, SALARIOS, FOLHA_HIST, FAIXAS, CHART_COLORS,
     Auth: window.Auth, Salarios: window.Salarios,
+    StorageHolerites: window.StorageHolerites, showToast,
   });
 
   const valeCombustivel = new ValeCombustivelModule({
@@ -287,6 +288,7 @@ function bootstrap() {
     COLABORADORES, SALARIOS, FOLHA_HIST, CONFIG,
     Auth: window.Auth, Salarios: window.Salarios,
     FolhaCompetencia: window.FolhaCompetencia,
+    StorageHolerites: window.StorageHolerites,
     Configuracoes: window.Configuracoes, showToast,
     aoImportar: () => { salarios.render(); window.renderDashboard?.(); },
   });
@@ -506,6 +508,7 @@ function bootstrap() {
   window.fecharModalSalario       = ()    => salarios.fecharModal();
   window.salvarSalario            = (ev)  => salarios.salvar(ev);
   window.abrirHolerite            = (id)   => salarios.abrirHolerite(id);
+  window.abrirHoleritePdf         = ()     => salarios.abrirHoleritePdf();
   window.fecharHolerite           = ()     => salarios.fecharHolerite();
   window.exportSalarios           = ()    => salarios.exportSalarios();
   window.renderSalarios           = ()    => salarios.render();

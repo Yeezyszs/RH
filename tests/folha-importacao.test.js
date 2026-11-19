@@ -13,11 +13,17 @@ const MODAL = (() => {
 })();
 
 function pdfjsFake(linhas) {
-  const itens = linhas.map((s, i) => ({ str: s, transform: [1, 0, 0, 1, 10, 9000 - i * 20] }));
+  // `linhas` pode ser uma lista simples (tudo numa página) ou uma lista de
+  // páginas — o recorte do holerite depende de saber em qual folha cada linha
+  // saiu, então o dublê precisa saber paginar.
+  const paginas = Array.isArray(linhas[0]) ? linhas : [linhas];
+  const itensDe = (ls) => ls.map((s, i) => ({ str: s, transform: [1, 0, 0, 1, 10, 9000 - i * 20] }));
   return {
     getDocument: () => ({ promise: Promise.resolve({
-      numPages: 1,
-      getPage: () => Promise.resolve({ getTextContent: () => Promise.resolve({ items: itens }) }),
+      numPages: paginas.length,
+      getPage: (n) => Promise.resolve({
+        getTextContent: async () => ({ items: itensDe(paginas[n - 1] || []) }),
+      }),
     }) }),
   };
 }
@@ -53,7 +59,8 @@ const LINHAS = [
   ...via({ codigo: '49', nome: 'ALESSANDRO RIBEIRO', base: '2.800,00' }),
 ];
 
-async function montar({ linhas = LINHAS, salarios = {}, config = {}, comSessao = true } = {}) {
+async function montar({ linhas = LINHAS, salarios = {}, config = {}, comSessao = true,
+  folhaCompetencia = null, storage = null, pdfLib = null } = {}) {
   const dom = new JSDOM(`<body>${MODAL}</body>`);
   global.window = dom.window;
   global.document = dom.window.document;
@@ -75,8 +82,11 @@ async function montar({ linhas = LINHAS, salarios = {}, config = {}, comSessao =
       atualizar: async (id, p) => { gravado.atualizados.push([id, p]); return { id, ...p }; },
     },
     Configuracoes: { definir: async (k, v) => { gravado.config[k] = v; } },
-    showToast: (m, t) => { gravado.toast = [m, t]; },
+    showToast: (m, t) => { gravado.toast = [m, t]; (gravado.toasts ||= []).push([m, t]); },
     carregarPdfJs: async () => pdfjsFake(linhas),
+    FolhaCompetencia: folhaCompetencia,
+    StorageHolerites: storage,
+    ...(pdfLib ? { carregarPdfLib: async () => pdfLib } : {}),
   });
   return { mod, doc, gravado, salarios, config };
 }
@@ -338,5 +348,148 @@ describe('mensagem de erro de gravação', () => {
     const { explicarErro } = await import('../src/modules/folha-importacao.js');
     expect(explicarErro(new Error('Tempo esgotado'))).toBe('Tempo esgotado');
     expect(explicarErro(null)).toBe('');
+  });
+});
+
+// ─── O holerite em PDF, recortado por pessoa ────────────────────────────────
+//
+// A folha vem num arquivo só, com uma página por colaborador e o salário de
+// todo mundo dentro. Guardar esse arquivo inteiro em cada pessoa faria do
+// anexo algo que não se pode entregar a ninguém. A importação recorta a
+// página de cada um e anexa só a dela.
+
+// Dublê do pdf-lib: não produz PDF, registra o que foi pedido.
+function pdfLibFake({ paginas = 48, falharEm = null } = {}) {
+  const pedidos = [];
+  const lib = {
+    pedidos,
+    PDFDocument: {
+      load: async () => ({ getPageCount: () => paginas, _original: true }),
+      create: async () => {
+        const doc = { paginas: [], addPage(p) { this.paginas.push(p); },
+          async copyPages(_orig, indices) {
+            if (falharEm != null && indices.includes(falharEm)) throw new Error('página ruim');
+            pedidos.push(indices);
+            return indices.map(i => ({ indice: i }));
+          },
+          async save() { return new Uint8Array([37, 80, 68, 70]); } };
+        doc.copyPages = doc.copyPages.bind(doc);
+        return doc;
+      },
+    },
+  };
+  return lib;
+}
+
+function storageFake({ falhar = false } = {}) {
+  const enviados = [];
+  return {
+    enviados,
+    caminho: (comp, id) => `${comp}/${id}.pdf`,
+    upload: async (path, blob) => {
+      if (falhar) throw new Error('sem permissão');
+      enviados.push({ path, tamanho: blob.size ?? 0 });
+      return path;
+    },
+  };
+}
+
+// Duas pessoas, uma por página — como sai o PDF de verdade.
+const DUAS_PAGINAS = [
+  [...via({}), ...via({})],
+  [...via({ codigo: '49', nome: 'ALESSANDRO RIBEIRO', base: '2.800,00' }),
+    ...via({ codigo: '49', nome: 'ALESSANDRO RIBEIRO', base: '2.800,00' })],
+];
+
+const comAnexo = (extra = {}) => montar({
+  linhas: DUAS_PAGINAS,
+  folhaCompetencia: { upsertEmLote: async (l) => { (extra._linhas ||= []).push(l); return l; } },
+  storage: extra.storage || storageFake(),
+  pdfLib: extra.pdfLib || pdfLibFake(),
+  ...extra.resto,
+});
+
+describe('anexo do holerite', () => {
+  it('recorta a página de cada pessoa e manda uma por colaborador', async () => {
+    const storage = storageFake();
+    const pdfLib = pdfLibFake();
+    const { mod } = await comAnexo({ storage, pdfLib });
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+
+    // pdf.js numera de 1; o pdf-lib, de 0.
+    expect(pdfLib.pedidos).toEqual([[0], [1]]);
+    expect(storage.enviados.map(e => e.path)).toEqual(['2026-09/1.pdf', '2026-09/2.pdf']);
+  });
+
+  it('o caminho do arquivo entra na mesma gravação do histórico', async () => {
+    const guardado = {};
+    const { mod } = await comAnexo({ _linhas: guardado.linhas = [] });
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+
+    const linhas = guardado.linhas[0];
+    expect(linhas.map(l => l.holerite_path)).toEqual(['2026-09/1.pdf', '2026-09/2.pdf']);
+    expect(linhas[0].holerite_nome).toContain('Adão Ribeiro');
+  });
+
+  it('quem continua na folha seguinte leva as duas páginas', async () => {
+    const pdfLib = pdfLibFake();
+    const continuada = [
+      [...via({}).map(l => l.includes('Valor Líquido')
+        ? 'A TRANSPORTAR ********* *********' : l)],
+      [...via({}), ...via({})],
+    ];
+    const { mod } = await comAnexo({ pdfLib, resto: { linhas: continuada } });
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+    expect(pdfLib.pedidos[0]).toEqual([0, 1]);
+  });
+
+  it('falha ao anexar não derruba a importação — o número é o que não pode sumir', async () => {
+    const { mod, gravado } = await comAnexo({ storage: storageFake({ falhar: true }) });
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+
+    // Os salários foram gravados mesmo sem anexo nenhum.
+    expect(gravado.criados.length + gravado.atualizados.length).toBeGreaterThan(0);
+    expect(gravado.toasts.some(([m, t]) => t === 'err' && /não puderam ser anexados/.test(m))).toBe(true);
+  });
+
+  it('sem o recortador disponível, importa sem anexo e avisa', async () => {
+    const { mod, gravado } = await montar({
+      linhas: DUAS_PAGINAS,
+      folhaCompetencia: { upsertEmLote: async (l) => l },
+      storage: storageFake(),
+      pdfLib: null,
+      // carregarPdfLib não injetado: o módulo tentaria o CDN, que não existe aqui.
+    });
+    mod.carregarPdfLib = async () => { throw new Error('offline'); };
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+
+    expect(gravado.criados.length + gravado.atualizados.length).toBeGreaterThan(0);
+    expect(gravado.toasts.some(([m]) => /sem os holerites anexados/.test(m))).toBe(true);
+  });
+
+  it('sem sessão não tenta anexar nada', async () => {
+    const storage = storageFake();
+    const { mod } = await montar({
+      linhas: DUAS_PAGINAS, comSessao: false,
+      folhaCompetencia: { upsertEmLote: async (l) => l },
+      storage, pdfLib: pdfLibFake(),
+    });
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+    expect(storage.enviados).toHaveLength(0);
+  });
+
+  it('página fora do arquivo é descartada em vez de recortar errado', async () => {
+    const storage = storageFake();
+    const { mod } = await comAnexo({ storage, pdfLib: pdfLibFake({ paginas: 1 }) });
+    await mod.lerArquivo(pdfFalso());
+    await mod.confirmar();
+    // Só a primeira pessoa está dentro do arquivo de 1 página.
+    expect(storage.enviados.map(e => e.path)).toEqual(['2026-09/1.pdf']);
   });
 });

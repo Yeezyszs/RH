@@ -68,6 +68,7 @@ const globaisDoProjeto = {
   'SacMensagens': 'writable',
   'Salarios': 'writable',
   'StorageDocs': 'writable',
+  'StorageHolerites': 'writable',
   'CAT': 'writable',
   'CatAcidentes': 'writable',
   'PLANO_ACAO': 'writable',
