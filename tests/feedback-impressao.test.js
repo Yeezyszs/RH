@@ -230,6 +230,25 @@ describe('ligação com a tela', () => {
     expect(html).toContain('data-action="imprimirFormularioFeedback"');
   });
 
+  it('a ficha encolhe até caber em uma folha, se precisar', async () => {
+    // Medir o papel aqui não basta: a mesma ficha ocupa alturas diferentes em
+    // máquinas diferentes (fonte do sistema, cabeçalho do navegador, escala do
+    // diálogo). Uma ficha que cabia na medição voltou com as assinaturas na
+    // segunda página. O documento se mede no contexto de impressão.
+    const { mod, impressos } = await montar();
+    mod.imprimirFeedback(7);
+    expect(impressos[0].opcoes.caberEmUmaPagina).toEqual({ seletor: '.ff', alturaMm: 240 });
+  });
+
+  it('o encolhimento tem piso — folha ilegível não resolve nada', async () => {
+    const relatorio = readFileSync(new URL('../src/utils/relatorio.js', import.meta.url), 'utf8');
+    expect(relatorio).toContain('function scriptCaber');
+    // A régua é em milímetros: em pixels dependeria da resolução, que é
+    // justamente o que varia entre as máquinas.
+    expect(relatorio).toContain('height:100mm');
+    expect(relatorio).toMatch(/Math\.max\(0\.65/);
+  });
+
   it('a ficha manda na própria margem de impressão', async () => {
     // A ficha é de UMA página. Ela cabia com folga no papel medido, mas na
     // impressão real a margem do body (12mm, do estilo dos relatórios) somava

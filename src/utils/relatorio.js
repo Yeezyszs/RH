@@ -186,6 +186,42 @@
   }
 
   /**
+   * Encolhe o documento, na hora de imprimir, até ele caber em uma folha.
+   *
+   * Existe porque medir o papel aqui não basta. A mesma ficha ocupa alturas
+   * diferentes em máquinas diferentes: a fonte do sistema muda (Segoe UI no
+   * Windows, outra no Linux), o navegador reserva espaço para o cabeçalho e o
+   * rodapé que imprime, e a escala do diálogo de impressão é do usuário. Uma
+   * ficha medida aqui com folga voltou com as assinaturas na segunda página.
+   *
+   * Em vez de apertar o desenho até caber no pior caso imaginado, o documento
+   * se mede quando já está no contexto de impressão e aplica o zoom que falta.
+   * Quem cabe não encolhe nada; quem não cabe sai 10% menor em vez de sair em
+   * duas folhas.
+   *
+   * A medida é em MILÍMETROS, tirada de uma régua no próprio documento — em
+   * pixels dependeria da resolução, que é justamente o que varia.
+   *
+   * @param {{seletor: string, alturaMm: number}} opcao
+   */
+  function scriptCaber(opcao) {
+    const seletor  = String(opcao.seletor || 'main').replace(/'/g, '');
+    const alturaMm = Number(opcao.alturaMm) || 240;
+    return 'try{'
+      + 'var r=document.createElement("div");'
+      + 'r.style.cssText="position:absolute;top:0;left:0;width:0;height:100mm;visibility:hidden";'
+      + 'document.body.appendChild(r);'
+      + 'var mm=r.offsetHeight/100;r.remove();'
+      + 'var el=document.querySelector("' + seletor + '");'
+      + 'if(el&&mm>0){'
+        + 'var limite=' + alturaMm + '*mm,alt=el.getBoundingClientRect().height;'
+        // Piso de 0,65: abaixo disso a letra fica pequena demais para o papel
+        // ser assinado e lido, e aí duas folhas legíveis são melhores.
+        + 'if(alt>limite)el.style.zoom=Math.max(0.65,limite/alt);'
+      + '}}catch(e){}';
+  }
+
+  /**
    * Abre a janela de impressão com um corpo pronto.
    *
    * Existe para que um módulo possa imprimir UM registro — uma ficha de
@@ -195,11 +231,14 @@
    *
    * @param {string} titulo    título do documento e da aba
    * @param {string} corpoHtml conteúdo já montado pelo módulo
-   * @param {{rodape?: string, estilo?: string, moldura?: boolean}} [opcoes]
+   * @param {{rodape?: string, estilo?: string, moldura?: boolean,
+   *          caberEmUmaPagina?: {seletor: string, alturaMm: number}}} [opcoes]
    *   `estilo`  — CSS do próprio documento, somado ao do papel.
    *   `moldura` — false para o corpo sair sozinho, sem o cabeçalho e o rodapé
    *               padrão. É o caso de um formulário com papel timbrado
    *               próprio, que ficaria com dois cabeçalhos.
+   *   `caberEmUmaPagina` — encolhe o elemento até a altura dada, se preciso.
+   *               Ver `scriptCaber`.
    */
   function imprimirDocumento(titulo, corpoHtml, opcoes = {}) {
     const agora = new Date().toLocaleString('pt-BR');
@@ -219,7 +258,9 @@
         : '') +
       '<main>' + corpoHtml + '</main>' +
       (comMoldura ? '<div class="rpt-foot">' + rodape + '</div>' : '') +
-      '<scr' + 'ipt>window.onload=function(){setTimeout(function(){window.print();},250);};</scr' + 'ipt>' +
+      '<scr' + 'ipt>window.onload=function(){'
+        + (opcoes.caberEmUmaPagina ? scriptCaber(opcoes.caberEmUmaPagina) : '')
+        + 'setTimeout(function(){window.print();},250);};</scr' + 'ipt>' +
       '</body></html>';
 
     const win = window.open('', '_blank');

@@ -194,7 +194,16 @@ export class FeedbackClimaModule {
       montarFichaFeedback(dados, { h: this.h, fmtDate: this.fmtDate }),
       // A ficha tem papel timbrado próprio: com a moldura padrão sairiam dois
       // cabeçalhos e dois rodapés na mesma folha.
-      { moldura: false, estilo: ESTILO_FICHA, rodape: RODAPE_FICHA },
+      //
+      // E é uma ficha de UMA página: se na máquina de quem imprime ela sair
+      // mais alta — outra fonte do sistema, cabeçalho do navegador, escala do
+      // diálogo —, encolhe até caber em vez de jogar as assinaturas para a
+      // segunda folha. 240mm é o A4 menos as margens e o espaço que o
+      // navegador reserva para o que ele mesmo imprime.
+      {
+        moldura: false, estilo: ESTILO_FICHA, rodape: RODAPE_FICHA,
+        caberEmUmaPagina: { seletor: '.ff', alturaMm: 240 },
+      },
     );
   }
 
