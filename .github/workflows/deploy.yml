@@ -27,6 +27,7 @@ jobs:
       contents: read
       pages: write
       id-token: write
+      actions: read   # para conferir se o artefato já aparece na API
 
     concurrency:
       group: pages
@@ -66,6 +67,30 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site/
+
+      # O deploy-pages busca o artefato pela API cerca de 0,3s depois do upload.
+      # Em 25/11 ele falhou duas vezes seguidas com "Found 0 artifact(s)" — e o
+      # log do passo anterior mostrava o upload concluído, com ID e tudo: o
+      # artefato existia, só ainda não aparecia na listagem. O deploy quebrava
+      # por atraso de indexação do GitHub, e o sistema ficava publicado numa
+      # versão antiga sem ninguém perceber (os testes passam, o deploy some).
+      #
+      # Esperar o artefato aparecer custa segundos e tira essa aresta.
+      - name: Esperar o artefato aparecer na API
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 15); do
+            n=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+                  --jq '[.artifacts[] | select(.name=="github-pages")] | length' || echo 0)
+            if [ "${n:-0}" -ge 1 ]; then
+              echo "artefato visível na tentativa $i"
+              exit 0
+            fi
+            echo "ainda não listado (tentativa $i); aguardando 4s"
+            sleep 4
+          done
+          echo "::warning::o artefato não apareceu na API em 60s; seguindo mesmo assim"
 
       - name: Deploy para GitHub Pages
         id: deployment
