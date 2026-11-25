@@ -190,8 +190,8 @@ describe('ficha em branco, para preencher à mão', () => {
     const { impressos } = await abrirFormulario();
     const corpo = impressos[0].corpo;
     expect(marcadas(corpo)).toBe(0);
-    // Dois blocos de texto com 3 linhas cada; o plano de ação virou tabela.
-    expect(linhasPautadas(corpo)).toBe(6);
+    // Dois blocos de texto com 4 linhas cada; o plano de ação virou tabela.
+    expect(linhasPautadas(corpo)).toBe(8);
     expect(linhasDoPlano(corpo)).toBe(4);
     expect(corpo).toContain('Assinatura do colaborador');
   });
@@ -216,7 +216,7 @@ describe('ficha em branco, para preencher à mão', () => {
 
     expect(impressos).toHaveLength(1);
     expect(impressos[0].titulo).toBe('Ficha de Feedback');
-    expect(linhasPautadas(impressos[0].corpo)).toBe(6);
+    expect(linhasPautadas(impressos[0].corpo)).toBe(8);
   });
 });
 
@@ -228,6 +228,17 @@ describe('ligação com a tela', () => {
 
   it('o botão do modal chama a impressão do formulário', async () => {
     expect(html).toContain('data-action="imprimirFormularioFeedback"');
+  });
+
+  it('a ficha manda na própria margem de impressão', async () => {
+    // A ficha é de UMA página. Ela cabia com folga no papel medido, mas na
+    // impressão real a margem do body (12mm, do estilo dos relatórios) somava
+    // com a que o navegador aplica por conta, e só as assinaturas vazavam
+    // para a segunda folha. A regra @page é o que fecha isso — sem ela o
+    // defeito volta sem nenhum teste reclamar.
+    const { ESTILO_FICHA } = await import('../src/utils/ficha-feedback.js');
+    expect(ESTILO_FICHA).toMatch(/@page\s*{[^}]*size:\s*A4/);
+    expect(ESTILO_FICHA).toMatch(/@media print\s*{[^}]*body\s*{\s*margin:\s*0/);
   });
 
   it('o gerador de documento é o mesmo do resto do sistema', async () => {

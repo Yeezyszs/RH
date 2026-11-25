@@ -35,11 +35,11 @@ export const ESTILO_FICHA = `
   .ff { color: #353729; max-width: 185mm; margin: 0 auto; }
   .ff-topo {
     display: flex; align-items: center; gap: 18px;
-    border: 1px solid #DDE7D6; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px;
+    border: 1px solid #DDE7D6; border-radius: 12px; padding: 10px 16px; margin-bottom: 9px;
   }
-  .ff-logo { width: 128px; height: auto; flex-shrink: 0; }
+  .ff-logo { width: 112px; height: auto; flex-shrink: 0; }
   .ff-topo-texto { flex: 1; }
-  .ff-topo h1 { font-size: 23px; margin: 0; letter-spacing: .01em; color: #353729; }
+  .ff-topo h1 { font-size: 21px; margin: 0; letter-spacing: .01em; color: #353729; }
   .ff-topo p { margin: 3px 0 0; font-size: 11.5px; color: #677068; }
   .ff-tag {
     background: #E5EEE0; color: #4C6B3D; border-radius: 20px; padding: 5px 14px;
@@ -48,15 +48,15 @@ export const ESTILO_FICHA = `
   }
   .ff-secao {
     font-size: 12.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
-    color: #729D62; margin: 14px 0 3px;
+    color: #729D62; margin: 9px 0 2px;
   }
-  .ff-ajuda { font-size: 10.5px; color: #677068; margin: 0 0 6px; }
+  .ff-ajuda { font-size: 10.5px; color: #677068; margin: 0 0 4px; }
   .ff-cartao {
-    border: 1px solid #DDE7D6; border-radius: 10px; padding: 11px 16px;
+    border: 1px solid #DDE7D6; border-radius: 10px; padding: 9px 14px;
     background: #FDFEFC; page-break-inside: avoid;
     print-color-adjust: exact; -webkit-print-color-adjust: exact;
   }
-  .ff-ident { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 40px; }
+  .ff-ident { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 40px; }
   .ff-rotulo { display: block; font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase; color: #677068; }
   .ff-valor { display: block; font-size: 14px; font-weight: 700; margin-top: 2px; min-height: 18px; }
   /* A mesma grade da linha de cima: "Data" cai sob "Setor", e não no canto. */
@@ -65,7 +65,7 @@ export const ESTILO_FICHA = `
   .ff-preencher b { font-weight: 600; color: #353729; text-transform: none; letter-spacing: 0; }
   .ff-preencher .ff-vazio { display: inline-block; width: 150px; border-bottom: 1px solid #9EA79C; }
 
-  .ff-comp { display: flex; align-items: center; gap: 16px; padding: 7px 0; border-bottom: 1px solid #EDF2E9; }
+  .ff-comp { display: flex; align-items: center; gap: 16px; padding: 5px 0; border-bottom: 1px solid #EDF2E9; }
   .ff-comp:last-child { border-bottom: 0; }
   .ff-comp-nome { flex: 1; }
   .ff-comp-nome strong { display: block; font-size: 12px; }
@@ -79,7 +79,7 @@ export const ESTILO_FICHA = `
   .ff-escala i.on { background: #729D62; border-color: #729D62; color: #fff; font-weight: 700; }
   .ff-legenda { font-size: 9.5px; color: #677068; margin: 6px 0 0; letter-spacing: .04em; }
 
-  .ff-linha { border-bottom: 1px solid #DDE7D6; height: 17px; }
+  .ff-linha { border-bottom: 1px solid #DDE7D6; height: 15px; }
   .ff-texto { font-size: 11.5px; line-height: 1.55; white-space: pre-wrap; }
 
   .ff-plano { width: 100%; border-collapse: collapse; }
@@ -87,17 +87,27 @@ export const ESTILO_FICHA = `
     font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase; color: #677068;
     text-align: left; font-weight: 700; padding: 0 8px 7px 0; border: 0; border-bottom: 1px solid #DDE7D6;
   }
-  .ff-plano td { font-size: 11px; padding: 0 8px 0 0; border: 0; border-bottom: 1px solid #DDE7D6; height: 20px; vertical-align: bottom; }
+  .ff-plano td { font-size: 11px; padding: 0 8px 0 0; border: 0; border-bottom: 1px solid #DDE7D6; height: 18px; vertical-align: bottom; }
   .ff-plano .col-resp { width: 26%; }
   .ff-plano .col-prazo { width: 18%; }
 
-  .ff-revisao { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #353729; margin: 12px 0 0; }
+  .ff-revisao { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #353729; margin: 9px 0 0; }
   .ff-aviso {
-    background: #EEF5EA; border-radius: 8px; padding: 9px 14px; font-size: 10.5px; color: #4C6B3D;
+    background: #EEF5EA; border-radius: 8px; padding: 7px 14px; font-size: 10.5px; color: #4C6B3D;
     print-color-adjust: exact; -webkit-print-color-adjust: exact;
   }
-  .ff-assinaturas { display: flex; gap: 56px; margin-top: 26px; page-break-inside: avoid; }
+  .ff-assinaturas { display: flex; gap: 56px; margin-top: 16px; page-break-inside: avoid; }
   .ff-assinaturas div { flex: 1; border-top: 1px solid #353729; padding-top: 6px; text-align: center; font-size: 10.5px; color: #677068; }
+
+  /* A ficha é de UMA página, e para isso manda na própria margem.
+     Sem a regra, a margem do papel dos relatórios (12mm no body) soma com a
+     que o navegador aplica por conta e sobra menos folha do que a ficha ocupa
+     — era assim que só as assinaturas vazavam para a segunda página. */
+  @page { size: A4; margin: 12mm; }
+  @media print {
+    body { margin: 0; }
+    .ff { max-width: none; }
+  }
 `;
 
 /** Linhas pautadas para escrever à mão. */
@@ -182,8 +192,8 @@ export function montarFichaFeedback(d = {}, { h, fmtDate }) {
       <div class="ff-cartao">${competencias}</div>
       <p class="ff-legenda">ESCALA: ${ESCALA.map(([n, r]) => `${n} = ${r}`).join('  |  ')}</p>
 
-      ${bloco('Pontos fortes', 'O que o colaborador faz bem e deve manter', texto(d.pontos_fortes), 3)}
-      ${bloco('Pontos a desenvolver', 'Oportunidades de melhoria identificadas', texto(d.pontos_desenvolver), 3)}
+      ${bloco('Pontos fortes', 'O que o colaborador faz bem e deve manter', texto(d.pontos_fortes), 4)}
+      ${bloco('Pontos a desenvolver', 'Oportunidades de melhoria identificadas', texto(d.pontos_desenvolver), 4)}
 
       <h2 class="ff-secao">Plano de ação e acompanhamento</h2>
       <p class="ff-ajuda">Registre os compromissos definidos durante a conversa.</p>
